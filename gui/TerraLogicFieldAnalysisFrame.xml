@@ -26,11 +26,14 @@
             </Button>
         </BoxLayout>
         <ThreePartBitmap profile="fs25_lineSeparatorTopHighlighted" position="-10px -57px" size="1550px 4px" />
-        <MultiTextOption profile="fs25_subCategorySelectorTabbed" id="subCategoryPaging" position="-10px -10px" onClick="updateSubCategoryPages" focusInit="onOpen" />
 
         <!-- Overview: condition, expected TerraLogic yield, and the three most useful actions. -->
         <GuiElement profile="terraLogicAnalysisPage" id="subCategoryPages[1]">
-            <Text profile="terraLogicAnalysisNote" id="scopeOverviewText" position="0px -8px" size="1550px 26px" />
+            <Button profile="terraLogicAnalysisHelpButton" id="fieldPrevious[1]" position="0px -2px" size="36px 32px" text="&lt;" onClick="onClickFieldPrevious" />
+            <Button profile="terraLogicAnalysisFieldSelection" id="scopeOverviewText" position="46px -2px" size="954px 32px" onClick="onClickFieldBrowser" />
+            <Button profile="terraLogicAnalysisHelpButton" id="fieldNext[1]" position="1010px -2px" size="36px 32px" text="&gt;" onClick="onClickFieldNext" />
+            <Text profile="terraLogicAnalysisSelectionNote" id="fieldSelectionNote[1]" position="1080px -2px" size="460px 32px" />
+            <ThreePartBitmap profile="terraLogicAnalysisCardSeparator" position="-10px -37px" size="1550px 2px" />
             <GuiElement profile="terraLogicAnalysisCard" position="0px -42px" size="500px 550px">
                 <Text profile="terraLogicAnalysisCardHeader" position="20px -10px" size="460px 42px" text="$l10n_terraLogic_fa_ui_soilCondition" />
                 <ThreePartBitmap profile="terraLogicAnalysisCardSeparator" position="20px -51px" size="460px 2px" />
@@ -93,7 +96,11 @@
 
         <!-- Soil: all five persistent values plus the weather state relevant to field work. -->
         <GuiElement profile="terraLogicAnalysisPage" id="subCategoryPages[2]">
-            <Text profile="terraLogicAnalysisNote" id="scopeSoilText" position="0px -8px" size="1550px 26px" />
+            <Button profile="terraLogicAnalysisHelpButton" id="fieldPrevious[2]" position="0px -2px" size="36px 32px" text="&lt;" onClick="onClickFieldPrevious" />
+            <Button profile="terraLogicAnalysisFieldSelection" id="scopeSoilText" position="46px -2px" size="954px 32px" onClick="onClickFieldBrowser" />
+            <Button profile="terraLogicAnalysisHelpButton" id="fieldNext[2]" position="1010px -2px" size="36px 32px" text="&gt;" onClick="onClickFieldNext" />
+            <Text profile="terraLogicAnalysisSelectionNote" id="fieldSelectionNote[2]" position="1080px -2px" size="460px 32px" />
+            <ThreePartBitmap profile="terraLogicAnalysisCardSeparator" position="-10px -37px" size="1550px 2px" />
             <GuiElement profile="terraLogicAnalysisCard" position="0px -42px" size="760px 600px">
                 <Text profile="terraLogicAnalysisCardHeader" position="20px -10px" size="720px 42px" text="$l10n_terraLogic_fa_ui_persistentSoil" />
                 <ThreePartBitmap profile="terraLogicAnalysisCardSeparator" position="20px -51px" size="720px 2px" />
@@ -139,7 +146,11 @@
 
         <!-- Results: recorded Work Quality and its yield consequences in one place. -->
         <GuiElement profile="terraLogicAnalysisPage" id="subCategoryPages[3]">
-            <Text profile="terraLogicAnalysisNote" id="scopeYieldText" position="0px -8px" size="1550px 26px" />
+            <Button profile="terraLogicAnalysisHelpButton" id="fieldPrevious[3]" position="0px -2px" size="36px 32px" text="&lt;" onClick="onClickFieldPrevious" />
+            <Button profile="terraLogicAnalysisFieldSelection" id="scopeYieldText" position="46px -2px" size="954px 32px" onClick="onClickFieldBrowser" />
+            <Button profile="terraLogicAnalysisHelpButton" id="fieldNext[3]" position="1010px -2px" size="36px 32px" text="&gt;" onClick="onClickFieldNext" />
+            <Text profile="terraLogicAnalysisSelectionNote" id="fieldSelectionNote[3]" position="1080px -2px" size="460px 32px" />
+            <ThreePartBitmap profile="terraLogicAnalysisCardSeparator" position="-10px -37px" size="1550px 2px" />
             <GuiElement profile="terraLogicAnalysisCard" position="0px -42px" size="500px 550px">
                 <Text profile="terraLogicAnalysisCardHeader" position="20px -10px" size="460px 42px" text="$l10n_terraLogic_fa_ui_workQuality" />
                 <ThreePartBitmap profile="terraLogicAnalysisCardSeparator" position="20px -51px" size="460px 2px" />
@@ -196,7 +207,11 @@
 
         <!-- Weather: current physical state and its practical consequences. -->
         <GuiElement profile="terraLogicAnalysisPage" id="subCategoryPages[4]">
-            <Text profile="terraLogicAnalysisNote" id="scopeWeatherText" position="0px -8px" size="1550px 26px" />
+            <Button profile="terraLogicAnalysisHelpButton" id="fieldPrevious[4]" position="0px -2px" size="36px 32px" text="&lt;" onClick="onClickFieldPrevious" />
+            <Button profile="terraLogicAnalysisFieldSelection" id="scopeWeatherText" position="46px -2px" size="954px 32px" onClick="onClickFieldBrowser" />
+            <Button profile="terraLogicAnalysisHelpButton" id="fieldNext[4]" position="1010px -2px" size="36px 32px" text="&gt;" onClick="onClickFieldNext" />
+            <Text profile="terraLogicAnalysisSelectionNote" id="fieldSelectionNote[4]" position="1080px -2px" size="460px 32px" />
+            <ThreePartBitmap profile="terraLogicAnalysisCardSeparator" position="-10px -37px" size="1550px 2px" />
             <GuiElement profile="terraLogicAnalysisCard" position="0px -42px" size="760px 550px">
                 <Text profile="terraLogicAnalysisCardHeader" position="20px -10px" size="720px 42px" text="$l10n_terraLogic_fa_ui_weatherState" />
                 <ThreePartBitmap profile="terraLogicAnalysisCardSeparator" position="20px -51px" size="720px 2px" />
@@ -241,7 +256,11 @@
 
         <!-- Advice: the complete ordered cause/effect/action list. -->
         <GuiElement profile="terraLogicAnalysisPage" id="subCategoryPages[6]">
-            <Text profile="terraLogicAnalysisNote" id="scopeAdviceText" position="0px -8px" size="1550px 26px" />
+            <Button profile="terraLogicAnalysisHelpButton" id="fieldPrevious[5]" position="0px -2px" size="36px 32px" text="&lt;" onClick="onClickFieldPrevious" />
+            <Button profile="terraLogicAnalysisFieldSelection" id="scopeAdviceText" position="46px -2px" size="954px 32px" onClick="onClickFieldBrowser" />
+            <Button profile="terraLogicAnalysisHelpButton" id="fieldNext[5]" position="1010px -2px" size="36px 32px" text="&gt;" onClick="onClickFieldNext" />
+            <Text profile="terraLogicAnalysisSelectionNote" id="fieldSelectionNote[5]" position="1080px -2px" size="460px 32px" />
+            <ThreePartBitmap profile="terraLogicAnalysisCardSeparator" position="-10px -37px" size="1550px 2px" />
             <GuiElement profile="terraLogicAnalysisCard" position="0px -42px" size="500px 550px">
                 <Text profile="terraLogicAnalysisCardHeader" position="20px -10px" size="460px 42px" text="$l10n_terraLogic_fa_ui_currentConditions" />
                 <ThreePartBitmap profile="terraLogicAnalysisCardSeparator" position="20px -51px" size="460px 2px" />
@@ -262,7 +281,11 @@
 
         <!-- Planner: class forecast plus the instantaneous attached setup. -->
         <GuiElement profile="terraLogicAnalysisPage" id="subCategoryPages[7]">
-            <Text profile="terraLogicAnalysisNote" id="scopePlannerText" position="0px -8px" size="1550px 26px" />
+            <Button profile="terraLogicAnalysisHelpButton" id="fieldPrevious[6]" position="0px -2px" size="36px 32px" text="&lt;" onClick="onClickFieldPrevious" />
+            <Button profile="terraLogicAnalysisFieldSelection" id="scopePlannerText" position="46px -2px" size="954px 32px" onClick="onClickFieldBrowser" />
+            <Button profile="terraLogicAnalysisHelpButton" id="fieldNext[6]" position="1010px -2px" size="36px 32px" text="&gt;" onClick="onClickFieldNext" />
+            <Text profile="terraLogicAnalysisSelectionNote" id="fieldSelectionNote[6]" position="1080px -2px" size="460px 32px" />
+            <ThreePartBitmap profile="terraLogicAnalysisCardSeparator" position="-10px -37px" size="1550px 2px" />
             <GuiElement profile="terraLogicAnalysisCard" position="0px -42px" size="500px 550px">
                 <Text profile="terraLogicAnalysisCardHeader" position="20px -10px" size="410px 42px" text="$l10n_terraLogic_fa_planner_ui_operation" />
                 <Button profile="terraLogicAnalysisHelpButton" position="450px -12px" text="?" onClick="onClickHelpPlannerOperation" />
@@ -322,7 +345,11 @@
             <Text profile="terraLogicAnalysisNote" position="0px -610px" size="1550px 55px" text="$l10n_terraLogic_fa_planner_ui_disclaimer" textAlignment="center" />
         </GuiElement>
         <GuiElement profile="terraLogicAnalysisPage" id="subCategoryPages[8]">
-            <Text profile="terraLogicAnalysisNote" id="scopeFieldMapText" position="0px -8px" size="1550px 26px" />
+            <Button profile="terraLogicAnalysisHelpButton" id="fieldPrevious[7]" position="0px -2px" size="36px 32px" text="&lt;" onClick="onClickFieldPrevious" />
+            <Button profile="terraLogicAnalysisFieldSelection" id="scopeFieldMapText" position="46px -2px" size="954px 32px" onClick="onClickFieldBrowser" />
+            <Button profile="terraLogicAnalysisHelpButton" id="fieldNext[7]" position="1010px -2px" size="36px 32px" text="&gt;" onClick="onClickFieldNext" />
+            <Text profile="terraLogicAnalysisSelectionNote" id="fieldSelectionNote[7]" position="1080px -2px" size="460px 32px" />
+            <ThreePartBitmap profile="terraLogicAnalysisCardSeparator" position="-10px -37px" size="1550px 2px" />
             <GuiElement profile="terraLogicAnalysisCard" position="0px -42px" size="250px 550px">
                 <Text profile="terraLogicAnalysisCardHeader" position="20px -10px" size="210px 42px" text="$l10n_terraLogic_fa_map_layers" />
                 <ThreePartBitmap profile="terraLogicAnalysisCardSeparator" position="20px -51px" size="210px 2px" />
@@ -340,5 +367,28 @@
                 <Text profile="terraLogicAnalysisNote" id="fieldMapStatusText" position="20px -492px" size="1235px 38px" textAlignment="center" />
             </GuiElement>
         </GuiElement>
+        <GuiElement profile="terraLogicAnalysisPage" id="fieldBrowserPanel" visible="false">
+            <Text profile="terraLogicAnalysisCardHeader" position="20px -2px" size="900px 38px" text="$l10n_terraLogic_fa_browserTitle" />
+            <Button profile="terraLogicAnalysisMapButton" position="1290px -2px" size="230px 38px" text="$l10n_terraLogic_fa_browserBack" onClick="closeFieldBrowser" />
+            <Text profile="terraLogicAnalysisLabel" position="40px -55px" size="700px 32px" text="$l10n_terraLogic_fa_browserField" />
+            <Text profile="terraLogicAnalysisLabel" position="770px -55px" size="260px 32px" text="$l10n_terraLogic_fa_browserArea" />
+            <Text profile="terraLogicAnalysisLabel" position="1100px -55px" size="370px 32px" text="$l10n_terraLogic_fa_ui_overall" />
+            <ThreePartBitmap profile="terraLogicAnalysisCardSeparator" position="-10px -92px" size="1550px 2px" />
+            <GuiElement profile="terraLogicAnalysisCard" position="20px -105px" size="1470px 455px">
+                <SmoothList id="fieldBrowserList" visible="true">
+                    <ListItem profile="terraLogicAnalysisFieldListRow" name="default" onClick="onClickBrowserField">
+                        <Text profile="terraLogicAnalysisFieldListText" name="fieldName" position="20px 0px" size="700px 38px" />
+                        <Text profile="terraLogicAnalysisFieldListText" name="fieldArea" position="750px 0px" size="260px 38px" />
+                        <Text profile="terraLogicAnalysisFieldListText" name="fieldCondition" position="1080px 0px" size="350px 38px" />
+                    </ListItem>
+                </SmoothList>
+                <ThreePartBitmap profile="fs25_listSliderBox" anchor="topRight">
+                    <Slider profile="fs25_listSlider" dataElementId="fieldBrowserList" />
+                </ThreePartBitmap>
+                <Text profile="terraLogicAnalysisBody" id="fieldBrowserEmpty" position="20px -10px" size="1300px 80px" text="$l10n_terraLogic_fa_browserEmpty" />
+            </GuiElement>
+            <Text profile="terraLogicAnalysisNote" position="20px -580px" size="1480px 60px" text="$l10n_terraLogic_fa_browserHint" />
+        </GuiElement>
+        <MultiTextOption profile="fs25_subCategorySelectorTabbed" id="subCategoryPaging" position="-10px -6px" onClick="updateSubCategoryPages" focusInit="onOpen" />
     </GuiElement>
 </GUI>

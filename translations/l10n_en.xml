@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <l10n>
     <elements>
+        <e k="terraLogic_fa_ownedFields" v="Selection %d of %d" />
+        <e k="terraLogic_fa_findingFields" v="Searching for additional fields …" />
+        <e k="terraLogic_fa_browserTitle" v="Select a field" />
+        <e k="terraLogic_fa_browserField" v="Field" />
+        <e k="terraLogic_fa_browserCustom" v="Custom Field %d" />
+        <e k="terraLogic_fa_browserArea" v="Area" />
+        <e k="terraLogic_fa_browserBack" v="Back to analysis" />
+        <e k="terraLogic_fa_browserUnknown" v="Not yet assessed" />
+        <e k="terraLogic_fa_browserEmpty" v="No fields available yet. The search may still be running." />
+        <e k="terraLogic_fa_browserHint" v="Select a field to view its analysis. Condition values show the last assessment and refresh when you select a field. Additional fields appear as the search progresses." />
         <e k="terraLogic_fa_planner_ui_resilienceImpact" v="Resilience impact" />
         <e k="terraLogic_fa_planner_ui_continuityImpact" v="Continuity impact" />
         <e k="terraLogic_fa_impact_strong" v="Strong" />
@@ -23,7 +33,7 @@
         <e k="terraLogic_workQualityPlow" v="Plowing" />
         <e k="terraLogic_workQualitySoil" v="Soil condition" />
         <e k="terraLogic_workQualityCultivate" v="Cultivating" />
-        <e k="terraLogic_workQualitySeed" v="Seeding" />
+        <e k="terraLogic_workQualitySeed" v="Sowing/Planting" />
         <e k="terraLogic_workQualityFertilizer" v="Fertilizing" />
         <e k="terraLogic_workQualityLime" v="Liming" />
         <e k="terraLogic_workQualityHerbicide" v="Weed control" />
@@ -192,7 +202,7 @@
         <e k="terraLogic_help_speed_title" v="Working speed and the Speed HUD" />
         <e k="terraLogic_help_speed_p1" v="When you manually drive a supported machine, TerraLogic removes its fixed working-speed limit. This is freedom, not a new recommendation: you may try to plough at 20 km/h or run a baler faster than intended, but the machine, soil and result respond through increased wear, missed work or material left behind. AI helpers and unsupported machines retain their speed limits to preserve compatibility with mods such as CoursePlay." />
         <e k="terraLogic_help_speed_h2" v="Reading the display at the bottom centre" />
-        <e k="terraLogic_help_speed_p2" v="The work HUD shows speed, Work Quality and load for ready, supported implements. A dash for Work Quality means no work is currently being evaluated. In Dynamic mode it fades after a short period of steady driving in the green range and reappears when speed changes or a warning occurs. Warning duration is adjustable. Green marks the implement's normal speed range, not guaranteed perfect work: soil, moisture, frost and wear may require a slower speed. With several implements, the slowest relevant implement determines the range." />
+        <e k="terraLogic_help_speed_p2" v="The work HUD shows speed, Work Quality and load for ready, supported implements. A dash for Work Quality means no work is currently being evaluated. In Dynamic mode it fades after a short period of steady driving in the green range and reappears when speed changes or a warning occurs. Warning duration is adjustable. Green marks the implement's normal speed range, not guaranteed perfect work: soil, moisture, frost and wear may require a slower speed. With several implements, the slowest relevant implement determines the range. Compaction warnings also appear during transport without a working implement. In that case only the warning card is shown; like the work HUD, it waits five seconds after you enter a vehicle." />
         <e k="terraLogic_help_speed_h3" v="Work Quality and physical misses" />
         <e k="terraLogic_help_speed_p3" v="Alongside unsuitable soil conditions, excessive speed can lower Work Quality and create real missed areas. Seeders may leave unsown patches, sprayers and spreaders untreated strips, and weeders or hoes may leave weeds standing. At extreme speed mechanical weed control may even damage the crop. Mowers, tedders, windrowers, balers and loader-wagon pickups can leave crop or swath material behind depending on field evenness." />
         <e k="terraLogic_help_speed_h4" v="Working speed also changes the soil result" />
@@ -414,10 +424,10 @@
         <e k="terraLogic_fa_ui_rootMoisture" v="Root-zone moisture" />
         <e k="terraLogic_fa_ui_rootZone" v="Root development during growth" />
         <e k="terraLogic_fa_ui_sandyLoam" v="Sandy loam" />
-        <e k="terraLogic_fa_ui_seeding" v="Seeding" />
+        <e k="terraLogic_fa_ui_seeding" v="Sowing/Planting" />
         <e k="terraLogic_fa_ui_seedingResult" v="Precision seeding result" />
         <e k="terraLogic_fa_ui_seedingSuitability" v="Precision seeding now" />
-        <e k="terraLogic_fa_ui_seedingWindow" v="Seeding" />
+        <e k="terraLogic_fa_ui_seedingWindow" v="Sowing/Planting" />
         <e k="terraLogic_fa_ui_siltyClay" v="Silty clay" />
         <e k="terraLogic_fa_ui_soil" v="Soil" />
         <e k="terraLogic_fa_ui_soilCondition" v="Soil condition" />
@@ -664,7 +674,7 @@
         <e k="terraLogic_fa_planner_ui_group_sowing" v="Sowing" />
         <e k="terraLogic_fa_planner_ui_implementMass" v="Attached equipment mass" />
         <e k="terraLogic_fa_planner_ui_noSoilChange" v="The selected implement does not directly work the soil. The tractor and implement wheels can still cause surface and deep compaction." />
-        <e k="terraLogic_fa_planner_ui_fieldRequired" v="Vehicle data remains available. Stand on a field to calculate soil effects, traffic consequences and field-specific recommendations." />
+        <e k="terraLogic_fa_planner_ui_fieldRequired" v="Vehicle data remains available. Use the arrows above to select an owned field, or stand on a field, to calculate soil effects and recommendations." />
         <e k="terraLogic_fa_planner_ui_operation" v="FIELD OPERATION" />
         <e k="terraLogic_fa_planner_ui_oversized" v="This vehicle has a large power reserve while the wheel-load risk is already elevated. A lighter vehicle with sufficient power can reduce unnecessary compaction." />
         <e k="terraLogic_fa_planner_ui_passFormat" v="%d lanes | %.1f km" />
@@ -790,6 +800,7 @@
         <e k="terraLogic_workHudWetDetail" v="Compaction risk increased" />
         <e k="terraLogic_workHudCompactionTitle" v="HIGH COMPACTION RISK" />
         <e k="terraLogic_workHudCompactionDetail" v="Reduce axle load or ground contact pressure" />
+        <e k="terraLogic_workHudWetCompactionDetail" v="Wet soil: reduce load or use wider tires" />
         <e k="terraLogic_workHudOverspeedTitle" v="OVERSPEED" />
         <e k="terraLogic_workHudConditionCauseTitle" v="IMPLEMENT WORN" />
         <e k="terraLogic_workHudSoilCauseTitle" v="UNSUITABLE SOIL" />
@@ -858,7 +869,7 @@
         <e k="terraLogic_fa_map_legendTilth" v="Coarse     Crumbly     Too fine" />
         <e k="terraLogic_fa_map_legendEvenness" v="Even     Moderate     Rough" />
         <e k="terraLogic_fa_map_legendResilience" v="Low     Moderate     High" />
-        <e k="terraLogic_fa_map_noField" v="Stand on a field and refresh the analysis." />
+        <e k="terraLogic_fa_map_noField" v="Select an owned field above or open the analysis while standing on a field." />
         <e k="terraLogic_fa_map_unavailable" v="The soil map is not available." />
         <e k="terraLogic_fa_map_loading" v="Preparing field map..." />
         <e k="terraLogic_fa_ui_soilSensitivity" v="Soil susceptibility" />
@@ -883,5 +894,38 @@
         <e k="terraLogic_fa_ui_meadow" v="Meadow" />
         <e k="terraLogic_settingDebugTitle" v="Debug" />
         <e k="terraLogic_settingDebugTooltip" v="Enable extended logging." />
+        <e k="terraLogic_fa_planner_ui_class_potatoPlanter" v="Potato planter" />
+        <e k="terraLogic_fa_planner_ui_class_vegetablePlanter" v="Vegetable planter" />
+        <e k="terraLogic_fa_planner_ui_class_sugarcanePlanter" v="Sugarcane planter" />
+        <e k="terraLogic_fa_planner_ui_class_ridgeFormer" v="Ridge former" />
+        <e k="terraLogic_fa_planner_ui_class_defoliator" v="Defoliator" />
+        <e k="terraLogic_fa_planner_desc_potatoPlanter" v="Loosens the upper soil, places potatoes and forms ridges. The furrows lower the evenness reading. Potato planters can work with these ridges; compaction, moisture, frost, wear and excessive speed can reduce placement quality and leave gaps." />
+        <e k="terraLogic_fa_planner_desc_vegetablePlanter" v="Plants vegetables in rows and largely preserves existing ridges. On recognized ridged ground, placement accounts for the regular furrow shape. Compacted, cloddy or excessively wet or dry soil and high speed can disrupt planting." />
+        <e k="terraLogic_fa_planner_desc_sugarcanePlanter" v="Opens planting furrows, places sugarcane and closes the furrows again. Tilth and evenness change only slightly. Unsuitable soil conditions, wear and excessive speed can reduce placement quality and leave gaps." />
+        <e k="terraLogic_fa_planner_desc_ridgeFormer" v="Intensively loosens and refines the upper soil and forms ridges with deep furrows. This lowers evenness even when the work is careful. Intensive mixing disturbs soil resilience and biological continuity. Excessive speed, wetness and frost reduce the result." />
+        <e k="terraLogic_fa_planner_desc_defoliator" v="Removes crop tops before harvest. Excessive speed or severe wear can leave tops standing and require another pass. The effect is visible directly in the crop." />
+        <e k="terraLogic_specialPlantingSpeed" v="Excessive speed makes placement less consistent and can leave planting gaps." />
+        <e k="terraLogic_specialPlantingWear" v="Wear makes placement less reliable; check the planter's condition." />
+        <e k="terraLogic_specialPlantingUneven" v="The planter cannot follow this ground consistently. Reduce speed." />
+        <e k="terraLogic_specialPlantingSoil" v="Compaction and tilth make consistent planting more difficult." />
+        <e k="terraLogic_specialPlantingWet" v="Wet soil makes planting furrows harder to open and close." />
+        <e k="terraLogic_specialPlantingDry" v="Very dry soil makes planting furrows harder to open and close." />
+        <e k="terraLogic_specialPlantingFrost" v="Frozen soil prevents reliable opener penetration and can leave planting gaps." />
+        <e k="terraLogic_specialVegetableSpeed" v="Excessive speed disrupts row placement and can leave planting gaps." />
+        <e k="terraLogic_specialVegetableWear" v="Wear reduces consistent placement along the rows." />
+        <e k="terraLogic_specialVegetableUneven" v="The planting units are not following the ground reliably. Reduce speed." />
+        <e k="terraLogic_specialVegetableSoil" v="Compaction and coarse clods make row placement more difficult." />
+        <e k="terraLogic_specialVegetableWet" v="Wet soil smears the planting furrow and reduces placement quality." />
+        <e k="terraLogic_specialVegetableDry" v="Very dry soil makes row placement and soil contact less reliable." />
+        <e k="terraLogic_specialVegetableFrost" v="Frozen soil prevents consistent penetration and can leave planting gaps." />
+        <e k="terraLogic_specialRidgeSpeed" v="Excessive speed weakens loosening and leaves less consistent ridges." />
+        <e k="terraLogic_specialRidgeWear" v="Wear reduces soil refinement and ridge formation." />
+        <e k="terraLogic_specialRidgeUneven" v="Forming ridges on this rough starting surface takes more time. Reduce speed." />
+        <e k="terraLogic_specialRidgeSoil" v="The ridge former has limited ability to loosen and refine this soil in its current state." />
+        <e k="terraLogic_specialRidgeWet" v="Wet soil smears more easily, reducing loosening and ridge formation." />
+        <e k="terraLogic_specialRidgeDry" v="Very dry soil makes refinement and ridge formation more difficult." />
+        <e k="terraLogic_specialRidgeFrost" v="Frozen soil limits penetration and ridge formation." />
+        <e k="terraLogic_specialTopsSpeed" v="Excessive speed leaves tops standing. Slow down and clear the remaining tops." />
+        <e k="terraLogic_specialTopsWear" v="Severe wear can leave tops standing. Check the defoliator's condition." />
     </elements>
 </l10n>

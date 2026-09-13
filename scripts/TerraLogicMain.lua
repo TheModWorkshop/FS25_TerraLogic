@@ -296,6 +296,7 @@ function TerraLogicMain:loadMap(mapNode, mapFile)
     TerraLogicSoilMoistureManager:load()
     TerraLogicSoilManager:load()
     TerraLogicWheelCompactionManager:load()
+    TerraLogicTrafficWarnings:load()
     TerraLogicTutorialManager:load()
     if self:isPrecisionFarmingActive() then
         Logging.info(
@@ -371,6 +372,10 @@ end
 
 -- Performs small deferred maintenance tasks without creating frame-time spikes.
 function TerraLogicMain:update(dt)
+    if TerraLogicPFYieldBridge ~= nil then TerraLogicPFYieldBridge:tick() end
+    if TerraLogicPFHarvestTrace ~= nil and TerraLogicPFHarvestTrace.active ~= nil then
+        TerraLogicPFHarvestTrace.safe("tick")
+    end
     -- Old saves are cleaned incrementally to avoid a load-time density-map
     -- spike on large maps. The smaller budget changes only cleanup duration,
     -- never the stored quality result.
@@ -383,6 +388,7 @@ function TerraLogicMain:update(dt)
     TerraLogicSoilMoistureManager:update(dt)
     TerraLogicSoilManager:update(dt)
     TerraLogicWheelCompactionManager:update(dt)
+    TerraLogicTrafficWarnings:update(dt)
     TerraLogicTutorialManager:update(dt)
     if TerraLogicAuditManager ~= nil then
         TerraLogicAuditManager:update(dt, self)
@@ -666,6 +672,11 @@ end
 
 -- Flushes data and releases HUD resources when leaving a mission.
 function TerraLogicMain:deleteMap()
+    if TerraLogicPFYieldBridge ~= nil then TerraLogicPFYieldBridge:delete() end
+    if TerraLogicWarningEpisodes ~= nil then TerraLogicWarningEpisodes.vehicles = nil end
+    if TerraLogicPFHarvestTrace ~= nil and TerraLogicPFHarvestTrace.active ~= nil then
+        TerraLogicPFHarvestTrace.active:stop("mission closed")
+    end
     if self.soilTraceLogger ~= nil
         and self.soilTraceLogger.active == true then
         self:stopSoilTrace("mission closed")
@@ -684,6 +695,7 @@ function TerraLogicMain:deleteMap()
     TerraLogicSoilTemperatureManager:delete(false)
     TerraLogicSoilMoistureManager:delete(false)
     TerraLogicWheelCompactionManager:delete()
+    TerraLogicTrafficWarnings:delete()
     TerraLogicTutorialManager:delete()
     TerraLogicSoilManager:delete(false)
     if g_inputBinding ~= nil then
@@ -2168,6 +2180,17 @@ end
 function TerraLogicMain:consoleCommandPrecisionFarmingInspect(detail)
     local env = FS25_precisionFarming
     local controller = env ~= nil and env.g_precisionFarming or nil
+    local mode = string.lower(tostring(detail or ""))
+    if mode == "yield" then
+        -- Explicit diagnostic only: not enabled by ordinary extended logging.
+        terraLogicLogRuntimeTable("harvestExtension",
+            controller ~= nil and controller.harvestExtension or nil)
+        return TerraLogicPFHarvestTrace.start(controller, getLocalControlledVehicle())
+    elseif mode == "yieldstop" then
+        return TerraLogicPFHarvestTrace.active ~= nil
+            and TerraLogicPFHarvestTrace.active:stop("console command")
+            or "TerraLogic PF yield trace is not active"
+    end
     local soilMap = controller ~= nil and controller.soilMap or nil
     local soilClass = env ~= nil and env.SoilMap or nil
     local resolvedMap, _, source = self:getPrecisionFarmingSoilMap()
@@ -3018,7 +3041,12 @@ local function getIsSpeedHudImplementReady(implement, requireWorkReady)
         local requiresTurnedOn = implement.spec_turnOnVehicle ~= nil
             or spec.isSurfaceForageTool == true
             or implement.spec_stonePicker ~= nil
-        if requiresTurnedOn and implement.getIsTurnedOn ~= nil then
+        if TerraLogicSpecialImplements.isPassiveSeedFunction(implement)
+            and implement.getIsLowered ~= nil
+            and implement:getIsLowered() == false then return false end
+        if requiresTurnedOn
+            and not TerraLogicSpecialImplements.isPassiveSeedFunction(implement)
+            and implement.getIsTurnedOn ~= nil then
             return lowered and inWorkPosition and implement:getIsTurnedOn() == true
         end
         return lowered and inWorkPosition
@@ -3118,6 +3146,7 @@ local function getSpeedHudWorkQualityComponent(implement)
     elseif implement.spec_cultivator ~= nil or implement.spec_subsoiler ~= nil
         or spec.implementClassKey == "powerHarrow"
         or spec.implementClassKey == "discHarrow"
+        or spec.implementClassKey == "ridgeFormer"
         or spec.implementClassKey == "spader" then
         return "soilCultivate"
     elseif implement.spec_roller ~= nil then
@@ -3538,8 +3567,8 @@ function TerraLogicMain:drawLegacySpeedHud()
     end
     -- Work quality and the number of detected implements explain the speed
     -- bar and are therefore a permanent part of the work HUD.
-    local hasDisplayedWorkQuality = qualityComponent ~= nil
-        or physicalQualityProfile ~= nil
+    local hasDisplayedWorkQuality = spec.implementClassKey ~= "defoliator"
+        and (qualityComponent ~= nil or physicalQualityProfile ~= nil)
     local quality = nil
     if hasDisplayedWorkQuality and isQualityActive then
         if qualityComponent ~= nil then
@@ -3790,25 +3819,6 @@ local function getWorkHudText(key, fallback)
         and TerraLogicQualityManager:getText(key, fallback) or fallback
 end
 
-local function getWorkHudCompactionRisk(self, implement, now)
-    local root = implement ~= nil and (implement.rootVehicle or implement) or nil
-    if root == nil or TerraLogicWheelCompactionManager == nil
-        or TerraLogicWheelCompactionManager.getLoadPreview == nil then return 0 end
-    local cache = self.workHudLoadPreview
-    if cache == nil or cache.vehicle ~= root
-        or now - (cache.time or 0) >= 1000 then
-        local preview = TerraLogicWheelCompactionManager:getLoadPreview(root)
-        local pressureRisk = math.clamp(
-            (tonumber(preview.maxPressureKPa) or 0)/300, 0, 1)
-        local axleRisk = math.clamp(
-            (tonumber(preview.maxAxleLoadT) or 0)/11, 0, 1)^2
-        cache = {vehicle=root, time=now,
-            risk=math.max(pressureRisk, axleRisk)}
-        self.workHudLoadPreview = cache
-    end
-    return tonumber(cache.risk) or 0
-end
-
 local WORK_HUD_SEEDING_CLASSES = {
     sowingMachine=true, directDrill=true,
     precisionPlanter=true, precisionDirectDrill=true
@@ -3831,6 +3841,10 @@ local WORK_HUD_APPLICATION_CLASSES = {
 }
 
 local function getWorkHudClassGroup(classKey)
+    if TerraLogicSpecialImplements.SEED_CLASSES[classKey]
+        or classKey == "ridgeFormer" or classKey == "defoliator" then
+        return classKey
+    end
     if classKey == "roller" then return "roller" end
     if WORK_HUD_SEEDING_CLASSES[classKey] then return "seeding" end
     if WORK_HUD_PICKUP_CLASSES[classKey] then return "pickup" end
@@ -3844,6 +3858,8 @@ end
 -- sees with this implement. The warning source and queue id remain unchanged,
 -- so better wording cannot create extra messages or queue flicker.
 local function getWorkHudClassWarning(classGroup, cause, hasDropout)
+    local specialDetail = TerraLogicSpecialImplements.getWarning(classGroup, cause)
+    if specialDetail ~= nil then return nil, specialDetail end
     if classGroup == "roller" then
         local key = ({overspeed="Speed", condition="Wear", wet="Wet",
             dry="Dry", frost="Frost", uneven="Uneven", soil="Soil"})[cause]
@@ -4013,9 +4029,17 @@ end
 
 local function getWorkHudWarning(
         self, implement, quality, qualityContext, isQualityActive,
-        isMechanicalActive, now)
+        isMechanicalActive, now, standalone)
     local spec = implement ~= nil and implement.spec_terraLogic or nil
-    if spec == nil then return nil, 0, 0 end
+    local warningVehicle = g_localPlayer ~= nil and g_localPlayer:getCurrentVehicle() or nil
+    -- Tool messages belong to the tool that produced them, not to whichever
+    -- tractor/trailer happens to be driven next. Clear the reading slot too.
+    if self.workHudWarningImplement ~= implement then
+        self.workHudWarningSources, self.workHudWarningQueue = {}, {}
+        self.workHudWarningCurrentId, self.workHudWarningCurrent = nil, nil
+        self.workHudLastWarning, self.workHudWarningLayoutState = nil, nil
+        self.workHudWarningFadeAlpha = 0
+    end
     self.workHudWarningImplement = implement
     local candidatesById = {}
     local function consider(candidate)
@@ -4029,209 +4053,210 @@ local function getWorkHudWarning(
             end
         end
     end
-    local damage = implement.getDamageAmount ~= nil
-        and math.clamp(tonumber(implement:getDamageAmount()) or 0, 0, 1) or 0
-    local broken = damage >= 0.9995
-    if broken then
-        consider({id="broken", priority=100, severity="critical",
-            title=getWorkHudText("terraLogic_workHudBrokenTitle", "IMPLEMENT BROKEN"),
-            detail=getWorkHudText("terraLogic_workHudBrokenDetail", "Please repair")})
-    end
-    self.workHudEventWarnings = self.workHudEventWarnings or {}
-    for id, event in pairs(self.workHudEventWarnings) do
-        if now >= (event.expiresAt or 0) then
-            self.workHudEventWarnings[id] = nil
-        elseif event.implement == implement then
-            consider(event)
+    if spec ~= nil then
+        local damage = implement.getDamageAmount ~= nil
+            and math.clamp(tonumber(implement:getDamageAmount()) or 0, 0, 1) or 0
+        local broken = damage >= 0.9995
+        if broken then
+            consider({id="broken", priority=100, severity="critical",
+                title=getWorkHudText("terraLogic_workHudBrokenTitle", "IMPLEMENT BROKEN"),
+                detail=getWorkHudText("terraLogic_workHudBrokenDetail", "Please repair")})
         end
-    end
-    local structuralRate = math.max(
-        tonumber(spec.structuralDamagePercentPerMinute) or 0, 0)
-    if not broken and isMechanicalActive and spec.mechanicalLoadModel ~= "none"
-        and structuralRate
-            >= self.WORK_HUD_SEVERE_DAMAGE_RATE_PCT_PER_MIN then
-        consider({id="mechanicalLoad", priority=80, severity="critical",
-            title=getWorkHudText("terraLogic_workHudOverloadTitle",
-                "SEVERE MECHANICAL LOAD"),
-            detail=getWorkHudText("terraLogic_workHudOverloadDetail",
-                "Damage rate rising rapidly")})
-    end
-    if not broken and isMechanicalActive and spec.mechanicalLoadModel ~= "none"
-        and spec.workHudMechanicalWarningActive == true then
-        consider({id="mechanicalLoad", priority=70, severity="caution",
-            title=getWorkHudText("terraLogic_workHudHighLoadTitle",
-                "HIGH MECHANICAL LOAD"),
-            detail=getWorkHudText("terraLogic_workHudHighLoadDetail",
-                "Wear rises with load")})
-    end
-    if not broken and isQualityActive and qualityContext ~= nil then
-        local speedDropout = math.max(tonumber(
-            qualityContext.speedDropoutFraction) or 0, 0)
-        local conditionDropout = math.max(tonumber(
-            qualityContext.conditionDropoutFraction) or 0, 0)
-        local soilDropout = math.max(tonumber(
-            qualityContext.soilDropoutFraction) or 0, 0)
-        local rainDropout = math.max(tonumber(
-            qualityContext.rainDropoutFraction) or 0, 0)
-        local speedCause = math.max(speedDropout,
-            tonumber(qualityContext.speedLoss) or 0)
-        local conditionCause = math.max(conditionDropout,
-            tonumber(qualityContext.conditionLoss) or 0)
-        local soilCause = math.max(soilDropout,
-            tonumber(qualityContext.soilLoss) or 0)
-        local rainCause = math.max(rainDropout,
-            tonumber(qualityContext.rainLoss) or 0)
-        local classGroup = getWorkHudClassGroup(spec.implementClassKey)
-        local isPickup = classGroup == "pickup"
-        local function addQualityCause(id, magnitude, dropoutMagnitude,
-                titleKey, titleFallback,
-                qualityDetailKey, qualityDetailFallback, dropoutDetailKey,
-                dropoutDetailFallback, classCause)
-            local causeHasDropout = dropoutMagnitude
-                >= self.WORK_HUD_DROPOUT_WARNING_FRACTION
-            if magnitude < self.WORK_HUD_QUALITY_WARNING_LOSS
-                and not causeHasDropout then
-                return
+        self.workHudEventWarnings = self.workHudEventWarnings or {}
+        for id, event in pairs(self.workHudEventWarnings) do
+            if now >= (event.expiresAt or 0) then
+                self.workHudEventWarnings[id] = nil
+            elseif event.implement == implement then
+                consider(event)
             end
-            -- The cause id remains stable when a loss crosses from invisible
-            -- quality into physical misses. Only the detail changes, so the
-            -- queue never mistakes one fluctuating cause for two warnings.
-            local title = getWorkHudText(titleKey, titleFallback)
-            local detail = getWorkHudText(
-                causeHasDropout and dropoutDetailKey or qualityDetailKey,
-                causeHasDropout and dropoutDetailFallback
-                    or qualityDetailFallback)
-            if classCause ~= nil then
-                local classTitle, classDetail = getWorkHudClassWarning(
-                    classGroup, classCause, causeHasDropout)
-                title = classTitle or title
-                detail = classDetail or detail
-            end
-            consider({id=id,
-                priority=causeHasDropout and 75 or 60, magnitude=magnitude,
-                severity="caution",
-                title=title, detail=detail})
         end
-
-        addQualityCause("overspeed", speedCause, speedDropout,
-            "terraLogic_workHudOverspeedTitle", "OVERSPEED",
-            "terraLogic_workHudOverspeedQualityDetail",
-            "Speed reduces work quality",
-            isPickup and "terraLogic_workHudPickupDropoutDetail"
-                or "terraLogic_workHudWorkDropoutDetail",
-            isPickup and "Material is being left behind"
-                or "Work gaps are being created", "overspeed")
-        local conditionStart = TerraLogicQualityManager ~= nil
-            and tonumber(TerraLogicQualityManager.CONDITION_QUALITY_START_DAMAGE)
-            or 0.75
-        if damage >= conditionStart then
-            addQualityCause("condition", conditionCause, conditionDropout,
-                "terraLogic_workHudConditionCauseTitle", "IMPLEMENT WORN",
-                "terraLogic_workHudConditionQualityDetail",
-                "Wear reduces work quality",
-                "terraLogic_workHudConditionActionDetail",
-                "Slow down to reduce losses; repair to remove them",
-                "condition")
+        local structuralRate = math.max(
+            tonumber(spec.structuralDamagePercentPerMinute) or 0, 0)
+        if not broken and isMechanicalActive and spec.mechanicalLoadModel ~= "none"
+            and structuralRate
+                >= self.WORK_HUD_SEVERE_DAMAGE_RATE_PCT_PER_MIN then
+            consider({id="mechanicalLoad", priority=80, severity="critical",
+                title=getWorkHudText("terraLogic_workHudOverloadTitle",
+                    "SEVERE MECHANICAL LOAD"),
+                detail=getWorkHudText("terraLogic_workHudOverloadDetail",
+                    "Damage rate rising rapidly")})
         end
-
-        if soilCause >= self.WORK_HUD_QUALITY_WARNING_LOSS
-            or soilDropout >= self.WORK_HUD_DROPOUT_WARNING_FRACTION then
-            local mitigation = qualityContext.soilContext
-            local rawContext = mitigation ~= nil and mitigation.context or nil
-            local soilId = getWorkHudSoilWarningCause(
-                rawContext, classGroup, soilCause, soilDropout)
-            local titleKey, titleFallback =
-                "terraLogic_workHudSoilCauseTitle", "UNSUITABLE SOIL"
-            local detailKey, detailFallback =
-                "terraLogic_workHudSoilQualityDetail",
-                "Soil condition reduces work quality"
-            if soilId == "frost" then
-                soilId, titleKey, titleFallback = "frost",
-                    "terraLogic_workHudFrozenTitle", "SOIL FROZEN"
-                detailKey, detailFallback =
-                    "terraLogic_workHudFrozenQualityDetail",
-                    "Frozen soil reduces penetration and quality"
-            elseif soilId == "wetSoil" then
-                soilId, titleKey, titleFallback = "wetSoil",
-                    "terraLogic_workHudWetTitle", "WET SOIL"
-                detailKey, detailFallback =
-                    "terraLogic_workHudWetQualityDetail",
-                    "Wet soil reduces penetration and placement"
-            elseif soilId == "drySoil" then
-                soilId, titleKey, titleFallback = "drySoil",
-                    "terraLogic_workHudDryTitle", "DRY SOIL"
-                detailKey, detailFallback =
-                    "terraLogic_workHudDryQualityDetail",
-                    "Dry soil reduces penetration and placement"
-            elseif soilId == "unevenSoil" then
-                soilId, titleKey, titleFallback = "unevenSoil",
-                    "terraLogic_workHudUnevenGroundTitle", "UNEVEN GROUND"
-                detailKey, detailFallback =
-                    "terraLogic_workHudUnevenQualityDetail",
-                    "Ground following and placement are reduced"
-            elseif soilId == "coarseSoil" then
-                soilId, titleKey, titleFallback = "coarseSoil",
-                    "terraLogic_workHudCoarseTitle", "COARSE SEEDBED"
-                detailKey, detailFallback =
-                    "terraLogic_workHudCoarseDetail",
-                    "Large clods reduce consistent placement"
-            elseif soilId == "fineSoil" then
-                soilId, titleKey, titleFallback = "fineSoil",
-                    "terraLogic_workHudFineTitle", "OVER-FINE SEEDBED"
-                detailKey, detailFallback =
-                    "terraLogic_workHudFineDetail",
-                    "Overworked soil reduces placement stability"
-            end
-            local classCause = soilId == "unevenSoil" and "uneven"
-                or soilId == "wetSoil" and "wet"
-                or soilId == "drySoil" and "dry"
-                or soilId == "frost" and "frost" or "soil"
-            if soilId ~= nil then
-                addQualityCause(soilId, soilCause, soilDropout,
+        if not broken and isMechanicalActive and spec.mechanicalLoadModel ~= "none"
+            and spec.workHudMechanicalWarningActive == true then
+            consider({id="mechanicalLoad", priority=70, severity="caution",
+                title=getWorkHudText("terraLogic_workHudHighLoadTitle",
+                    "HIGH MECHANICAL LOAD"),
+                detail=getWorkHudText("terraLogic_workHudHighLoadDetail",
+                    "Wear rises with load")})
+        end
+        if not broken and isQualityActive and qualityContext ~= nil then
+            local speedDropout = math.max(tonumber(
+                qualityContext.speedDropoutFraction) or 0, 0)
+            local conditionDropout = math.max(tonumber(
+                qualityContext.conditionDropoutFraction) or 0, 0)
+            local soilDropout = math.max(tonumber(
+                qualityContext.soilDropoutFraction) or 0, 0)
+            local rainDropout = math.max(tonumber(
+                qualityContext.rainDropoutFraction) or 0, 0)
+            local speedCause = math.max(speedDropout,
+                tonumber(qualityContext.speedLoss) or 0)
+            local conditionCause = math.max(conditionDropout,
+                tonumber(qualityContext.conditionLoss) or 0)
+            local soilCause = math.max(soilDropout,
+                tonumber(qualityContext.soilLoss) or 0)
+            local rainCause = math.max(rainDropout,
+                tonumber(qualityContext.rainLoss) or 0)
+            local classGroup = getWorkHudClassGroup(spec.implementClassKey)
+            local isPickup = classGroup == "pickup"
+            local function addQualityCause(id, magnitude, dropoutMagnitude,
                     titleKey, titleFallback,
-                    detailKey, detailFallback,
-                    "terraLogic_workHudSoilActionDetail",
-                    "Soil conditions cause missed areas; check the Planner",
-                    classCause)
+                    qualityDetailKey, qualityDetailFallback, dropoutDetailKey,
+                    dropoutDetailFallback, classCause)
+                local causeHasDropout = dropoutMagnitude
+                    >= self.WORK_HUD_DROPOUT_WARNING_FRACTION
+                if magnitude < self.WORK_HUD_QUALITY_WARNING_LOSS
+                    and not causeHasDropout then
+                    return
+                end
+                -- The cause id remains stable when a loss crosses from invisible
+                -- quality into physical misses. Only the detail changes, so the
+                -- queue never mistakes one fluctuating cause for two warnings.
+                local title = getWorkHudText(titleKey, titleFallback)
+                local detail = getWorkHudText(
+                    causeHasDropout and dropoutDetailKey or qualityDetailKey,
+                    causeHasDropout and dropoutDetailFallback
+                        or qualityDetailFallback)
+                if classCause ~= nil then
+                    local classTitle, classDetail = getWorkHudClassWarning(
+                        classGroup, classCause, causeHasDropout)
+                    title = classTitle or title
+                    detail = classDetail or detail
+                end
+                consider({id=id,
+                    priority=causeHasDropout and 75 or 60, magnitude=magnitude,
+                    severity="caution",
+                    title=title, detail=detail})
             end
-        end
 
-        addQualityCause("herbicideRain", rainCause, rainDropout,
-            "terraLogic_workHudRainTitle", "RAIN DURING SPRAYING",
-            "terraLogic_workHudRainQualityDetail",
-            "Herbicide is washed off before absorption",
-            "terraLogic_workHudRainDropoutDetail",
-            "Weed control is leaving untreated patches")
-    end
-    -- Weight becomes an alert only while a soil-working implement is active,
-    -- the soil is already wet and the solved wheel loads are severe. This
-    -- avoids permanent warnings for harvesters merely because their tank fills.
-    if not broken and isQualityActive and spec.isGroundTool == true
-        and (tonumber(spec.moistureWetSeverity) or 0) >= 0.45
-        and getWorkHudCompactionRisk(self, implement, now) >= 0.75 then
-        consider({id="wetSoil", priority=74, severity="caution",
+            addQualityCause("overspeed", speedCause, speedDropout,
+                "terraLogic_workHudOverspeedTitle", "OVERSPEED",
+                "terraLogic_workHudOverspeedQualityDetail",
+                "Speed reduces work quality",
+                isPickup and "terraLogic_workHudPickupDropoutDetail"
+                    or "terraLogic_workHudWorkDropoutDetail",
+                isPickup and "Material is being left behind"
+                    or "Work gaps are being created", "overspeed")
+            local conditionStart = TerraLogicQualityManager ~= nil
+                and tonumber(TerraLogicQualityManager.CONDITION_QUALITY_START_DAMAGE)
+                or 0.75
+            if damage >= conditionStart then
+                addQualityCause("condition", conditionCause, conditionDropout,
+                    "terraLogic_workHudConditionCauseTitle", "IMPLEMENT WORN",
+                    "terraLogic_workHudConditionQualityDetail",
+                    "Wear reduces work quality",
+                    "terraLogic_workHudConditionActionDetail",
+                    "Slow down to reduce losses; repair to remove them",
+                    "condition")
+            end
+
+            if soilCause >= self.WORK_HUD_QUALITY_WARNING_LOSS
+                or soilDropout >= self.WORK_HUD_DROPOUT_WARNING_FRACTION then
+                local mitigation = qualityContext.soilContext
+                local rawContext = mitigation ~= nil and mitigation.context or nil
+                local soilId = getWorkHudSoilWarningCause(
+                    rawContext, classGroup, soilCause, soilDropout)
+                local titleKey, titleFallback =
+                    "terraLogic_workHudSoilCauseTitle", "UNSUITABLE SOIL"
+                local detailKey, detailFallback =
+                    "terraLogic_workHudSoilQualityDetail",
+                    "Soil condition reduces work quality"
+                if soilId == "frost" then
+                    soilId, titleKey, titleFallback = "frost",
+                        "terraLogic_workHudFrozenTitle", "SOIL FROZEN"
+                    detailKey, detailFallback =
+                        "terraLogic_workHudFrozenQualityDetail",
+                        "Frozen soil reduces penetration and quality"
+                elseif soilId == "wetSoil" then
+                    soilId, titleKey, titleFallback = "wetSoil",
+                        "terraLogic_workHudWetTitle", "WET SOIL"
+                    detailKey, detailFallback =
+                        "terraLogic_workHudWetQualityDetail",
+                        "Wet soil reduces penetration and placement"
+                elseif soilId == "drySoil" then
+                    soilId, titleKey, titleFallback = "drySoil",
+                        "terraLogic_workHudDryTitle", "DRY SOIL"
+                    detailKey, detailFallback =
+                        "terraLogic_workHudDryQualityDetail",
+                        "Dry soil reduces penetration and placement"
+                elseif soilId == "unevenSoil" then
+                    soilId, titleKey, titleFallback = "unevenSoil",
+                        "terraLogic_workHudUnevenGroundTitle", "UNEVEN GROUND"
+                    detailKey, detailFallback =
+                        "terraLogic_workHudUnevenQualityDetail",
+                        "Ground following and placement are reduced"
+                elseif soilId == "coarseSoil" then
+                    soilId, titleKey, titleFallback = "coarseSoil",
+                        "terraLogic_workHudCoarseTitle", "COARSE SEEDBED"
+                    detailKey, detailFallback =
+                        "terraLogic_workHudCoarseDetail",
+                        "Large clods reduce consistent placement"
+                elseif soilId == "fineSoil" then
+                    soilId, titleKey, titleFallback = "fineSoil",
+                        "terraLogic_workHudFineTitle", "OVER-FINE SEEDBED"
+                    detailKey, detailFallback =
+                        "terraLogic_workHudFineDetail",
+                        "Overworked soil reduces placement stability"
+                end
+                local classCause = soilId == "unevenSoil" and "uneven"
+                    or soilId == "wetSoil" and "wet"
+                    or soilId == "drySoil" and "dry"
+                    or soilId == "frost" and "frost" or "soil"
+                if soilId ~= nil then
+                    addQualityCause(soilId, soilCause, soilDropout,
+                        titleKey, titleFallback,
+                        detailKey, detailFallback,
+                        "terraLogic_workHudSoilActionDetail",
+                        "Soil conditions cause missed areas; check the Planner",
+                        classCause)
+                end
+            end
+
+            addQualityCause("herbicideRain", rainCause, rainDropout,
+                "terraLogic_workHudRainTitle", "RAIN DURING SPRAYING",
+                "terraLogic_workHudRainQualityDetail",
+                "Herbicide is washed off before absorption",
+                "terraLogic_workHudRainDropoutDetail",
+                "Weed control is leaving untreated patches")
+        end
+        if not broken and isQualityActive
+            and (tonumber(spec.frostSeverity) or 0) >= 0.35
+            and spec.additionalDraftEnabled == true then
+            consider({id="frost", priority=73, severity="caution",
+                title=getWorkHudText("terraLogic_workHudFrozenTitle", "SOIL FROZEN"),
+                detail=getWorkHudText("terraLogic_workHudFrozenDetail",
+                    "Draft demand increased")})
+        end
+    end -- implement-specific mechanical/work-quality warnings
+
+    local trafficLevel, trafficKnown = TerraLogicTrafficWarnings:getLevel(
+        g_localPlayer ~= nil and g_localPlayer:getCurrentVehicle() or nil, now)
+    if trafficLevel >= 2 then
+        consider({id="trafficCompaction", priority=74, severity="caution", repeatRank=trafficLevel,
             title=getWorkHudText("terraLogic_workHudCompactionTitle",
                 "HIGH COMPACTION RISK"),
-            detail=getWorkHudText("terraLogic_workHudCompactionDetail",
-                "Reduce axle load or ground contact pressure")})
-    end
-    if not broken and isQualityActive
-        and (tonumber(spec.frostSeverity) or 0) >= 0.35
-        and spec.additionalDraftEnabled == true then
-        consider({id="frost", priority=73, severity="caution",
-            title=getWorkHudText("terraLogic_workHudFrozenTitle", "SOIL FROZEN"),
-            detail=getWorkHudText("terraLogic_workHudFrozenDetail",
-                "Draft demand increased")})
-    end
-    if not broken and isQualityActive
-        and (tonumber(spec.moistureWetSeverity) or 0) >= 0.60
-        and spec.isGroundTool == true then
-        consider({id="wetSoil", priority=72, severity="caution",
+            detail=getWorkHudText(trafficLevel == 3
+                and "terraLogic_workHudWetCompactionDetail"
+                or "terraLogic_workHudCompactionDetail", trafficLevel == 3
+                    and "Wet soil: reduce load or use wider tires"
+                    or "Reduce axle load or ground contact pressure")})
+    elseif trafficLevel == 1 then
+        consider({id="trafficCompaction", priority=72, severity="caution", repeatRank=trafficLevel,
             title=getWorkHudText("terraLogic_workHudWetTitle", "WET SOIL"),
             detail=getWorkHudText("terraLogic_workHudWetDetail",
                 "Compaction risk increased")})
     end
 
+    TerraLogicWarningEpisodes:update(warningVehicle, candidatesById, now, trafficKnown)
     -- Stable source states debounce transient WorkArea samples before they can
     -- enter the queue. A disappearing source receives only a short clear grace;
     -- if it is already visible, its configured reading slot still finishes.
@@ -4268,6 +4293,7 @@ local function getWorkHudWarning(
     local function isEligible(id)
         local state = self.workHudWarningSources[id]
         if state == nil or state.warning == nil then return false end
+        if standalone and not TerraLogicWarningEpisodes:eligible(warningVehicle, state.warning) then return false end
         return state.warning.oneShot == true
             or now-(tonumber(state.firstSeen) or now)
                 >= self.WORK_HUD_WARNING_CONFIRM_MS
@@ -4335,7 +4361,7 @@ local function getWorkHudWarning(
             if self.workHudEventWarnings ~= nil then
                 self.workHudEventWarnings[currentId] = nil
             end
-        elseif finishedState ~= nil
+        elseif not standalone and finishedState ~= nil
             and (finishedState.seen == true
                 or now-(tonumber(finishedState.lastSeen) or 0)
                     <= self.WORK_HUD_WARNING_CLEAR_GRACE_MS) then
@@ -4359,6 +4385,7 @@ local function getWorkHudWarning(
         if state ~= nil and state.warning ~= nil then
             currentId = nextId
             self.workHudWarningCurrentId = nextId
+            TerraLogicWarningEpisodes:shown(warningVehicle, state.warning, now)
             -- Copy the displayed values so title/detail cannot flicker during
             -- the slot even if a live threshold changes behind the scenes.
             self.workHudWarningCurrent = {
@@ -4505,6 +4532,7 @@ function TerraLogicMain:drawSpeedHud()
         self.workHudWarningLayoutState = nil
         self.speedHudFadeAlpha = 0
         self.workHudWarningFadeAlpha = 0
+        if vehicle == nil then self.speedHudVehicle = nil end
         return
     end
     if self.speedHudVehicle ~= vehicle then
@@ -4523,10 +4551,14 @@ function TerraLogicMain:drawSpeedHud()
         self.workHudWarningQueue = {}
         self.workHudWarningCurrentId = nil
         self.workHudWarningCurrent = nil
+        self.workHudLastWarning = nil
+        self.workHudWarningImplement = nil
         self.workHudWarningDisplaySequence = 0
         self.workHudEventWarnings = {}
     end
 
+    -- Do not consume a one-time warning while the vehicle-name banner hides it.
+    if now < (self.speedHudVehicleNameHiddenUntil or 0) then return end
     local currentSpeed = math.abs(vehicle:getLastSpeed(true) or 0)
     local requestedImplement, activeImplementCount, activeImplements =
         self:getSpeedHudImplement(
@@ -4536,9 +4568,17 @@ function TerraLogicMain:drawSpeedHud()
         implement, activeImplementCount, activeImplements =
             self:getSpeedHudImplement(false, currentSpeed)
     end
-    if implement == nil or implement.spec_terraLogic == nil then
+    if implement == nil or implement.spec_terraLogic == nil
+        or (tonumber(implement.spec_terraLogic.ratedSpeed) or 0) <= 0 then
         self.speedHudFadeAlpha = 0
-        self.workHudWarningFadeAlpha = 0
+        local warning, count, index = getWorkHudWarning(
+            self, nil, nil, nil, false, false, now, true)
+        if now < (self.speedHudVehicleNameHiddenUntil or 0) then
+            self.workHudWarningFadeAlpha = 0
+            return
+        end
+        local _, warningY = getSpeedHudScaledPixels(0, 42)
+        self:drawWorkHudWarning(warning, count, index, now, warningY)
         return
     end
     local spec = implement.spec_terraLogic
@@ -4620,10 +4660,6 @@ function TerraLogicMain:drawSpeedHud()
             if (tonumber(candidateSpec.frostSeverity) or 0) >= 0.35
                 and candidateSpec.additionalDraftEnabled == true then
                 priority = math.max(priority, 73)
-            end
-            if (tonumber(candidateSpec.moistureWetSeverity) or 0) >= 0.60
-                and candidateSpec.isGroundTool == true then
-                priority = math.max(priority, 72)
             end
         end
         for _, event in pairs(self.workHudEventWarnings or {}) do
@@ -4794,14 +4830,20 @@ function TerraLogicMain:drawSpeedHud()
             getWorkHudText("terraLogic_speedHudActiveImplements", "%d tools"),
             activeImplementCount)
     end
+    local showQualityValue = qualityImplement == nil
+        or qualityImplement.spec_terraLogic == nil
+        or qualityImplement.spec_terraLogic.implementClassKey ~= "defoliator"
+    if not showQualityValue then
+        qualityLabel = getWorkHudText("terraLogic_fa_planner_ui_class_defoliator", "Defoliator")
+    end
     renderText(boxX + padX, boxY + topY, smallSize, qualityLabel)
     setTextAlignment(RenderText.ALIGN_RIGHT)
-    if quality ~= nil then
+    if showQualityValue and quality ~= nil then
         if quality < 0.75 then setTextColor(unpack(orange))
         else setTextColor(unpack(white)) end
         renderText(boxX + boxWidth - padX, boxY + topY, smallSize,
             TerraLogicI18n.format("%d %%", math.floor(quality * 100 + 0.5)))
-    else
+    elseif showQualityValue then
         setTextColor(unpack(muted))
         renderText(boxX + boxWidth - padX, boxY + topY, smallSize, "-")
     end
@@ -4888,12 +4930,24 @@ function TerraLogicMain:drawSpeedHud()
     elseif wearRank == 1 then
         wearKey, wearFallback = "terraLogic_workHudWearIncreased", "WEAR RATE INCREASED"
     end
-    local recommended = TerraLogicI18n.format("%s %.0f-%.0f km/h",
+    local recommended = TerraLogicI18n.format("%s %s",
         getWorkHudText("terraLogic_workHudRecommended", "RECOMMENDED"),
-        realSpeed, shopSpeed)
+        TerraLogicI18n.formatSpeedRange(realSpeed, shopSpeed))
+    local showWearLabel = loadIsMechanicalActive or wearRank >= 1
+    local wearLabel = getWorkHudText(wearKey, wearFallback)
+    local bottomSize = smallSize
+    if getTextWidth ~= nil then
+        local usedWidth = getTextWidth(bottomSize, recommended)
+            + (showWearLabel and getTextWidth(bottomSize, wearLabel) or 0)
+        local availableWidth = boxWidth-padX*2
+            - (showWearLabel and select(1, getSpeedHudScaledPixels(8, 0)) or 0)
+        if usedWidth > availableWidth then
+            bottomSize = bottomSize * availableWidth / usedWidth
+        end
+    end
     setTextAlignment(RenderText.ALIGN_LEFT)
     setTextColor(unpack(muted))
-    renderText(boxX+padX, boxY+bottomY, smallSize, recommended)
+    renderText(boxX+padX, boxY+bottomY, bottomSize, recommended)
     setTextAlignment(RenderText.ALIGN_RIGHT)
     if wearRank >= 3 then
         setTextColor(unpack(criticalRed))
@@ -4906,11 +4960,23 @@ function TerraLogicMain:drawSpeedHud()
     -- a mechanical-load model (for example tedders and windrowers). Preserve
     -- it whenever mechanical load exists, and still show genuinely increased
     -- speed/abrasion wear on any supported tool.
-    if loadIsMechanicalActive or wearRank >= 1 then
-        renderText(boxX + boxWidth - padX, boxY + bottomY, smallSize,
-            getWorkHudText(wearKey, wearFallback))
+    if showWearLabel then
+        renderText(boxX + boxWidth - padX, boxY + bottomY, bottomSize, wearLabel)
     end
 
+    local _, warningGap = getSpeedHudScaledPixels(0, 7)
+    self:drawWorkHudWarning(warning, warningCount, warningIndex, now,
+        boxY + boxHeight + warningGap)
+end
+
+-- The same card and stable multiline queue layout serves both HUD modes.
+-- The caller supplies its bottom anchor; no invisible work-card spacer.
+function TerraLogicMain:drawWorkHudWarning(warning, warningCount, warningIndex, now, warningY)
+    local boxWidth = getSpeedHudScaledPixels(380, 0)
+    local boxX = 0.5 - boxWidth * 0.5
+    local padX = getSpeedHudScaledPixels(15, 0)
+    local _, smallSize = getSpeedHudScaledPixels(0,
+        math.max(getSpeedHudDefaultTextPixels() - 3, 10))
     local warningAlpha = updateWorkHudWarningFade(
         self, now, warning ~= nil)
     if warningAlpha <= 0 and warning == nil then self.workHudWarningLayoutState = nil end
@@ -4922,7 +4988,6 @@ function TerraLogicMain:drawSpeedHud()
             local accent = isCritical
                 and SPEED_HUD_CRITICAL_COLOR or SPEED_HUD_CAUTION_COLOR
             local titleAccent = accent
-            local _, gap = getSpeedHudScaledPixels(0, 7)
             local layout, titleRows, detailRows = self:getWarningBatchLayout(
                 shown, boxWidth-padX*2, smallSize)
             local _, lineGap = getSpeedHudScaledPixels(0, 4)
@@ -4931,7 +4996,6 @@ function TerraLogicMain:drawSpeedHud()
             local _, dotReserve = getSpeedHudScaledPixels(0, 8)
             local warningHeight = math.max(select(2, getSpeedHudScaledPixels(0, 58)),
                 inset*2 + (titleRows+detailRows)*lineHeight + lineGap + dotReserve)
-            local warningY = boxY + boxHeight + gap
             if not self:renderSpeedHudBackground(
                 boxX, warningY, boxWidth, warningHeight, warningAlpha) then
                 drawFilledRect(boxX, warningY, boxWidth, warningHeight,
@@ -7063,6 +7127,8 @@ function TerraLogicMain.installSpecialization()
                 or specializations.mulcher ~= nil
                 or specializations.weeder ~= nil
                 or specializations.stonePicker ~= nil
+                or specializations.ridgeFormer ~= nil
+                or specializations.fruitPreparer ~= nil
                 or isMower or isWindrower or isTedder or isBaler
                 or isForageWagon)
         local supportedImplement = isAttachable and isWearable

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="111">
     <author>The Mod Workshop</author>
-    <version>1.2.0.0</version>
+    <version>1.2.0.1</version>
 
     <iconFilename>icon_terraLogic.dds</iconFilename>
 
@@ -276,12 +276,18 @@ https://github.com/Saibotsu/FS25_TerraLogic
         <sourceFile filename="scripts\TerraLogicGrassGapManager.lua" />
         <sourceFile filename="scripts\TerraLogicSoilTemperatureManager.lua" />
         <sourceFile filename="scripts\TerraLogicSoilMoistureManager.lua" />
+        <sourceFile filename="scripts\TerraLogicSpecialImplements.lua" />
         <sourceFile filename="scripts\TerraLogicSoilManager.lua" />
         <sourceFile filename="scripts\TerraLogicMapMaintenance.lua" />
         <sourceFile filename="scripts\TerraLogicWheelCompactionManager.lua" />
+        <sourceFile filename="scripts\TerraLogicTrafficWarnings.lua" />
         <sourceFile filename="scripts\TerraLogicTutorialLessons.lua" />
         <sourceFile filename="scripts\TerraLogicTutorialManager.lua" />
         <sourceFile filename="scripts\TerraLogicFieldAnalysis.lua" />
+        <sourceFile filename="scripts\TerraLogicFieldCatalog.lua" />
+        <sourceFile filename="scripts\TerraLogicPFHarvestTrace.lua" />
+        <sourceFile filename="scripts\TerraLogicPFYieldBridge.lua" />
+        <sourceFile filename="scripts\TerraLogicWarningEpisodes.lua" />
         <sourceFile filename="scripts\TerraLogicMain.lua" />
         <sourceFile filename="scripts\TerraLogicAuditManager.lua" />
     </extraSourceFiles>

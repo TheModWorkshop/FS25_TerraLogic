@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <l10n>
     <elements>
+        <e k="terraLogic_fa_ownedFields" v="Auswahl %d von %d" />
+        <e k="terraLogic_fa_findingFields" v="Suche nach weiteren Feldflächen …" />
+        <e k="terraLogic_fa_browserTitle" v="Feld auswählen" />
+        <e k="terraLogic_fa_browserField" v="Feld" />
+        <e k="terraLogic_fa_browserCustom" v="Eigenes Feld %d" />
+        <e k="terraLogic_fa_browserArea" v="Fläche" />
+        <e k="terraLogic_fa_browserBack" v="Zurück zur Analyse" />
+        <e k="terraLogic_fa_browserUnknown" v="Noch nicht ausgewertet" />
+        <e k="terraLogic_fa_browserEmpty" v="Noch keine Felder verfügbar. Die Suche läuft möglicherweise noch." />
+        <e k="terraLogic_fa_browserHint" v="Wähle ein Feld für die Analyse aus. Die Zustandswerte stammen aus der letzten Auswertung und werden bei der Auswahl aktualisiert. Weitere Felder erscheinen während der Suche." />
         <e k="terraLogic_fa_planner_ui_resilienceImpact" v="Resilienzbelastung" />
         <e k="terraLogic_fa_planner_ui_continuityImpact" v="Kontinuitätsstörung" />
         <e k="terraLogic_fa_impact_strong" v="Stark" />
@@ -23,7 +33,7 @@
         <e k="terraLogic_workQualityPlow" v="Pflügen" />
         <e k="terraLogic_workQualitySoil" v="Bodenzustand" />
         <e k="terraLogic_workQualityCultivate" v="Grubbern" />
-        <e k="terraLogic_workQualitySeed" v="Aussaat" />
+        <e k="terraLogic_workQualitySeed" v="Saat/Pflanzung" />
         <e k="terraLogic_workQualityFertilizer" v="Düngung" />
         <e k="terraLogic_workQualityLime" v="Kalkung" />
         <e k="terraLogic_workQualityHerbicide" v="Unkrautbekämpfung" />
@@ -199,7 +209,7 @@
         <e k="terraLogic_help_speed_title" v="Arbeitsgeschwindigkeit und Arbeits-HUD" />
         <e k="terraLogic_help_speed_p1" v="Wenn du eine unterstützte Maschine selbst fährst, hebt TerraLogic ihre feste Arbeitsgeschwindigkeitsbegrenzung auf. Das ist Freiheit und keine neue Empfehlung: Du kannst versuchen, mit 20 km/h zu pflügen oder eine Ballenpresse schneller als vorgesehen zu fahren. Maschine, Boden und Arbeitsergebnis reagieren jedoch auf diese Entscheidung mit erhöhtem Verschleiß, Aussetzern oder liegengebliebens Material. Helfer und nicht unterstützte Maschinen behalten ihre Tempolimits bei, um Kompatibilität mit Mods wie CoursePlay sicherzustellen. " />
         <e k="terraLogic_help_speed_h2" v="Die Anzeige unten in der Bildschirmmitte" />
-        <e k="terraLogic_help_speed_p2" v="Das Arbeits-HUD zeigt die Geschwindigkeit, Arbeitsqualität und Belastung einsatzbereiter, unterstützter Geräte. Ein Strich bei der Arbeitsqualität bedeutet, dass gerade keine Arbeit bewertet wird. Im Modus Dynamisch blendet es sich nach kurzer gleichmäßiger Fahrt im grünen Bereich aus und bei Geschwindigkeitsänderungen oder Warnungen wieder ein. Die Warnungsdauer lässt sich einstellen. Grün kennzeichnet den üblichen Geschwindigkeitsbereich des Geräts, garantiert aber keine perfekte Arbeit: Boden, Feuchtigkeit, Frost und Verschleiß können langsameres Fahren erfordern. Bei mehreren Geräten richtet sich der Bereich nach dem langsamsten relevanten Gerät." />
+        <e k="terraLogic_help_speed_p2" v="Das Arbeits-HUD zeigt die Geschwindigkeit, Arbeitsqualität und Belastung einsatzbereiter, unterstützter Geräte. Ein Strich bei der Arbeitsqualität bedeutet, dass gerade keine Arbeit bewertet wird. Im Modus Dynamisch blendet es sich nach kurzer gleichmäßiger Fahrt im grünen Bereich aus und bei Geschwindigkeitsänderungen oder Warnungen wieder ein. Die Warnungsdauer lässt sich einstellen. Grün kennzeichnet den üblichen Geschwindigkeitsbereich des Geräts, garantiert aber keine perfekte Arbeit: Boden, Feuchtigkeit, Frost und Verschleiß können langsameres Fahren erfordern. Bei mehreren Geräten richtet sich der Bereich nach dem langsamsten relevanten Gerät. Hinweise auf ein erhöhtes Verdichtungsrisiko erscheinen auch bei Transportfahrten ohne Arbeitsgerät. Dabei wird nur die Warnbox angezeigt; nach dem Einsteigen wartet sie wie das Arbeits-HUD fünf Sekunden." />
         <e k="terraLogic_help_speed_h3" v="Arbeitsqualität und echte Fehlstellen" />
         <e k="terraLogic_help_speed_p3" v="Neben ungünstiger Bodeneigenschaften kann zu hohes Arbeitstempo die Arbeitsqualität senken und echte Fehlstellen erzeugen. Sämaschinen können ungesäte Bereiche hinterlassen, Spritzen und Streuer je nach Art der Ausbringung unbehandelte Streifen und Striegel oder Hackgeräte Unkraut stehen lassen. Bei extremem Tempo kann mechanische Unkrautbekämpfung sogar die Kultur beschädigen. Mähwerke, Zetter, Schwader, Ballenpressen und Ladewagen-Pickups können Erntegut oder Schwadmaterial liegen lassen, wenn sie abhängig von Ebenheit des Bodens zu schnell bewegt werden." />
         <e k="terraLogic_help_speed_h4" v="Das Tempo verändert auch das Bodenergebnis" />
@@ -422,10 +432,10 @@
         <e k="terraLogic_fa_ui_rootMoisture" v="Feuchte im Wurzelraum" />
         <e k="terraLogic_fa_ui_rootZone" v="Wurzelentwicklung im Wachstum" />
         <e k="terraLogic_fa_ui_sandyLoam" v="Sandiger Lehm" />
-        <e k="terraLogic_fa_ui_seeding" v="Saat" />
+        <e k="terraLogic_fa_ui_seeding" v="Saat/Pflanzung" />
         <e k="terraLogic_fa_ui_seedingResult" v="Ergebnis einer präzisen Saat" />
         <e k="terraLogic_fa_ui_seedingSuitability" v="Präzise Saat unter aktuellen Bedingungen" />
-        <e k="terraLogic_fa_ui_seedingWindow" v="Saat" />
+        <e k="terraLogic_fa_ui_seedingWindow" v="Saat/Pflanzung" />
         <e k="terraLogic_fa_ui_siltyClay" v="Schluffiger Ton" />
         <e k="terraLogic_fa_ui_soil" v="Boden" />
         <e k="terraLogic_fa_ui_soilCondition" v="Bodenzustand" />
@@ -672,7 +682,7 @@
         <e k="terraLogic_fa_planner_ui_group_sowing" v="Aussaat" />
         <e k="terraLogic_fa_planner_ui_implementMass" v="Masse der angebauten Geräte" />
         <e k="terraLogic_fa_planner_ui_noSoilChange" v="Das ausgewählte Gerät bearbeitet den Boden nicht direkt. Die Räder von Traktor und Gerät können trotzdem Oberflächen- und Tiefenverdichtung verursachen." />
-        <e k="terraLogic_fa_planner_ui_fieldRequired" v="Die Fahrzeugdaten bleiben verfügbar. Stelle dich auf ein Feld, um Bodenwirkungen, Überfahrtsfolgen und feldbezogene Empfehlungen zu berechnen." />
+        <e k="terraLogic_fa_planner_ui_fieldRequired" v="Die Fahrzeugdaten bleiben verfügbar. Wähle oben mit den Pfeilen ein eigenes Feld aus oder stelle dich auf ein Feld, um Bodenwirkungen und Empfehlungen zu berechnen." />
         <e k="terraLogic_fa_planner_ui_operation" v="ARBEITSGANG" />
         <e k="terraLogic_fa_planner_ui_oversized" v="Das Fahrzeug hat eine große Leistungsreserve, während das Radlastrisiko bereits erhöht ist. Ein leichteres Fahrzeug mit ausreichender Leistung kann unnötige Verdichtung vermeiden." />
         <e k="terraLogic_fa_planner_ui_passFormat" v="%d Spuren | %.1f km" />
@@ -798,6 +808,7 @@
         <e k="terraLogic_workHudWetDetail" v="Verdichtungsrisiko erhöht" />
         <e k="terraLogic_workHudCompactionTitle" v="HOHES VERDICHTUNGSRISIKO" />
         <e k="terraLogic_workHudCompactionDetail" v="Achslast oder Bodenkontaktdruck reduzieren" />
+        <e k="terraLogic_workHudWetCompactionDetail" v="Nasser Boden: Beladung verringern oder breitere Reifen verwenden" />
         <e k="terraLogic_workHudOverspeedTitle" v="ZU HOHE GESCHWINDIGKEIT" />
         <e k="terraLogic_workHudConditionCauseTitle" v="GERÄT VERSCHLISSEN" />
         <e k="terraLogic_workHudSoilCauseTitle" v="UNGÜNSTIGER BODEN" />
@@ -866,7 +877,7 @@
         <e k="terraLogic_fa_map_legendTilth" v="Grob     Krümelig     Zu fein" />
         <e k="terraLogic_fa_map_legendEvenness" v="Eben     Mittel     Uneben" />
         <e k="terraLogic_fa_map_legendResilience" v="Gering     Mittel     Hoch" />
-        <e k="terraLogic_fa_map_noField" v="Stelle dich auf ein Feld und aktualisiere die Analyse." />
+        <e k="terraLogic_fa_map_noField" v="Wähle oben ein eigenes Feld aus oder öffne die Analyse auf einem Feld." />
         <e k="terraLogic_fa_map_unavailable" v="Die Bodenkarte ist nicht verfügbar." />
         <e k="terraLogic_fa_map_loading" v="Feldkarte wird vorbereitet..." />
         <e k="terraLogic_fa_ui_soilSensitivity" v="Bodenempfindlichkeit" />
@@ -891,5 +902,38 @@
         <e k="terraLogic_fa_ui_meadow" v="Wiese" />
         <e k="terraLogic_settingDebugTitle" v="Debug" />
         <e k="terraLogic_settingDebugTooltip" v="Aktiviert die erweiterte Protokollierung." />
+        <e k="terraLogic_fa_planner_ui_class_potatoPlanter" v="Kartoffellegemaschine" />
+        <e k="terraLogic_fa_planner_ui_class_vegetablePlanter" v="Gemüsepflanzer" />
+        <e k="terraLogic_fa_planner_ui_class_sugarcanePlanter" v="Zuckerrohrleger" />
+        <e k="terraLogic_fa_planner_ui_class_ridgeFormer" v="Dammfräse" />
+        <e k="terraLogic_fa_planner_ui_class_defoliator" v="Krautschläger" />
+        <e k="terraLogic_fa_planner_desc_potatoPlanter" v="Lockert den Oberboden, legt Kartoffeln ab und formt Dämme. Die Furchen senken die angezeigte Ebenheit. Kartoffellegemaschinen kommen mit solchen Dämmen zurecht; Verdichtung, Feuchte, Frost, Verschleiß und zu hohes Tempo können die Ablage verschlechtern und Fehlstellen erzeugen." />
+        <e k="terraLogic_fa_planner_desc_vegetablePlanter" v="Pflanzt Gemüse in Reihen und erhält bestehende Dämme weitgehend. Auf erkanntem Dammboden wird die regelmäßige Furchenform bei der Ablage berücksichtigt. Verdichteter, klumpiger oder ungeeignet feuchter Boden sowie hohes Tempo können die Pflanzung stören." />
+        <e k="terraLogic_fa_planner_desc_sugarcanePlanter" v="Öffnet Pflanzfurchen, legt Zuckerrohr ab und schließt die Furchen wieder. Die Krümelstruktur und Ebenheit verändern sich nur wenig. Ungeeignete Bodenbedingungen, Verschleiß und zu hohes Tempo können die Ablage verschlechtern und Lücken hinterlassen." />
+        <e k="terraLogic_fa_planner_desc_ridgeFormer" v="Lockert und zerkleinert den Oberboden intensiv und formt Dämme mit tiefen Furchen. Dadurch sinkt die Ebenheit trotz sorgfältiger Bearbeitung. Die intensive Durchmischung belastet Bodenresilienz und biologische Kontinuität. Zu hohes Tempo, Nässe und Frost verschlechtern das Ergebnis." />
+        <e k="terraLogic_fa_planner_desc_defoliator" v="Schlägt das Kraut vor der Ernte ab. Bei zu hohem Tempo oder starkem Verschleiß können Reste stehen bleiben, die eine weitere Überfahrt erfordern. Die Wirkung ist direkt am Pflanzenbestand sichtbar." />
+        <e k="terraLogic_specialPlantingSpeed" v="Zu hohes Tempo verschlechtert die Ablage und kann Pflanzlücken hinterlassen." />
+        <e k="terraLogic_specialPlantingWear" v="Verschleiß macht die Ablage unzuverlässiger; prüfe den Zustand der Legemaschine." />
+        <e k="terraLogic_specialPlantingUneven" v="Die Legemaschine kann auf diesem Boden nicht mehr gleichmäßig folgen. Verringere das Tempo." />
+        <e k="terraLogic_specialPlantingSoil" v="Verdichtung und Krümelstruktur erschweren eine gleichmäßige Pflanzung." />
+        <e k="terraLogic_specialPlantingWet" v="Nasser Boden erschwert das Öffnen und Schließen der Pflanzfurchen." />
+        <e k="terraLogic_specialPlantingDry" v="Sehr trockener Boden erschwert das Öffnen und Schließen der Pflanzfurchen." />
+        <e k="terraLogic_specialPlantingFrost" v="Gefrorener Boden erschwert das Eindringen der Pflanzorgane und kann Lücken verursachen." />
+        <e k="terraLogic_specialVegetableSpeed" v="Zu hohes Tempo stört die Reihenablage und kann Pflanzlücken hinterlassen." />
+        <e k="terraLogic_specialVegetableWear" v="Verschleiß beeinträchtigt die gleichmäßige Reihenablage." />
+        <e k="terraLogic_specialVegetableUneven" v="Die Pflanzorgane folgen dem Boden nicht zuverlässig. Verringere das Tempo." />
+        <e k="terraLogic_specialVegetableSoil" v="Verdichtung und grobe Kluten erschweren die Reihenablage." />
+        <e k="terraLogic_specialVegetableWet" v="Nasser Boden verschmiert die Pflanzfurche und verschlechtert die Ablage." />
+        <e k="terraLogic_specialVegetableDry" v="Sehr trockener Boden erschwert die Reihenablage und den Bodenkontakt." />
+        <e k="terraLogic_specialVegetableFrost" v="Gefrorener Boden verhindert gleichmäßiges Eindringen und kann Pflanzlücken verursachen." />
+        <e k="terraLogic_specialRidgeSpeed" v="Zu hohes Tempo schwächt die Lockerung und hinterlässt ungleichmäßige Dämme." />
+        <e k="terraLogic_specialRidgeWear" v="Verschleiß schwächt die Zerkleinerung und Dammformung." />
+        <e k="terraLogic_specialRidgeUneven" v="Auf diesem groben Ausgangsboden braucht die Dammformung mehr Zeit. Verringere das Tempo." />
+        <e k="terraLogic_specialRidgeSoil" v="Die Dammfräse kann diesen Boden derzeit nur eingeschränkt lockern und zerkleinern." />
+        <e k="terraLogic_specialRidgeWet" v="Nasser Boden verschmiert leichter; Lockerung und Dammformung werden schwächer." />
+        <e k="terraLogic_specialRidgeDry" v="Sehr trockener Boden erschwert die Zerkleinerung und Dammformung." />
+        <e k="terraLogic_specialRidgeFrost" v="Gefrorener Boden begrenzt das Eindringen und die Dammformung." />
+        <e k="terraLogic_specialTopsSpeed" v="Zu hohes Tempo lässt Kraut stehen. Fahre langsamer und bearbeite die Reste erneut." />
+        <e k="terraLogic_specialTopsWear" v="Starker Verschleiß kann Kraut stehen lassen. Prüfe den Zustand des Krautschlägers." />
     </elements>
 </l10n>

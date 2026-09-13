@@ -75,6 +75,35 @@
         <textSize value="14px" />
         <textColor value="$preset_colorWhite_50" />
     </Profile>
+    <Profile name="terraLogicAnalysisFieldScope" extends="terraLogicAnalysisNote">
+        <textMaxNumLines value="1" />
+        <textLayoutMode value="truncate" />
+    </Profile>
+    <Profile name="terraLogicAnalysisFieldSelection" extends="terraLogicAnalysisFieldScope">
+        <textAlignment value="center" />
+        <textVerticalAlignment value="middle" />
+        <textHighlightedColor value="$preset_fs25_colorMainHighlight" />
+        <textFocusedColor value="$preset_fs25_colorMainHighlight" />
+        <imageColor value="0 0 0 0" />
+        <handleFocus value="true" />
+    </Profile>
+    <Profile name="terraLogicAnalysisSelectionNote" extends="terraLogicAnalysisFieldScope">
+        <textVerticalAlignment value="middle" />
+    </Profile>
+    <Profile name="terraLogicAnalysisFieldListRow" extends="baseReference" with="anchorTopStretchingX alternating">
+        <height value="38px" />
+        <imageColor value="$preset_fs25_colorGrey" />
+        <imageSelectedColor value="$preset_fs25_colorMainHighlight" />
+        <alternateBackgroundColor value="$preset_fs25_colorGreyDark_50" />
+    </Profile>
+    <Profile name="terraLogicAnalysisFieldListText" extends="baseReference" with="anchorTopLeft pivotTopLeft">
+        <textSize value="16px" />
+        <textColor value="$preset_fs25_colorMainLight" />
+        <textSelectedColor value="$preset_fs25_colorMainDark" />
+        <textVerticalAlignment value="middle" />
+        <textMaxNumLines value="1" />
+        <textLayoutMode value="truncate" />
+    </Profile>
     <Profile name="terraLogicAnalysisHero" extends="fs25_textDefault" with="anchorTopLeft pivotTopLeft">
         <textSize value="34px" />
         <textBold value="true" />

@@ -394,6 +394,9 @@ TerraLogic.STONE_DAMAGE_MAX_PER_SCAN = TerraLogic.IMPACT_TIERS.big.maxDamage
 -- specialization-local stoneLastState. TerraLogic neutralizes that one value
 -- during Wearable's damage call when its own visible-stone model is selected.
 TerraLogic.VANILLA_STONE_SPEC_BY_CLASS = {
+    potatoPlanter = "spec_sowingMachine",
+    vegetablePlanter = "spec_sowingMachine",
+    sugarcanePlanter = "spec_sowingMachine",
     directDrill = "spec_sowingMachine",
     sowingMachine = "spec_sowingMachine",
     precisionPlanter = "spec_sowingMachine",
@@ -412,6 +415,10 @@ TerraLogic.VANILLA_STONE_SPEC_BY_CLASS = {
 -- Surface forage tools are deliberately absent and use their physical-dropout
 -- gate in getSpeedLimit, so disabling that option restores their shop limit.
 TerraLogic.SPEED_UNLOCK_CONSEQUENCE_CLASSES = {
+    potatoPlanter = true,
+    vegetablePlanter = true,
+    sugarcanePlanter = true,
+    ridgeFormer = true,
     plow = true,
     subsoiler = true,
     cultivator = true,
@@ -1009,6 +1016,7 @@ function TerraLogic.prerequisitesPresent(specializations)
     local supportedAttachedTool = has(Plow) or has(Cultivator)
         or has(SowingMachine) or has(Sprayer) or has(Roller)
         or has(Mulcher) or has(Weeder) or has(StonePicker)
+        or has(RidgeFormer) or has(FruitPreparer)
         or mower or windrower or tedder or baler or forageWagon
     return wearable
         and ((attachable and supportedAttachedTool)
@@ -1355,6 +1363,12 @@ function TerraLogic.registerOverwrittenFunctions(vehicleType)
     end
     if SowingMachine ~= nil and SpecializationUtil.hasSpecialization(SowingMachine, vehicleType.specializations) then
         SpecializationUtil.registerOverwrittenFunction(vehicleType, "processSowingMachineArea", TerraLogic.processSowingMachineArea)
+    end
+    if vehicleType.functions ~= nil and vehicleType.functions.processRidgeFormerArea ~= nil then
+        SpecializationUtil.registerOverwrittenFunction(vehicleType, "processRidgeFormerArea", TerraLogic.processRidgeFormerArea)
+    end
+    if vehicleType.functions ~= nil and vehicleType.functions.processFruitPreparerArea ~= nil then
+        SpecializationUtil.registerOverwrittenFunction(vehicleType, "processFruitPreparerArea", TerraLogic.processFruitPreparerArea)
     end
     if Sprayer ~= nil and SpecializationUtil.hasSpecialization(Sprayer, vehicleType.specializations) then
         SpecializationUtil.registerOverwrittenFunction(vehicleType, "processSprayerArea", TerraLogic.processSprayerArea)
@@ -1831,6 +1845,8 @@ function TerraLogic:refreshOverSpeedWorkAreaProcessingFunctions()
         processPlowArea = self.spec_plow ~= nil,
         processCultivatorArea = self.spec_cultivator ~= nil,
         processSowingMachineArea = self.spec_sowingMachine ~= nil,
+        processRidgeFormerArea = self.spec_ridgeFormer ~= nil,
+        processFruitPreparerArea = self.spec_fruitPreparer ~= nil,
         processSprayerArea = self.spec_sprayer ~= nil,
         processRollerArea = self.spec_roller ~= nil,
         processMulcherArea = self.spec_mulcher ~= nil,
@@ -2354,6 +2370,9 @@ function TerraLogic:processCultivatorArea(superFunc, workArea, dt)
     end
     local realArea, area = self:processOverSpeedStoneArea(superFunc, workArea, dt)
     -- Keep the raw callback evidence separate from TerraLogic's soil pass.
+    if spec ~= nil and spec.implementClassKey == "ridgeFormer" then
+        return realArea, area -- The ridge-former callback owns the soil pass.
+    end
     -- This lets the balancing logger distinguish a merely unfolded tool from
     -- one for which GIANTS is actually processing a cultivator WorkArea.
     if spec ~= nil then
@@ -2379,7 +2398,8 @@ function TerraLogic:processCultivatorArea(superFunc, workArea, dt)
     local skySecondaryClassKey =
         getSkyAgricultureSecondaryTillageClass(self)
     if skySecondaryClassKey == nil and self.spec_sowingMachine ~= nil
-        and self.spec_sowingMachine.useDirectPlanting == true then
+        and (self.spec_sowingMachine.useDirectPlanting == true
+            or TerraLogicSpecialImplements.SEED_CLASSES[spec.implementClassKey]) then
         self.spec_terraLogic.integratedCultivatingQualitySkipped = true
         return realArea, area
     end
@@ -3853,6 +3873,47 @@ function TerraLogic:processMowerArea(superFunc, workArea, dt)
         processDropoutArea, workArea, dt)
 end
 
+function TerraLogic:processRidgeFormerArea(superFunc, workArea, dt)
+    local spec = self.spec_terraLogic
+    if spec == nil or spec.implementClassKey ~= "ridgeFormer" then
+        return superFunc(self, workArea, dt)
+    end
+    local realArea, area = self:processOverSpeedStoneArea(superFunc, workArea, dt)
+    -- Native processing owns activation. Do not let the field-exit carry-over
+    -- apply powered tillage while the rotor is switched off or raised.
+    if self:getIsOverSpeedGroundContactActive()
+        and (self.spec_turnOnVehicle == nil or self.getIsTurnedOn == nil
+            or self:getIsTurnedOn()) then
+        TerraLogicSoilManager:applyWorkArea(self, workArea, "ridgeFormer", realArea, area)
+        local speed = math.abs(self:getLastSpeed(true) or 0)
+        local quality = TerraLogicQualityManager:getWorkQualityModel(self, speed, "soilCultivate")
+        local context = spec.soilSuitabilityContext
+        TerraLogicQualityManager:recordDynamicSoilWorkArea(workArea,
+            "soilCultivate", quality, speed > 0.5 and math.max(realArea or 0, area or 0) or 0,
+            self, context ~= nil and context.eligibleCellKeys or nil)
+    else
+        spec.soilContactPassArmed = false
+    end
+    return realArea, area
+end
+
+function TerraLogic:processFruitPreparerArea(superFunc, workArea, dt)
+    local spec = self.spec_terraLogic
+    if spec == nil or spec.implementClassKey ~= "defoliator" then
+        return superFunc(self, workArea, dt)
+    end
+    -- FruitPreparer returns (0, workedArea), unlike Mower. Adapt only inside
+    -- the patch processor, then restore the native contract. Native calls own
+    -- fruit state, effects and work time; there is no soil/quality ledger.
+    local function processTops(vehicle, part, deltaTime)
+        local _, worked = superFunc(vehicle, part, deltaTime)
+        return worked, worked
+    end
+    local _, worked = self:processSurfacePatchDropoutArea(
+        processTops, workArea, dt, "defoliatorPatch")
+    return 0, worked
+end
+
 function TerraLogic:processWindrowerArea(superFunc, workArea, dt)
     local function processDropoutArea(vehicle, area, deltaTime)
         return vehicle:processSurfacePatchDropoutArea(
@@ -5211,6 +5272,8 @@ function TerraLogic.getSeedTechnologyClass(self)
     local sowingSpec = self ~= nil and self.spec_sowingMachine or nil
     if sowingSpec == nil then return nil end
     local category = string.lower(tostring(getStoreCategory(self) or ""))
+    local special = TerraLogicSpecialImplements.getSeedClass(self, category)
+    if special ~= nil then return special end
     local precision = category == "planters"
         or string.find(category, "planter", 1, true) ~= nil
         or getNexatModuleKind(self) == "tempo"
@@ -5291,6 +5354,9 @@ function TerraLogic:prepareOverSpeedSeedQualityArea(workArea)
     spec.seedYieldPenalty = yieldPenalty
     spec.seedSoilRecoverableQualityLoss = workEconomy ~= nil
         and math.max(tonumber(workEconomy.soilQualityLoss) or 0, 0) or 0
+    if TerraLogicSpecialImplements.SEED_CLASSES[seedClassKey] then
+        spec.seedSoilRecoverableQualityLoss = 0
+    end
     spec.seedQualityEconomy = workEconomy
     spec.seedSoilQualityFactor = soilQualityFactor
     spec.seedSoilDropoutFraction = soilDropoutFraction
@@ -7210,6 +7276,10 @@ function TerraLogic:getOverSpeedGroundToolType()
     if nexatKind == "slurryTank" and self.spec_sprayer ~= nil then
         return "slurrySpreader", TerraLogic.IMPLEMENT_CLASSES.slurrySpreader
     end
+    local specialTool = TerraLogicSpecialImplements.getToolClass(self)
+    if specialTool ~= nil then
+        return specialTool, TerraLogic.IMPLEMENT_CLASSES[specialTool]
+    end
     if self.spec_plow ~= nil then
         return "plow", TerraLogic.IMPLEMENT_CLASSES.plow
     end
@@ -7525,7 +7595,8 @@ function TerraLogic:getIsOverSpeedWorkAreaProcessing()
     if spec.baseMaxForce ~= nil then
         maxForce = spec.baseMaxForce
     end
-    if not spec.isMowerTool and (maxForce == nil or maxForce <= 0) then
+    if not spec.isMowerTool and spec.implementClassKey ~= "defoliator"
+        and (maxForce == nil or maxForce <= 0) then
         return false
     end
 
@@ -8577,6 +8648,7 @@ local function getIsConditionWarningActivation(vehicle)
     end
     if not lowered then return false end
     if vehicle.spec_turnOnVehicle ~= nil
+        and not TerraLogicSpecialImplements.isPassiveSeedFunction(vehicle)
         and vehicle.getIsTurnedOn ~= nil
         and not vehicle:getIsTurnedOn() then
         return false

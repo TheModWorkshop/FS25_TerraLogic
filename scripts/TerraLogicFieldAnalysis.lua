@@ -33,12 +33,16 @@ TerraLogicFieldAnalysis.MECHANIC_CLASSES = {
     {key="shallowCultivator", depth=8, group="soilWork"},
     {key="discHarrow", depth=12, group="soilWork"},
     {key="powerHarrow", depth=10, group="soilWork"},
+    {key="ridgeFormer", depth=15, group="soilWork"},
     {key="spader", depth=30, group="soilWork"},
     {key="roller", depth=3, group="soilWork"},
     {key="sowingMachine", depth=5, group="sowing"},
     {key="directDrill", depth=8, group="sowing"},
     {key="precisionPlanter", depth=6, group="sowing"},
     {key="precisionDirectDrill", depth=6, group="sowing"},
+    {key="potatoPlanter", depth=15, group="sowing"},
+    {key="vegetablePlanter", depth=5, group="sowing"},
+    {key="sugarcanePlanter", depth=15, group="sowing"},
     {key="mulcher", depth=3, group="cropCare"},
     {key="stonePicker", depth=5, group="cropCare"},
     {key="weeder", depth=2, group="cropCare"},
@@ -50,6 +54,7 @@ TerraLogicFieldAnalysis.MECHANIC_CLASSES = {
     {key="slurryApplicator", depth=8, group="cropCare"},
     {key="slurryInjector", depth=5, group="cropCare"},
     {key="mower", depth=0, group="other"},
+    {key="defoliator", depth=0, group="other"},
     {key="windrower", depth=0, group="other"},
     {key="tedder", depth=0, group="other"},
     {key="baler", depth=0, group="other"},
@@ -286,7 +291,14 @@ local function getFieldNumber(field)
     return -1
 end
 
-local function getFieldAtPosition(x, z)
+local function getFieldAtPosition(x, z, polygons)
+    local function polygonOf(candidate)
+        if polygons == nil then return getFieldPolygon(candidate) end
+        if polygons[candidate] == nil then
+            polygons[candidate] = getFieldPolygon(candidate) or false
+        end
+        return polygons[candidate] or nil
+    end
     if g_farmlandManager == nil or g_fieldManager == nil
         or g_farmlandManager.getFarmlandAtWorldPosition == nil then return nil end
     local farmland = g_farmlandManager:getFarmlandAtWorldPosition(x, z)
@@ -298,7 +310,7 @@ local function getFieldAtPosition(x, z)
         local candidates = field
         field = nil
         for _, candidate in ipairs(candidates) do
-            local polygon = getFieldPolygon(candidate)
+            local polygon = polygonOf(candidate)
             if polygon ~= nil and pointInPolygon(x, z, polygon) then
                 field = candidate
                 break
@@ -308,7 +320,7 @@ local function getFieldAtPosition(x, z)
         -- A farmland can contain substantially more land than its mapped
         -- field. Never treat the whole parcel as that field merely because
         -- the farmland-to-field mapping contains a single entry.
-        local polygon = getFieldPolygon(field)
+        local polygon = polygonOf(field)
         if polygon ~= nil and not pointInPolygon(x, z, polygon) then
             field = nil
         end
@@ -342,12 +354,16 @@ local function isSoilSurface(x, z)
     return surface == "field" or surface == "grassField"
 end
 
--- Surface classification alone is deliberately not enough here: meadow and
--- other grass surfaces can report grassField even though TerraLogic renders no
--- soil map there. The one-metre surface visibility layer preserves narrow
--- landscaped boundaries; native fields initialize every visualization layer and a
--- player-created field exposes all five layers on its first plough pass.
+-- Live cultivated terrain determines field membership. Surface classification
+-- and the visualization layer are only a fallback when terrain data is absent.
 local function isVisibleSoilSurface(x, z)
+    -- Discover geometry from live terrain, never the asynchronously populated
+    -- visualization map. Otherwise one field can appear as several islands.
+    if TerraLogicSoilManager ~= nil
+        and TerraLogicSoilManager.isCultivatableTerrainAtWorldPosition ~= nil then
+        local cultivated = TerraLogicSoilManager:isCultivatableTerrainAtWorldPosition(x, z)
+        if cultivated ~= nil then return cultivated == true end
+    end
     if not isSoilSurface(x, z) then return false end
     if TerraLogicSoilManager == nil
         or TerraLogicSoilManager.getVisualizationRawAtWorldPosition == nil then
@@ -355,13 +371,6 @@ local function isVisibleSoilSurface(x, z)
     end
     if TerraLogicSoilManager:getVisualizationRawAtWorldPosition(
             "surfaceCompaction", x, z) <= 0 then return false end
-    -- Native field polygons remain unchanged when landscaping paints concrete,
-    -- gravel or another non-cultivatable surface over them. The live terrain
-    -- detail density is authoritative for whether soil still exists here.
-    if TerraLogicSoilManager.isCultivatableTerrainAtWorldPosition ~= nil then
-        return TerraLogicSoilManager:
-            isCultivatableTerrainAtWorldPosition(x, z)
-    end
     return true
 end
 
@@ -380,85 +389,64 @@ local function getPolygonAreaHa(polygon)
     return math.abs(twiceArea)*0.5/10000
 end
 
-local function buildDynamicFieldSamples(x, z)
-    if not isVisibleSoilSurface(x, z) then
-        return {}, 0, 0, 0, "none", -1, {}
+local function createDynamicFieldJob(x, z, options)
+    options = options or {}
+    local surfaceCache = {}
+    local function visible(px, pz)
+        local key = string.format("%.2f:%.2f", px, pz)
+        if surfaceCache[key] == nil then
+            surfaceCache[key] = isVisibleSoilSurface(px, pz)
+                and (options.allowed == nil or options.allowed(px, pz))
+        end
+        return surfaceCache[key]
+    end
+    local function clearSegment(ax, az, bx, bz)
+        local count = math.max(1, math.ceil(math.max(math.abs(bx-ax), math.abs(bz-az))))
+        for i=1,count do
+            if not visible(ax+(bx-ax)*i/count, az+(bz-az)*i/count) then return false end
+        end
+        return true
+    end
+    if not visible(x, z) then
+        return {done=true, result={{}, 0, 0, 0, "none", -1, {}, {}},
+            step=function() return true end}
     end
     local cellSize = TerraLogicFieldAnalysis.DYNAMIC_FIELD_CELL_SIZE
     local maxCells = TerraLogicFieldAnalysis.DYNAMIC_FIELD_MAX_CELLS
     local startIx, startIz = math.floor(x/cellSize), math.floor(z/cellSize)
     local queue, visited, cells, head = {
-        {ix=startIx, iz=startIz}
+        {ix=startIx, iz=startIz, x=x, z=z}
     }, {}, {}, 1
     visited[tostring(startIx) .. ":" .. tostring(startIz)] = true
     local minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
+    local equivalentCells = 0
     local neighbours = {{1,0},{-1,0},{0,1},{0,-1}}
-    while head <= #queue and #cells < maxCells do
+    local fieldIds, fieldIdSet, outsidePoints, polygons = {}, {}, {}, {}
+    local singleField = nil
+    local function walkOne()
+        if head > #queue or #cells >= maxCells then return false end
         local cell = queue[head]
         head = head + 1
         local cx, cz = (cell.ix+0.5)*cellSize, (cell.iz+0.5)*cellSize
-        if not isVisibleSoilSurface(cx, cz) then
-            -- The initial grid centre can be beyond a diagonal field edge.
-            -- Choose a reproducible on-field sample instead of averaging road.
-            local found = false
-            for sz=0,7 do
-                for sx=0,7 do
-                    local px, pz = (cell.ix+(sx+0.5)/8)*cellSize,
-                        (cell.iz+(sz+0.5)/8)*cellSize
-                    if not found and isVisibleSoilSurface(px, pz) then
-                        cx, cz, found = px, pz, true
-                    end
-                end
-            end
-            if not found then cx, cz = x, z end
+        local fraction = 1
+        if not visible(cx, cz) or not clearSegment(cell.x, cell.z, cx, cz) then
+            cx, cz = cell.x, cell.z
+            -- A narrow bridge or edge fragment is not a full 64 m² cell.
+            -- Refine only these exceptional cells, and weight the final
+            -- sample distribution so tiny edge fragments cannot dominate it.
+            local hits = 0
+            for sz=0,3 do for sx=0,3 do
+                if visible((cell.ix+(sx+.5)/4)*cellSize,
+                    (cell.iz+(sz+.5)/4)*cellSize) then hits=hits+1 end
+            end end
+            fraction = math.max(hits/16, 1/64)
         end
-        cells[#cells+1] = {x=cx, z=cz}
-        minX, maxX = math.min(minX, cx), math.max(maxX, cx)
-        minZ, maxZ = math.min(minZ, cz), math.max(maxZ, cz)
-        for _, offset in ipairs(neighbours) do
-            local ix, iz = cell.ix+offset[1], cell.iz+offset[2]
-            local key = tostring(ix) .. ":" .. tostring(iz)
-            if visited[key] == nil then
-                visited[key] = true
-                local nx, nz = (ix+0.5)*cellSize, (iz+0.5)*cellSize
-                -- Test three points along the edge so a landscaped road or
-                -- concrete strip cannot be jumped merely because the
-                -- inexpensive component grid itself uses 8 m cells.
-                if isVisibleSoilSurface(nx, nz)
-                    and isVisibleSoilSurface(cx+(nx-cx)*0.25,
-                        cz+(nz-cz)*0.25)
-                    and isVisibleSoilSurface(cx+(nx-cx)*0.50,
-                        cz+(nz-cz)*0.50)
-                    and isVisibleSoilSurface(cx+(nx-cx)*0.75,
-                        cz+(nz-cz)*0.75) then
-                    queue[#queue+1] = {ix=ix, iz=iz}
-                end
-            end
-        end
-    end
-    -- Canonical ordering gives the same samples from either original field or
-    -- either side of a harvested/sown boundary within this connected component.
-    table.sort(cells, function(a,b) return a.z < b.z or (a.z == b.z and a.x < b.x) end)
-    local points = {}
-    local maximum = TerraLogicFieldAnalysis.SAMPLE_GRID ^ 2
-    if #cells <= maximum then
-        points = cells
-    else
-        for index = 1, maximum do
-            local sourceIndex = math.floor((index-0.5)*#cells/maximum)+1
-            points[#points+1] = cells[sourceIndex]
-        end
-    end
-    local spanX = #cells > 0 and maxX-minX+cellSize or 0
-    local spanZ = #cells > 0 and maxZ-minZ+cellSize or 0
-    local areaHa = #cells*cellSize*cellSize/10000
-    local fieldIds, fieldIdSet, outsideNative = {}, {}, false
-    local singleField = nil
-    for _, point in ipairs(points) do
-        local field = getFieldAtPosition(point.x, point.z)
+        equivalentCells = equivalentCells + fraction
+        cells[#cells+1] = {x=cx, z=cz, ix=cell.ix, iz=cell.iz, fraction=fraction}
+        local field = getFieldAtPosition(cx, cz, polygons)
         local id = getFieldNumber(field)
         if field == nil or id < 0 then
-            outsideNative = true
+            outsidePoints[#outsidePoints+1] = cells[#cells]
         else
             singleField = singleField or field
             if fieldIdSet[id] ~= true then
@@ -466,7 +454,81 @@ local function buildDynamicFieldSamples(x, z)
                 fieldIds[#fieldIds+1] = id
             end
         end
+        minX, maxX = math.min(minX, cx), math.max(maxX, cx)
+        minZ, maxZ = math.min(minZ, cz), math.max(maxZ, cz)
+        for _, offset in ipairs(neighbours) do
+            local ix, iz = cell.ix+offset[1], cell.iz+offset[2]
+            local key = tostring(ix) .. ":" .. tostring(iz)
+            if visited[key] == nil then
+                local nx, nz = (ix+0.5)*cellSize, (iz+0.5)*cellSize
+                local connected = visible(nx, nz) and clearSegment(cx, cz, nx, nz)
+                -- Only failed coarse edges receive narrow-connection probes.
+                -- Each detour must be continuously cultivatable; never jump
+                -- roads merely because soil exists on both sides.
+                if not connected then
+                    for _, shift in ipairs({-3,-2,-1,1,2,3}) do
+                        local ax = (cell.ix+0.5)*cellSize + offset[2]*shift
+                        local az = (cell.iz+0.5)*cellSize + offset[1]*shift
+                        local bx, bz = ax+offset[1]*cellSize, az+offset[2]*cellSize
+                        if visible(bx, bz) and clearSegment(cx, cz, ax, az)
+                            and clearSegment(ax, az, bx, bz) then
+                            nx, nz, connected = bx, bz, true
+                            break
+                        end
+                    end
+                end
+                if connected then
+                    visited[key] = true
+                    queue[#queue+1] = {ix=ix, iz=iz, x=nx, z=nz}
+                end
+            end
+        end
+        return true
     end
+    local meaningfulOutside, outsideIndex, polygon = 0, 1, nil
+    local function outsideOne()
+        if #fieldIds ~= 1 or outsideIndex > #outsidePoints then return false end
+        local point = outsidePoints[outsideIndex]
+        outsideIndex = outsideIndex + 1
+        local nearest = math.huge
+        if polygon ~= nil then
+            local previous = polygon[#polygon]
+            for _, vertex in ipairs(polygon) do
+                local dx, dz = vertex.x-previous.x, vertex.z-previous.z
+                local length = dx*dx+dz*dz
+                local t = length > 0 and math.clamp(
+                    ((point.x-previous.x)*dx+(point.z-previous.z)*dz)/length, 0, 1) or 0
+                nearest = math.min(nearest,
+                    (point.x-previous.x-t*dx)^2+(point.z-previous.z-t*dz)^2)
+                previous = vertex
+            end
+        end
+        if nearest > 2*2 then meaningfulOutside = meaningfulOutside + point.fraction end
+        return true
+    end
+    local function finish()
+    -- Canonical ordering gives the same samples from either original field or
+    -- either side of a harvested/sown boundary within this connected component.
+    table.sort(cells, function(a,b) return a.z < b.z or (a.z == b.z and a.x < b.x) end)
+    local points = {}
+    local maximum = TerraLogicFieldAnalysis.SAMPLE_GRID ^ 2
+    if #cells <= maximum and equivalentCells == #cells then
+        points = cells
+    else
+        local count = math.min(maximum, #cells)
+        local sourceIndex, cumulative = 1, cells[1].fraction
+        for index = 1, count do
+            local target = (index-.5)*equivalentCells/count
+            while cumulative < target and sourceIndex < #cells do
+                sourceIndex=sourceIndex+1
+                cumulative=cumulative+cells[sourceIndex].fraction
+            end
+            points[#points+1] = cells[sourceIndex]
+        end
+    end
+    local spanX = #cells > 0 and maxX-minX+cellSize or 0
+    local spanZ = #cells > 0 and maxZ-minZ+cellSize or 0
+    local areaHa = equivalentCells*cellSize*cellSize/10000
     table.sort(fieldIds)
     local scopeKind, fieldId = "created", -1
     if #fieldIds > 1 then
@@ -480,19 +542,57 @@ local function buildDynamicFieldSamples(x, z)
         end
         if nativeArea > 0 and areaHa < nativeArea*0.85 then
             scopeKind = "section"
-        elseif outsideNative then
+        elseif meaningfulOutside >= 3 and meaningfulOutside/equivalentCells > 0.03 then
             scopeKind = "extended"
         else
             scopeKind = "native"
         end
     end
     return points, areaHa, math.min(spanX, spanZ), math.max(spanX, spanZ),
-        scopeKind, fieldId, fieldIds
+        scopeKind, fieldId, fieldIds, cells
+    end
+    -- FS25's mod sandbox does not expose Lua coroutines. Retain ordinary Lua
+    -- state between update calls instead; each step visits a bounded number
+    -- of geometry cells or boundary points.
+    local job = {phase="walk", done=false}
+    function job:step(budget)
+        if self.done then return true end
+        for _=1,math.max(1, budget or 8) do
+            if self.phase == "walk" then
+                if not walkOne() then
+                    polygon = getFieldPolygon(singleField)
+                    self.phase = "outside"
+                end
+            elseif self.phase == "outside" then
+                if not outsideOne() then self.phase = "finish" end
+            else
+                self.result = {finish()}
+                self.done = true
+                return true
+            end
+        end
+        return false
+    end
+    return job
 end
 
-local function buildSamplePoints(x, z)
+local function buildDynamicFieldSamples(x, z, options)
+    if options ~= nil and options.geometry ~= nil then return unpack(options.geometry) end
+    local job = createDynamicFieldJob(x, z, options)
+    while not job.done do job:step(128) end
+    return unpack(job.result)
+end
+
+-- Shared by the server's bounded owned-field catalogue, not a per-frame scan.
+TerraLogicFieldAnalysis.buildDynamicFieldSamples = buildDynamicFieldSamples
+TerraLogicFieldAnalysis.createDynamicFieldJob = createDynamicFieldJob
+TerraLogicFieldAnalysis.getFieldPolygon = getFieldPolygon
+TerraLogicFieldAnalysis.getFieldNumber = getFieldNumber
+TerraLogicFieldAnalysis.isVisibleSoilSurface = isVisibleSoilSurface
+
+local function buildSamplePoints(x, z, options)
     local points, areaHa, efficientWidthM, efficientLengthM,
-        scopeKind, fieldId, fieldIds = buildDynamicFieldSamples(x, z)
+        scopeKind, fieldId, fieldIds = buildDynamicFieldSamples(x, z, options)
     return points, #points > 0, fieldId, areaHa,
         efficientWidthM, efficientLengthM, scopeKind, fieldIds
 end
@@ -587,7 +687,7 @@ function TerraLogicFieldAnalysis:getActiveCropGroups(position)
     return groups, math.max(fieldSamples, 1), cover, includeRootSample
 end
 
-function TerraLogicFieldAnalysis:buildSnapshot(x, z, serial)
+function TerraLogicFieldAnalysis:buildSnapshot(x, z, serial, options)
     x, z = tonumber(x) or 0, tonumber(z) or 0
     if x ~= x or z ~= z or math.abs(x) > 10000000 or math.abs(z) > 10000000 then
         x, z = 0, 0
@@ -619,7 +719,7 @@ function TerraLogicFieldAnalysis:buildSnapshot(x, z, serial)
         return snapshot
     end
     local points, fieldScoped, fieldId, areaHa, efficientWidthM,
-        efficientLengthM, scopeKind, fieldIds = buildSamplePoints(x, z)
+        efficientLengthM, scopeKind, fieldIds = buildSamplePoints(x, z, options)
     if #points == 0 then return snapshot end
     snapshot.valid, snapshot.fieldScoped = true, fieldScoped
     snapshot.fieldId, snapshot.areaHa, snapshot.sampleCount = fieldId, areaHa, #points
@@ -709,9 +809,10 @@ function TerraLogicFieldAnalysis:buildSnapshot(x, z, serial)
                 temperature.surfaceFrozen == true, temperature.subsoilFrozen == true)
         trafficSurfaceSum = trafficSurfaceSum + surfaceSensitivity
         trafficDeepSum = trafficDeepSum + deepSensitivity
+        local rawGround = TerraLogicSoilManager:getGroundTypeAtWorldPosition(point.x, point.z)
         for _, definition in ipairs(self.MECHANIC_CLASSES) do
             local result = TerraLogicSoilManager:getSuitabilityAtState(
-                state, soilType, definition.key, definition.depth)
+                state, soilType, definition.key, definition.depth, rawGround)
             local sumsForClass = mechanicSums[definition.key]
             sumsForClass.quality = sumsForClass.quality + result.qualityFactor
             sumsForClass.dropout = sumsForClass.dropout + result.dropoutFraction
@@ -942,6 +1043,8 @@ end
 
 function TerraLogicFieldAnalysis:requestSnapshot()
     local x, z = self:getLocalPosition()
+    local selected = self.selectedField
+    if selected ~= nil then x, z = selected.x, selected.z end
     local root = g_localPlayer ~= nil
         and g_localPlayer.getCurrentVehicle ~= nil
         and g_localPlayer:getCurrentVehicle() or nil
@@ -952,14 +1055,13 @@ function TerraLogicFieldAnalysis:requestSnapshot()
     self.requestSerial = (self.requestSerial or 0) + 1
     if self.frame ~= nil then self.frame:setLoading(true) end
     if g_currentMission ~= nil and g_currentMission:getIsServer() then
-        local snapshot = self:buildSnapshot(x, z, self.requestSerial)
-        snapshot.vehicleSetup = self:buildVehicleSetup(root)
-        self:applySnapshot(snapshot)
+        TerraLogicFieldCatalog:queueSnapshot(nil, x, z, self.requestSerial, root,
+            selected ~= nil)
     elseif g_client ~= nil then
         local connection = g_client:getServerConnection()
         if connection ~= nil then
             connection:sendEvent(TerraLogicFieldAnalysisRequestEvent.new(
-                x, z, self.requestSerial, root))
+                x, z, self.requestSerial, root, selected ~= nil))
         end
     end
 end
@@ -967,6 +1069,12 @@ end
 function TerraLogicFieldAnalysis:applySnapshot(snapshot)
     if snapshot == nil or snapshot.serial < (self.requestSerial or 0) then return end
     self.snapshot = snapshot
+    local selected=self.selectedField
+    for _,entry in ipairs(TerraLogicFieldCatalog.entries or {}) do
+        if (selected~=nil and selected.key==entry.key) or (selected==nil and entry.current) then
+            if snapshot.valid then entry.areaHa,entry.condition=snapshot.areaHa,snapshot.soilQuality end
+        end
+    end
     if TerraLogicTutorialManager ~= nil then
         TerraLogicTutorialManager:observeAnalysis(snapshot)
     end
@@ -979,13 +1087,17 @@ end
 function TerraLogicFieldAnalysis:loadMap()
     self.pageInstalled, self.pageInstallFailed = false, false
     self.snapshot, self.requestCooldowns = nil, {}
+    self.selectedField = nil
+    if TerraLogicFieldCatalog ~= nil then TerraLogicFieldCatalog:reset() end
 end
 
 function TerraLogicFieldAnalysis:update()
     if not self.pageInstalled then self:tryInstallMenu() end
+    if TerraLogicFieldCatalog ~= nil then TerraLogicFieldCatalog:update() end
 end
 
 function TerraLogicFieldAnalysis:deleteMap()
+    if TerraLogicFieldCatalog ~= nil then TerraLogicFieldCatalog:reset() end
     if self.frame ~= nil and self.frame.deleteFieldMapResources ~= nil then
         self.frame:deleteFieldMapResources()
     end
@@ -1139,6 +1251,11 @@ end
 function TerraLogicFieldAnalysisFrame:onGuiSetupFinished()
     TerraLogicFieldAnalysisFrame:superClass().onGuiSetupFinished(self)
     for _, root in ipairs(self.elements or {}) do bindAnalysisControls(self, root) end
+    if self.fieldBrowserList~=nil then
+        self.fieldBrowserList:setDataSource(self)
+        self.fieldBrowserList:setDelegate(self)
+    end
+    if self.fieldBrowserPanel~=nil then self.fieldBrowserPanel:setVisible(false) end
     if self.menuHeaderIcon ~= nil then
         self.menuHeaderIcon:setImageFilename(
             TerraLogicFieldAnalysis.MOD_DIR .. "gui/icon_terraLogicMenu.dds")
@@ -1151,6 +1268,7 @@ function TerraLogicFieldAnalysisFrame:onGuiSetupFinished()
             "planner_operationNext", "planner_group", "planner_operation"}) do
         if self[id] ~= nil then self[id]:setVisible(true) end
     end
+    self:updateSubCategoryPages(self.subCategoryState)
     TerraLogicLogging.debug("[FS25_TerraLogic] Field analysis GUI ready: tabs=%d pages=%d scopes=%s/%s/%s",
         #(self.subCategoryTabs or {}), #(self.subCategoryPages or {}),
         tostring(self.scopeOverviewText ~= nil), tostring(self.scopeSoilText ~= nil),
@@ -1158,6 +1276,9 @@ function TerraLogicFieldAnalysisFrame:onGuiSetupFinished()
 end
 
 function TerraLogicFieldAnalysisFrame:onFrameOpen()
+    self.fieldBrowserOpen=false
+    if self.fieldBrowserPanel~=nil then self.fieldBrowserPanel:setVisible(false) end
+    TerraLogicFieldAnalysis.selectedField = nil
     if self.subCategoryBox ~= nil and self.subCategoryPaging ~= nil then
         for index, tab in ipairs(self.subCategoryTabs or {}) do
             tab:setVisible(index <= self.SUB_COUNT)
@@ -1165,7 +1286,7 @@ function TerraLogicFieldAnalysisFrame:onFrameOpen()
         self.subCategoryBox:invalidateLayout()
         self.subCategoryPaging:setTexts({"1", "2", "3", "4", "5"})
         self.subCategoryPaging:setSize(
-            self.subCategoryBox.maxFlowSize + 140 * g_pixelSizeScaledX)
+            self.subCategoryBox.maxFlowSize + 180 * g_pixelSizeScaledX)
         self.subCategoryPaging:setState(self.subCategoryState, false)
     end
     if self.subCategoryState == self.SUB.PLANNER then
@@ -1189,6 +1310,8 @@ function TerraLogicFieldAnalysisFrame:onFrameOpen()
             firstHeader.absPosition[1], firstHeader.absPosition[2],
             firstHeader.absSize[1], firstHeader.absSize[2])
     end
+    -- Establish page visibility before starting any data/discovery work.
+    TerraLogicFieldCatalog:open()
     TerraLogicFieldAnalysis:requestSnapshot()
 end
 
@@ -1205,12 +1328,18 @@ function TerraLogicFieldAnalysisFrame:setLoading(loading)
 end
 
 function TerraLogicFieldAnalysisFrame:setSnapshot(snapshot)
-    local oldFieldId = self.snapshot ~= nil and self.snapshot.fieldId or nil
     self.snapshot = snapshot
-    if oldFieldId ~= (snapshot ~= nil and snapshot.fieldId or nil) then
-        self:deleteFieldMapResources()
-    end
+    self:deleteFieldMapResources()
     self:updateContent()
+    TerraLogicFieldCatalog:updateControls()
+end
+
+function TerraLogicFieldAnalysisFrame:onClickFieldPrevious()
+    TerraLogicFieldCatalog:select(-1)
+end
+
+function TerraLogicFieldAnalysisFrame:onClickFieldNext()
+    TerraLogicFieldCatalog:select(1)
 end
 
 function TerraLogicFieldAnalysisFrame:getCurrentSubCategory()
@@ -1218,6 +1347,7 @@ function TerraLogicFieldAnalysisFrame:getCurrentSubCategory()
 end
 
 function TerraLogicFieldAnalysisFrame:updateSubCategoryPages(index)
+    if self.fieldBrowserOpen then self:closeFieldBrowser() end
     local previousIndex = self.subCategoryState
     if index ~= nil then
         self.subCategoryState = math.clamp(
@@ -1236,6 +1366,64 @@ function TerraLogicFieldAnalysisFrame:updateSubCategoryPages(index)
     if previousIndex ~= self.subCategoryState then
         self:focusSubCategoryPaging()
     end
+end
+
+function TerraLogicFieldAnalysisFrame:onClickFieldBrowser()
+    if self.fieldBrowserPanel==nil or self.fieldBrowserList==nil then return end
+    self.fieldBrowserOpen=true
+    for _,page in pairs(self.subCategoryPages or {}) do page:setVisible(false) end
+    self.fieldBrowserPanel:setVisible(true)
+    self:refreshFieldBrowser()
+    self.backButtonInfo.callback=function() self:closeFieldBrowser() end
+    self:setMenuButtonInfoDirty()
+    if FocusManager~=nil then FocusManager:setFocus(self.fieldBrowserList) end
+end
+
+function TerraLogicFieldAnalysisFrame:closeFieldBrowser()
+    self.fieldBrowserOpen=false
+    if self.fieldBrowserPanel~=nil then self.fieldBrowserPanel:setVisible(false) end
+    if self.backButtonInfo~=nil then self.backButtonInfo.callback=nil end
+    local page=self.PAGE_BY_SUB[self.subCategoryState]
+    for i,element in pairs(self.subCategoryPages or {}) do element:setVisible(i==page) end
+    self:setMenuButtonInfoDirty()
+    self:focusSubCategoryPaging()
+end
+
+function TerraLogicFieldAnalysisFrame:refreshFieldBrowser()
+    if not self.fieldBrowserOpen or self.fieldBrowserList==nil then return end
+    self.browserEntries={}
+    for _,entry in ipairs(TerraLogicFieldCatalog.entries or {}) do self.browserEntries[#self.browserEntries+1]=entry end
+    self.fieldBrowserList:reloadData()
+    if self.fieldBrowserEmpty~=nil then self.fieldBrowserEmpty:setVisible(#self.browserEntries==0) end
+end
+
+function TerraLogicFieldAnalysisFrame:getNumberOfItemsInSection(list,section)
+    return list==self.fieldBrowserList and #(self.browserEntries or {}) or 0
+end
+
+function TerraLogicFieldAnalysisFrame:getCellTypeForItemInSection(list,section,index)
+    return "default"
+end
+
+function TerraLogicFieldAnalysisFrame:populateCellForItemInSection(list,section,index,cell)
+    if list~=self.fieldBrowserList then return end
+    local entry=(self.browserEntries or {})[index]
+    if entry==nil then return end
+    cell.terraLogicFieldEntry=entry
+    local selected=TerraLogicFieldAnalysis.selectedField
+    local current=(selected~=nil and selected.key==entry.key) or (selected==nil and entry.current)
+    setText(cell:getDescendantByName("fieldName"),(current and "> " or "")..TerraLogicFieldCatalog:entryName(entry))
+    setText(cell:getDescendantByName("fieldArea"),entry.areaHa and entry.areaHa>0
+        and TerraLogicI18n.formatArea(entry.areaHa) or "-")
+    setText(cell:getDescendantByName("fieldCondition"),entry.condition~=nil
+        and formatPercent(entry.condition) or tr("terraLogic_fa_browserUnknown","Not yet assessed"))
+end
+
+function TerraLogicFieldAnalysisFrame:onClickBrowserField(element)
+    local entry=element~=nil and element.terraLogicFieldEntry or nil
+    if entry==nil then return end
+    self:closeFieldBrowser()
+    TerraLogicFieldCatalog:selectEntry(entry)
 end
 
 function TerraLogicFieldAnalysisFrame:setSubCategory(index)
@@ -1456,6 +1644,8 @@ function TerraLogicFieldAnalysisFrame:draw()
 end
 
 function TerraLogicFieldAnalysisFrame:onFrameClose()
+    if self.fieldBrowserOpen then self:closeFieldBrowser() end
+    TerraLogicFieldCatalog.opened = false
     self:deleteFieldMapResources()
     TerraLogicFieldAnalysisFrame:superClass().onFrameClose(self)
 end
@@ -1812,18 +2002,19 @@ function TerraLogicFieldAnalysisFrame:updatePlannerContent()
         end
     end
     if hasSoil and (key == "sowingMachine" or key == "directDrill"
-        or key == "precisionPlanter" or key == "precisionDirectDrill") then
+        or key == "precisionPlanter" or key == "precisionDirectDrill"
+        or TerraLogicSpecialImplements.SEED_CLASSES[key]) then
         speed = speed * math.clamp(tonumber(mechanic.safeSpeedRatio) or 1,
             0.35, 1)
     end
-    setText(self.planner_speed, speed > 0 and TerraLogicI18n.format("%.0f km/h", speed) or "-")
+    setText(self.planner_speed, speed > 0 and TerraLogicI18n.formatSpeed(speed) or "-")
     local resilienceImpact, continuityImpact =
         TerraLogicSoilManager:getImplementBiologicalImpact(key)
     setText(self.planner_resilienceImpact,
         tr("terraLogic_fa_impact_"..resilienceImpact, resilienceImpact))
     setText(self.planner_continuityImpact,
         tr("terraLogic_fa_impact_"..continuityImpact, continuityImpact))
-    setText(self.planner_quality, hasSoil and formatPercent(mechanic.quality or 1) or "-",
+    setText(self.planner_quality, hasSoil and key ~= "defoliator" and formatPercent(mechanic.quality or 1) or "-",
         hasSoil and (mechanic.quality or 1) or nil)
     setText(self.planner_dropout, hasSoil
         and TerraLogicI18n.format("%.1f%%", (mechanic.dropout or 0)*100) or "-",
@@ -2093,7 +2284,7 @@ function TerraLogicFieldAnalysisFrame:showPlannerHelp(metric)
         continuityImpact={"terraLogic_fa_planner_ui_continuityImpact", "Continuity impact"}
     }
     local values = {
-        speed=speed > 0 and TerraLogicI18n.format("%.0f km/h", speed) or "-",
+        speed=speed > 0 and TerraLogicI18n.formatSpeed(speed) or "-",
         quality=formatPercent(mechanic.quality or 1),
         dropout=TerraLogicI18n.format("%.1f%%", (mechanic.dropout or 0)*100),
         effectiveness=hasSoilEffect
@@ -2408,13 +2599,13 @@ function TerraLogicFieldAnalysisFrame:showMetricHelp(metric)
         textKey = "terraLogic_fa_help_workMulch"
     elseif metric == "surfaceTemperature" then
         titleKey, titleFallback = "terraLogic_fa_ui_surfaceTemperature", "Surface temperature"
-        currentValue = TerraLogicI18n.format("%.1f C", s.surfaceTemperatureC)
+        currentValue = TerraLogicI18n.formatTemperature(s.surfaceTemperatureC)
         textKey = s.surfaceFrozen
             and "terraLogic_fa_help_surfaceTemperatureFrozen"
             or "terraLogic_fa_help_surfaceTemperatureOpen"
     elseif metric == "deepTemperature" then
         titleKey, titleFallback = "terraLogic_fa_ui_deepTemperature", "Temperature at 35 cm"
-        currentValue = TerraLogicI18n.format("%.1f C", s.subsoilTemperatureC)
+        currentValue = TerraLogicI18n.formatTemperature(s.subsoilTemperatureC)
         textKey = s.subsoilFrozen
             and "terraLogic_fa_help_deepTemperatureFrozen"
             or "terraLogic_fa_help_deepTemperatureOpen"
@@ -2821,6 +3012,15 @@ function TerraLogicFieldAnalysisFrame:updateContent()
         return
     end
     local scope = formatFieldScope(s)
+    local selected=TerraLogicFieldAnalysis.selectedField
+    if selected==nil then
+        for _,entry in ipairs(TerraLogicFieldCatalog.entries or {}) do
+            if entry.current then selected=entry;break end
+        end
+    end
+    if selected~=nil and #(selected.fieldIds or {})==0 and (selected.customId or 0)>0 then
+        scope=TerraLogicFieldCatalog:entryName(selected)
+    end
     local summaryScope = TerraLogicI18n.format(tr("terraLogic_fa_ui_summaryScope",
         "%s | Field-wide assessment"), scope)
     setText(self.scopeOverviewText, summaryScope)
@@ -3020,15 +3220,15 @@ function TerraLogicFieldAnalysisFrame:updateContent()
             "terraLogic_fa_ui_weatherMixed", "Mixed precipitation %.0f%%"),
             precipitation * 100)
     end
-    setText(self.weather_current, TerraLogicI18n.format("%.1f C  |  %s",
-        airTemperature, precipitationText))
+    setText(self.weather_current, TerraLogicI18n.format("%s  |  %s",
+        TerraLogicI18n.formatTemperature(airTemperature), precipitationText))
     setText(self.weather_surfaceMoisture, formatPercent(s.surfaceMoisture))
     setText(self.weather_subsoilMoisture, formatPercent(s.subsoilMoisture))
-    setText(self.weather_surfaceTemperature, TerraLogicI18n.format("%.1f C%s",
-        s.surfaceTemperatureC, s.surfaceFrozen
+    setText(self.weather_surfaceTemperature, TerraLogicI18n.format("%s%s",
+        TerraLogicI18n.formatTemperature(s.surfaceTemperatureC), s.surfaceFrozen
             and " - " .. tr("terraLogic_fa_ui_frozen", "frozen") or ""))
-    setText(self.weather_subsoilTemperature, TerraLogicI18n.format("%.1f C%s",
-        s.subsoilTemperatureC, s.subsoilFrozen
+    setText(self.weather_subsoilTemperature, TerraLogicI18n.format("%s%s",
+        TerraLogicI18n.formatTemperature(s.subsoilTemperatureC), s.subsoilFrozen
             and " - " .. tr("terraLogic_fa_ui_frozen", "frozen") or ""))
     local initializationHints = {}
     if s.temperatureInitializing then
@@ -3128,34 +3328,29 @@ TerraLogicFieldAnalysisRequestEvent = {}
 local TerraLogicFieldAnalysisRequestEvent_mt = Class(TerraLogicFieldAnalysisRequestEvent, Event)
 InitEventClass(TerraLogicFieldAnalysisRequestEvent, "TerraLogicFieldAnalysisRequestEvent")
 function TerraLogicFieldAnalysisRequestEvent.emptyNew() return Event.new(TerraLogicFieldAnalysisRequestEvent_mt) end
-function TerraLogicFieldAnalysisRequestEvent.new(x, z, serial, vehicle)
+function TerraLogicFieldAnalysisRequestEvent.new(x, z, serial, vehicle, selected)
     local self = TerraLogicFieldAnalysisRequestEvent.emptyNew()
     self.x, self.z, self.serial, self.vehicle = x, z, serial, vehicle
+    self.selected = selected == true
     return self
 end
 function TerraLogicFieldAnalysisRequestEvent:readStream(streamId, connection)
     self.x, self.z = streamReadFloat32(streamId), streamReadFloat32(streamId)
     self.serial = streamReadInt32(streamId)
     self.vehicle = NetworkUtil.readNodeObject(streamId)
+    self.selected = streamReadBool(streamId)
     self:run(connection)
 end
 function TerraLogicFieldAnalysisRequestEvent:writeStream(streamId, connection)
     streamWriteFloat32(streamId, self.x); streamWriteFloat32(streamId, self.z)
     streamWriteInt32(streamId, self.serial)
     NetworkUtil.writeNodeObject(streamId, self.vehicle)
+    streamWriteBool(streamId, self.selected == true)
 end
 function TerraLogicFieldAnalysisRequestEvent:run(connection)
     if connection:getIsServer() then return end
-    local now = g_currentMission ~= nil and (g_currentMission.time or 0) or 0
-    TerraLogicFieldAnalysis.requestCooldowns = TerraLogicFieldAnalysis.requestCooldowns or {}
-    local last = TerraLogicFieldAnalysis.requestCooldowns[connection] or -1000
-    if now - last < 500 then return end
-    TerraLogicFieldAnalysis.requestCooldowns[connection] = now
-    local snapshot = TerraLogicFieldAnalysis:buildSnapshot(
-        self.x, self.z, self.serial)
-    snapshot.vehicleSetup = TerraLogicFieldAnalysis:
-        buildVehicleSetup(self.vehicle)
-    connection:sendEvent(TerraLogicFieldAnalysisSyncEvent.new(snapshot))
+    TerraLogicFieldCatalog:queueSnapshot(connection, self.x, self.z,
+        self.serial, self.vehicle, self.selected)
 end
 
 TerraLogicFieldAnalysisSyncEvent = {}

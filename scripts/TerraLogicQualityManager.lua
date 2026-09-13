@@ -446,6 +446,12 @@ function TerraLogicQualityManager:createCutterAreaProbe(cutter, workArea)
             end
         end
     end
+    -- Reuse the existing footprint calculation for PF write attribution.
+    probe.pfGeometry = {
+        minX=math.min(sx,sx+widthX,sx+heightX,sx+widthX+heightX),
+        maxX=math.max(sx,sx+widthX,sx+heightX,sx+widthX+heightX),
+        minZ=math.min(sz,sz+widthZ,sz+heightZ,sz+widthZ+heightZ),
+        maxZ=math.max(sz,sz+widthZ,sz+heightZ,sz+widthZ+heightZ)}
     return probe
 end
 
@@ -1120,11 +1126,13 @@ function TerraLogicQualityManager:getWorkQualityModel(
     local soilComponentAllowed = classKey == "plow" and component == "soilPlow"
         or (classKey == "subsoiler" or classKey == "cultivator"
             or classKey == "shallowCultivator" or classKey == "discHarrow"
-            or classKey == "powerHarrow" or classKey == "spader")
+            or classKey == "powerHarrow" or classKey == "spader"
+            or classKey == "ridgeFormer")
             and component == "soilCultivate"
         or (classKey == "sowingMachine" or classKey == "directDrill"
             or classKey == "precisionPlanter"
-            or classKey == "precisionDirectDrill") and component == "seed"
+            or classKey == "precisionDirectDrill"
+            or TerraLogicSpecialImplements.SEED_CLASSES[classKey]) and component == "seed"
         or classKey == "roller" and component == "roller"
         or classKey == "mulcher" and component == "mulch"
         or classKey == "mower" and component == "mower"
@@ -4244,11 +4252,17 @@ if Cutter ~= nil and Cutter.processCutterArea ~= nil
     and Cutter.terraLogicSpatialHarvestHookInstalled ~= true then
     local originalProcessCutterArea = Cutter.processCutterArea
     Cutter.processCutterArea = function(self, workArea, dt)
+        if TerraLogicPFHarvestTrace ~= nil and TerraLogicPFHarvestTrace.active ~= nil then
+            TerraLogicPFHarvestTrace.safe("stage", "area.begin", self, workArea)
+        end
         local manager = TerraLogicQualityManager
         local isServer = g_currentMission ~= nil
             and g_currentMission:getIsServer()
         local probe = isServer
             and manager:createCutterAreaProbe(self, workArea) or nil
+        if TerraLogicPFYieldBridge ~= nil and isServer then
+            TerraLogicPFYieldBridge:begin(self, probe ~= nil and probe.pfGeometry or nil)
+        end
         local params = self.spec_cutter ~= nil
             and self.spec_cutter.workAreaParameters or nil
         local areaBefore = params ~= nil
@@ -4264,6 +4278,9 @@ if Cutter ~= nil and Cutter.processCutterArea ~= nil
                 (tonumber(params.lastMultiplierArea) or multiplierBefore)
                     - multiplierBefore)
         end
+        if TerraLogicPFHarvestTrace ~= nil and TerraLogicPFHarvestTrace.active ~= nil then
+            TerraLogicPFHarvestTrace.safe("stage", "area.afterOriginal", self, workArea)
+        end
         return resultArea, resultMultiplierArea
     end
     Cutter.terraLogicSpatialHarvestHookInstalled = true
@@ -4276,9 +4293,13 @@ if Cutter ~= nil and Cutter.onEndWorkAreaProcessing ~= nil
     and Cutter.terraLogicQualityEndHookInstalled ~= true then
     local originalOnEndWorkAreaProcessing = Cutter.onEndWorkAreaProcessing
     Cutter.onEndWorkAreaProcessing = function(self, dt, hasProcessed)
+        if TerraLogicPFHarvestTrace ~= nil and TerraLogicPFHarvestTrace.active ~= nil then
+            TerraLogicPFHarvestTrace.safe("stage", "end.beforeTL", self)
+        end
         local spec = self.spec_cutter
         local params = spec ~= nil and spec.workAreaParameters or nil
         local harvestedArea = params ~= nil and tonumber(params.lastArea) or 0
+        local pfMultiplierBefore = params ~= nil and tonumber(params.lastMultiplierArea) or 0
         if g_currentMission ~= nil and g_currentMission:getIsServer()
             and harvestedArea > 0 then
             local workArea = self.getWorkAreaByIndex ~= nil
@@ -4296,7 +4317,17 @@ if Cutter ~= nil and Cutter.onEndWorkAreaProcessing ~= nil
         elseif g_currentMission ~= nil and g_currentMission:getIsServer() then
             TerraLogicQualityManager:flushPendingHarvestClears(self)
         end
+        if TerraLogicPFYieldBridge ~= nil then
+            TerraLogicPFYieldBridge:complete(self, pfMultiplierBefore,
+                params ~= nil and tonumber(params.lastMultiplierArea) or pfMultiplierBefore)
+        end
+        if TerraLogicPFHarvestTrace ~= nil and TerraLogicPFHarvestTrace.active ~= nil then
+            TerraLogicPFHarvestTrace.safe("stage", "end.afterTL", self)
+        end
         local result = originalOnEndWorkAreaProcessing(self, dt, hasProcessed)
+        if TerraLogicPFHarvestTrace ~= nil and TerraLogicPFHarvestTrace.active ~= nil then
+            TerraLogicPFHarvestTrace.safe("stage", "end.afterOriginal", self)
+        end
         self.terraLogicHarvestCapture = nil
         return result
     end

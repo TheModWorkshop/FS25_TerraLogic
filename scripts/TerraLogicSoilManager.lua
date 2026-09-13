@@ -242,6 +242,10 @@ local RECOVERY_AGE_WORK = {
     weeder={target=0.97, strength=0.50},
     slurryInjector={target=0.97, strength=0.50}
 }
+for key, rule in pairs(TerraLogicSpecialImplements.BIOLOGY) do
+    RESILIENCE_TILLAGE[key] = rule.resilience
+    RECOVERY_AGE_WORK[key] = {target=rule.target, strength=rule.strength}
+end
 
 -- Monthly background recovery. Living-root effects remain in
 -- ROOT_GROWTH_RESPONSE; these values represent slower pore ageing, fauna,
@@ -475,7 +479,7 @@ end
 -- Field Analysis page uses this to preview real implement behaviour without
 -- creating a WorkArea, mutating the implement, or writing a density map.
 function TerraLogicSoilManager:getSuitabilityAtState(state, soilTypeIndex,
-        classKey, workDepthCm)
+        classKey, workDepthCm, rawGround)
     local profile = TerraLogicSoilProfiles ~= nil
         and TerraLogicSoilProfiles:getSuitabilityProfile(classKey) or nil
     if state == nil or profile == nil then
@@ -488,6 +492,7 @@ function TerraLogicSoilManager:getSuitabilityAtState(state, soilTypeIndex,
     end
     local qualitySum, qualityWeight, dropoutSum, dropoutWeight = 0, 0, 0, 0
     for layerId, factor in pairs(profile.factors or {}) do
+        factor = TerraLogicSpecialImplements.getSuitabilityFactor(classKey, layerId, factor, rawGround)
         local score = getSuitabilityFactorScore(state[layerId], factor)
         local qWeight = math.max(tonumber(factor.qualityWeight) or 0, 0)
         local dWeight = math.max(tonumber(factor.dropoutWeight) or 0, 0)
@@ -560,10 +565,12 @@ local MOISTURE_TEXTURE_COHESION = {
 }
 
 local MOISTURE_HIGH_SHEAR = {
+    ridgeFormer=true,
     powerHarrow=true, spader=true, roller=true
 }
 
 local MOISTURE_NARROW_SLOT = {
+    vegetablePlanter=true, sugarcanePlanter=true,
     sowingMachine=true, precisionPlanter=true,
     directDrill=true, precisionDirectDrill=true,
     slurryInjector=true
@@ -659,7 +666,7 @@ function TerraLogicSoilManager:prepareWorkAreaSuitability(
         -- ground. Query the authoritative ground-type channel directly;
         -- checking fruit, grass and meadow density maps again for every bare
         -- seedbed cell was both redundant and substantially more expensive.
-        local cultivatable = self:isCultivatableTerrainAtWorldPosition(x, z)
+        local cultivatable, rawGround = self:isCultivatableTerrainAtWorldPosition(x, z)
         if cultivatable == nil then
             local surface = TerraLogicQualityManager:
                 getSurfaceTypeAtWorldPosition(x, z)
@@ -700,6 +707,7 @@ function TerraLogicSoilManager:prepareWorkAreaSuitability(
             frostDropoutSum = frostDropoutSum
                 + (moisture ~= nil and moisture.frostDropoutFraction or 0)
             for layerId, factor in pairs(profile.factors or {}) do
+                factor = TerraLogicSpecialImplements.getSuitabilityFactor(classKey, layerId, factor, rawGround)
                 local score = getSuitabilityFactorScore(state[layerId], factor)
                 local qWeight = math.max(tonumber(factor.qualityWeight) or 0, 0)
                 local dWeight = math.max(tonumber(factor.dropoutWeight) or 0, 0)
@@ -3910,10 +3918,16 @@ function TerraLogicSoilManager:processNaturalRecoveryCell(job, index)
         or coverKey == "deepPerennial"
     local deepBiologyBoost = livingCover
         and (1 + 0.50 * restFactor * clamp01(environment.biologicalFactor)) or 1
+    -- Established, undisturbed living cover strengthens monthly recovery.
+    -- Keep root-growth events, targets and bare/residue recovery unchanged.
+    local surfaceRecoveryBoost = livingCover and (1 + 0.25 * restFactor) or 1
+    local deepRecoveryBoost = livingCover and (1 + 0.35 * restFactor) or 1
     tryMove("surfaceCompaction", cover.surfaceTarget, -1, 0.0060,
-        surfaceRecoveryFactor, texture.surface, cover.activity, 11, 1.20)
+        surfaceRecoveryFactor, texture.surface,
+        cover.activity * surfaceRecoveryBoost, 11, 1.20)
     tryMove("deepCompaction", cover.deepTarget, -1, 0.0018,
-        deepRecoveryFactor, texture.deep, cover.activity * deepBiologyBoost, 23, 1.60)
+        deepRecoveryFactor, texture.deep,
+        cover.activity * deepBiologyBoost * deepRecoveryBoost, 23, 1.60)
 
     -- Covered soil can slowly rebuild an intermediate crumb structure from
     -- either coarse clods or an over-pulverized state. Bare soil receives only
@@ -4728,12 +4742,12 @@ function TerraLogicSoilManager:isCultivatableTerrainAtWorldPosition(x, z)
         and FieldGroundType.getTypeByValue ~= nil
         and FieldGroundType.NONE ~= nil then
         local ok, groundType = pcall(FieldGroundType.getTypeByValue, value)
-        if ok then return groundType ~= FieldGroundType.NONE end
+        if ok then return groundType ~= FieldGroundType.NONE, value end
     end
     -- Older/custom maps may not expose the converter. The decoded GROUND_TYPE
     -- value still uses zero for NONE, unlike the former raw terrainDetailId
     -- query which mixed all packed terrain channels together.
-    return tonumber(value) ~= 0
+    return tonumber(value) ~= 0, value
 end
 
 function TerraLogicSoilManager:getCultivatableTerrainCoverage(
@@ -5692,10 +5706,12 @@ end
 -- never authorize neighbouring or interpolated non-field cells.
 -- Shared soil susceptibility, excluding load, coverage and distance to target.
 -- Moisture's target shifts remain separate; frost only reduces the impulse.
+local NEUTRAL_TRAFFIC_TEXTURE = {surface=1, deep=1}
 function TerraLogicSoilManager:getTrafficSensitivityFactors(
         soilType, resilience, surfaceMoisture, deepMoisture,
         surfaceFrozen, deepFrozen, texture)
     texture = texture or TerraLogicSoilProfiles:getPFTrafficResponse(soilType)
+        or NEUTRAL_TRAFFIC_TEXTURE
     local biology = 1.30 - 0.60 * clamp01(resilience or 0.50)
     return (texture.surface or 1) * biology * (surfaceMoisture or 1)
             * (surfaceFrozen and 0.20 or 1),
@@ -5850,7 +5866,10 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
     local function moistureAdjustedTarget(baseTarget, multiplier,
             wetShift, dryShift)
         if baseTarget == nil then return nil end
-        local wet = clamp01(((tonumber(multiplier) or 1) - 1) / 0.58)
+        -- Traffic moisture impulses retain their 50% moderation. Recover the
+        -- original positive moisture excursion for targets only; dry shifts
+        -- and neutral targets must remain bit-for-bit unchanged.
+        local wet = clamp01(((tonumber(multiplier) or 1) - 1) * 2 / 0.58)
         local dry = clamp01((1 - (tonumber(multiplier) or 1)) / 0.28)
         return clamp01(baseTarget + wetShift * wet - dryShift * dry)
     end
@@ -6057,6 +6076,8 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
             and moistureMechanics.wetSeverity or 0,
         trafficSurfaceMultiplier=moistureSurfaceMultiplier,
         trafficDeepMultiplier=moistureDeepMultiplier,
+        surfaceTrafficSensitivity=surfaceSensitivity,
+        deepTrafficSensitivity=deepSensitivity,
         textureSurfaceMultiplier=textureSurfaceMultiplier,
         textureDeepMultiplier=textureDeepMultiplier,
         resilience=resilience,
@@ -7510,6 +7531,11 @@ function TerraLogicSoilManager:applyWorkArea(
         and plowParameters ~= nil
         and plowParameters.limitToField == false
         and rawChangedArea > 0
+    if createsNewField and currentWorkAreaGeometry~=nil and TerraLogicFieldCatalog~=nil then
+        local geometry=currentWorkAreaGeometry
+        TerraLogicFieldCatalog:markTopologyDirty(geometry.sx+geometry.widthX*.5+geometry.heightX*.5,
+            geometry.sz+geometry.widthZ*.5+geometry.heightZ*.5)
+    end
     -- Surface, deep, aggregate, roughness and recovery share only three raster
     -- resolutions. Rasterize each size once per callback; the finer occupancy
     -- sampling therefore does not multiply work for every individual layer.

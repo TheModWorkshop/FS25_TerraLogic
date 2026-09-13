@@ -815,8 +815,13 @@ function TerraLogicSoilMoistureManager:getTrafficMultipliers(soilTypeIndex)
         if frozen then return 1 end
         local dry = 1 - smoothStep(0.10, 0.32, value)
         local wet = smoothStep(wetOnset - 0.06, 0.94, value)
-        return math.clamp(1 - 0.25 * dry
+        local multiplier = math.clamp(1 - 0.25 * dry
             + 0.48 * wet * (profile.wetDraftTexture or 1), 0.72, 1.58)
+        -- Halve only the extra wet-soil traffic response. Keep the neutral
+        -- point, dry protection and frost handling unchanged. The soil map's
+        -- target adjustment uses this same multiplier (and its original .58
+        -- reference range), so wet target shifts are reduced equally.
+        return multiplier > 1 and 1 + (multiplier - 1) * 0.5 or multiplier
     end
     return response(surface, profile.wetOnset, surfaceFrozen),
         response(subsoil, math.min(profile.wetOnset + 0.04, 0.82),
