@@ -3964,7 +3964,7 @@ local function getWorkHudClassWarning(classGroup, cause, hasDropout)
     elseif cause == "wet" then
         if classGroup == "seeding" then
             return nil, getWorkHudText("terraLogic_workHudSeedingWetDetail",
-                "Wet soil smears the furrow and reduces seed placement")
+                "Wet soil reduces seed placement quality.")
         elseif classGroup == "tillage" then
             return nil, getWorkHudText("terraLogic_workHudTillageWetDetail",
                 "Wet soil smears instead of crumbling cleanly")
@@ -4463,49 +4463,48 @@ function TerraLogicMain.wrapWarningText(text, width, measure)
     return lines
 end
 
+-- Inline title/detail, measured in their actual fonts. Cache bounded by
+-- language, width and font size; no queue-dependent geometry.
 function TerraLogicMain:getWarningTextLayout(warning, width, size)
-    local key = tostring(width) .. ":" .. tostring(size) .. ":"
-        .. tostring(warning.title or "") .. "\0" .. tostring(warning.detail or "")
-    self.warningTextCache = self.warningTextCache or {}
-    local layout = self.warningTextCache[key]
-    if layout == nil then
-        setTextBold(true)
-        local title = self.wrapWarningText(warning.title, width,
-            function(text) return getTextWidth(size, text) end)
-        setTextBold(false)
-        local detail = self.wrapWarningText(warning.detail, width,
-            function(text) return getTextWidth(size, text) end)
-        layout = {title=title, detail=detail}
-        if (self.warningTextCacheCount or 0) >= 64 then
-            self.warningTextCache, self.warningTextCacheCount = {}, 0
+    local key=tostring(g_languageShort)..":"..tostring(width)..":"..tostring(size)
+        ..":"..tostring(warning.title)..":"..tostring(warning.detail)
+    self.warningTextCache=self.warningTextCache or {}
+    local cached=self.warningTextCache[key]
+    if cached~=nil then return cached end
+    local lines, lineWidth = {{}}, 0
+    local function append(text,bold)
+        setTextBold(bold)
+        for word in tostring(text or ""):gmatch("%S+") do
+            local line=lines[#lines]
+            local token=(#line>0 and " " or "")..word
+            local w=getTextWidth(size,token)
+            if lineWidth+w>width and #line>0 then
+                lines[#lines+1]={};line=lines[#lines];lineWidth=0
+                token=word;w=getTextWidth(size,token)
+            end
+            line[#line+1]={text=token,bold=bold,x=lineWidth}
+            lineWidth=lineWidth+w
         end
-        self.warningTextCache[key] = layout
-        self.warningTextCacheCount = (self.warningTextCacheCount or 0) + 1
     end
-    return layout
+    local title=tostring(warning.title or "")
+    append(title~="" and title..":" or "",true)
+    append(warning.detail,false)
+    setTextBold(false)
+    local result={lines=lines}
+    if (self.warningTextCacheCount or 0)>=64 then
+        self.warningTextCache={};self.warningTextCacheCount=0
+    end
+    self.warningTextCache[key]=result
+    self.warningTextCacheCount=(self.warningTextCacheCount or 0)+1
+    return result
 end
 
-function TerraLogicMain:getWarningBatchLayout(shown, width, size)
-    local state = self.workHudWarningLayoutState
-    if state == nil or state.width ~= width or state.size ~= size then
-        state = {width=width, size=size, titleRows=1, detailRows=1}
-        self.workHudWarningLayoutState = state
-    end
-    local function include(warning)
-        if warning == nil then return nil end
-        local layout = self:getWarningTextLayout(warning, width, size)
-        state.titleRows = math.max(state.titleRows, #layout.title)
-        state.detailRows = math.max(state.detailRows, #layout.detail)
-        return layout
-    end
-    local layout = include(shown)
-    for _, id in ipairs(self.workHudWarningQueue or {}) do
-        local source = (self.workHudWarningSources or {})[id]
-        include(source ~= nil and source.warning or nil)
-    end
-    -- Separate title/detail maxima also keep the first detail line stationary
-    -- when a queued warning has a two-line title but a shorter explanation.
-    return layout, state.titleRows, state.detailRows
+function TerraLogicMain:prepareWarningCard(warning,width,size,now)
+    local shown=warning or self.workHudLastWarning
+    if shown==nil then return nil end
+    if warning~=nil then self.workHudLastWarning=warning end
+    local alpha=updateWorkHudWarningFade(self,now,warning~=nil)
+    return shown,self:getWarningTextLayout(shown,width,size),2,alpha
 end
 
 function TerraLogicMain:drawSpeedHud()
@@ -4977,46 +4976,40 @@ function TerraLogicMain:drawWorkHudWarning(warning, warningCount, warningIndex, 
     local padX = getSpeedHudScaledPixels(15, 0)
     local _, smallSize = getSpeedHudScaledPixels(0,
         math.max(getSpeedHudDefaultTextPixels() - 3, 10))
-    local warningAlpha = updateWorkHudWarningFade(
-        self, now, warning ~= nil)
-    if warningAlpha <= 0 and warning == nil then self.workHudWarningLayoutState = nil end
-    if warningAlpha > 0 then
-        local shown = warning or self.workHudLastWarning
-        if warning ~= nil then self.workHudLastWarning = warning end
+    local shown,layout,rows,warningAlpha = self:prepareWarningCard(
+        warning,boxWidth-padX*2,smallSize,now)
+    if (warningAlpha or 0) > 0 then
         if shown ~= nil then
             local isCritical = shown.severity == "critical"
-            local accent = isCritical
-                and SPEED_HUD_CRITICAL_COLOR or SPEED_HUD_CAUTION_COLOR
-            local titleAccent = accent
-            local layout, titleRows, detailRows = self:getWarningBatchLayout(
-                shown, boxWidth-padX*2, smallSize)
+            local accent = isCritical and SPEED_HUD_CRITICAL_COLOR or SPEED_HUD_CAUTION_COLOR
             local _, lineGap = getSpeedHudScaledPixels(0, 4)
             local lineHeight = smallSize + lineGap
-            local _, inset = getSpeedHudScaledPixels(0, 10)
-            local _, dotReserve = getSpeedHudScaledPixels(0, 8)
-            local warningHeight = math.max(select(2, getSpeedHudScaledPixels(0, 58)),
-                inset*2 + (titleRows+detailRows)*lineHeight + lineGap + dotReserve)
-            if not self:renderSpeedHudBackground(
-                boxX, warningY, boxWidth, warningHeight, warningAlpha) then
-                drawFilledRect(boxX, warningY, boxWidth, warningHeight,
-                    0.01, 0.01, 0.01, 0.72 * warningAlpha)
+            local _, inset = getSpeedHudScaledPixels(0, 7)
+            local _, dotReserve = getSpeedHudScaledPixels(0, 7)
+            local warningHeight = inset*2 + 2*smallSize + lineGap + dotReserve
+            if not self:renderSpeedHudBackground(boxX,warningY,boxWidth,warningHeight,warningAlpha) then
+                drawFilledRect(boxX,warningY,boxWidth,warningHeight,0.01,0.01,0.01,0.72*warningAlpha)
             end
-            local stripeWidth = select(1, getSpeedHudScaledPixels(4, 0))
-            drawFilledRect(boxX, warningY, stripeWidth, warningHeight,
-                accent[1], accent[2], accent[3], warningAlpha)
-            local warningTitleY = warningHeight-inset-smallSize
-            local warningDetailY = warningTitleY-titleRows*lineHeight-lineGap
+            drawFilledRect(boxX,warningY,select(1,getSpeedHudScaledPixels(4,0)),warningHeight,
+                accent[1],accent[2],accent[3],warningAlpha)
+            -- All shipped messages fit two lines. For unexpectedly long text
+            -- from future translations, page rather than clip or resize.
+            local pages=math.max(1,math.ceil(#layout.lines/2))
+            local page=math.floor(math.max(0,now-(self.workHudWarningSlotStartedAt or now))/2200)%pages
+            local first=page*2+1
+            local count=math.min(2,#layout.lines-first+1)
+            -- Center the reserved two-line area, not the current message.
+            -- Keep the first baseline fixed when the queue changes line count.
+            local textHeight=smallSize+lineHeight
+            local top=(warningHeight+dotReserve+textHeight)*0.5-smallSize
             setTextAlignment(RenderText.ALIGN_LEFT)
-            setTextBold(true)
-            setTextColor(titleAccent[1], titleAccent[2], titleAccent[3],
-                warningAlpha)
-            for index, line in ipairs(layout.title) do
-                renderText(boxX+padX, warningY+warningTitleY-(index-1)*lineHeight, smallSize, line)
-            end
-            setTextBold(false)
-            setTextColor(1, 1, 1, warningAlpha)
-            for index, line in ipairs(layout.detail) do
-                renderText(boxX+padX, warningY+warningDetailY-(index-1)*lineHeight, smallSize, line)
+            for i=0,count-1 do
+                for _,run in ipairs(layout.lines[first+i]) do
+                    setTextBold(run.bold)
+                    if run.bold then setTextColor(accent[1],accent[2],accent[3],warningAlpha)
+                    else setTextColor(1,1,1,warningAlpha) end
+                    renderText(boxX+padX+run.x,warningY+top-i*lineHeight,smallSize,run.text)
+                end
             end
             if (warningCount or 0) > 1 then
                 local dotSize = select(1, getSpeedHudScaledPixels(4, 0))
@@ -5111,19 +5104,8 @@ function TerraLogicMain:drawNativeSoilBars(box, posX, posY)
         for segment=1,segments do
             local t = (segment - 0.5) / segments
             local r, g, b
-            if layerId == "aggregateSize" then
-                r, g, b = TerraLogicSoilManager:getColor(layerId, t)
-            elseif layerId == "surfaceCompaction"
-                or layerId == "deepCompaction" then
-                r, g, b = TerraLogicSoilManager:getColor(layerId, t)
-            else
-                if t < 0.5 then
-                    r, g = 0.92, 0.18 + t * 1.42
-                else
-                    r, g = 0.92 - (t - 0.5) * 1.42, 0.89
-                end
-                b = 0.10
-            end
+            local raw = layerId == "roughness" and 1-t or t
+            r, g, b = TerraLogicSoilManager:getColor(layerId, raw)
             drawFilledRect(
                 barX + (segment - 1) * barWidth / segments,
                 y, barWidth / segments + g_pixelSizeX,
@@ -5185,30 +5167,7 @@ function TerraLogicMain:drawSoilHud()
             or TerraLogicSoilManager:getDisplayValue(layerId, rawValue)
         local valueText = TerraLogicI18n.format("%d %%",
             math.floor(displayValue * 100 + 0.5))
-        local descriptorKey
-        if directionalTilth then
-            descriptorKey = rawValue < 0.45
-                and "terraLogic_soilTilthCoarse"
-                or (rawValue > 0.55 and "terraLogic_soilTilthFine"
-                    or "terraLogic_soilTilthOptimal")
-        else
-            if directCompaction
-                and TerraLogicSoilManager.getCompactionDisplayThresholds ~= nil then
-                local greenLimit, redLimit = TerraLogicSoilManager:
-                    getCompactionDisplayThresholds(layerId)
-                descriptorKey = rawValue <= greenLimit
-                    and "terraLogic_soilStateGood"
-                    or (rawValue < redLimit and "terraLogic_soilStateFair"
-                        or "terraLogic_soilStatePoor")
-            else
-                descriptorKey = displayValue < 0.35
-                    and "terraLogic_soilStatePoor"
-                    or (displayValue < 0.70 and "terraLogic_soilStateFair"
-                        or "terraLogic_soilStateGood")
-            end
-        end
-        local rowLabel = TerraLogicI18n.format("%s: %s",
-            g_i18n:getText(definition[2]), g_i18n:getText(descriptorKey))
+        local rowLabel = g_i18n:getText(definition[2])
         box.terraLogicSoilRows[#box.terraLogicSoilRows + 1] = {
             value = displayValue,
             layerId = layerId,
@@ -5295,13 +5254,20 @@ function TerraLogicMain:drawQualityHud()
         box:addLine(entry.label, TerraLogicI18n.format("%d %%", percent),
             entry.quality < 0.90)
     end
-    local yieldFactor = TerraLogicQualityManager:getEffectiveYieldFactor(entries)
+    local rootFactor, moistureFactor = 1, 1
+    for _, entry in ipairs(entries) do
+        if entry.rootYieldFactor ~= nil then rootFactor = entry.rootYieldFactor end
+        if entry.moistureYieldFactor ~= nil then moistureFactor = entry.moistureYieldFactor end
+    end
+    local yieldFactor = TerraLogicQualityManager:getTerraLogicYieldFactor(
+        entries, rootFactor, moistureFactor,
+        TerraLogicSettings == nil or TerraLogicSettings:getMoistureYieldEnabled(), 1)
     box:addLine(
         TerraLogicQualityManager:getText(
             "terraLogic_workQualityFinalYieldFactor",
             "Final yield factor"
         ),
-        TerraLogicI18n.format("%d %%", math.floor(yieldFactor * 100 + 0.5)),
+        TerraLogicI18n.format("%.1f %%", yieldFactor * 100),
         yieldFactor < 0.90
     )
     box:showNextFrame()
@@ -6094,11 +6060,11 @@ function TerraLogicMain:drawWorkQualityDebug()
             overallQuality ~= nil and string.format("%.1f%%", overallQuality * 100)
                 or "n/a", effectiveFactor-1)
         lines[#lines + 1] = string.format(
-            "Nominal TerraLogic factor x%.4f | loss %.2f%% | positive potential %.2f%% gate %.3f",
-            effectiveFactor, math.max(effectiveLoss,0) * 100,
-            (yieldDetail.positivePotential or 0)*100,
-            yieldDetail.positiveGate or 0)
-        lines[#lines + 1] = "Formula: Vanilla/PF x unified TL curve 0.60-1.10; physical missed plants remain additional"
+            "TerraLogic factor x%.4f | deductions: soil %.2f pp, water %.2f pp, work %.2f pp",
+            effectiveFactor, (yieldDetail.soilDeduction or 0)*100,
+            (yieldDetail.waterDeduction or 0)*100,
+            (yieldDetail.workDeduction or 0)*100)
+        lines[#lines + 1] = "Formula: 110% - soil - water - work; minimum 60%; physical missed plants remain additional"
         lines[#lines + 1] = "Soil Work Quality is descriptive; tilth/levelness act through seeding only"
         lines[#lines + 1] = "SEED target loss = physical missing plants + residual harvest correction"
         lines[#lines + 1] = "NOT DONE is neutral; Vanilla or active PF handles missing base-game bonuses"

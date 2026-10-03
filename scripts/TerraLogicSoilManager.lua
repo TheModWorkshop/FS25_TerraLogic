@@ -918,29 +918,9 @@ local function gradient(value)
     return 0.90, 0.80 * (1 - t) + 0.12, 0.12, 0.78
 end
 
--- Compaction is stored and displayed directly: 0 is loose/good, 1 is
--- severely compacted/bad.  The two layers need different colour boundaries
--- because their root-yield curves have different agronomic consequences.
--- Green ends at 1% layer loss; red begins at 4% layer loss.  Deriving the
--- values from ROOT_YIELD keeps maps, HUD and Field Analysis in lockstep with
--- the harvest model if that balance is tuned later.
+-- Compatibility accessor: display thresholds no longer depend on yield loss.
 local function compactionThresholds(layerId)
-    local profile = TerraLogicSoilProfiles ~= nil
-        and TerraLogicSoilProfiles.ROOT_YIELD ~= nil
-        and TerraLogicSoilProfiles.ROOT_YIELD[layerId] or nil
-    local good = clamp01(profile ~= nil and profile.good
-        or (layerId == "deepCompaction" and 0.10 or 0.30))
-    local maximum = math.max(tonumber(profile ~= nil
-        and profile.maximumLoss) or (layerId == "deepCompaction" and 0.26 or 0.15),
-        0.0001)
-    local exponent = math.max(tonumber(profile ~= nil
-        and profile.exponent) or (layerId == "deepCompaction" and 1.45 or 1.40),
-        1)
-    local function valueAtLoss(loss)
-        return clamp01(good + (1-good)
-            * (math.clamp(loss/maximum, 0, 1) ^ (1/exponent)))
-    end
-    return valueAtLoss(0.01), valueAtLoss(0.04)
+    return 0.30, 0.70
 end
 
 -- Resilience is a direct good/bad scale and needs a perceptually monotonic
@@ -8303,21 +8283,7 @@ function TerraLogicSoilManager:getRootYieldFactorForArea(
 end
 
 function TerraLogicSoilManager:getColor(layerId, value)
-    if layerId == "aggregateSize" then
-        return tilthGradient(value)
-    end
-    if layerId == "surfaceCompaction" or layerId == "deepCompaction" then
-        -- Maps and the on-foot bars retain the fine continuous scale. Only
-        -- Field Analysis text uses the discrete agronomic traffic light.
-        return gradient(clamp01(value))
-    end
-    if layerId == "resilience" then
-        -- The dedicated palette is monotonic, so every persisted 8-bit step
-        -- can be shown truthfully without the misleading colour reversal that
-        -- originally motivated coarse two-percent display bands.
-        return resilienceGradient(value)
-    end
-    return gradient(1 - self:getDisplayValue(layerId, value))
+    return TerraLogicDisplay.mapColor(layerId, value)
 end
 
 function TerraLogicSoilManager:buildOverlay(mode)
@@ -9575,7 +9541,8 @@ function TerraLogicSoilManager:drawMinimapUi(ingameMap)
         and frameTop > frameBottom then
         local _, preferredTextSize = getNormalizedScreenValues(0, 10)
         local titlePadding = getNormalizedScreenValues(10, 0)
-        local _, titleTopInset = getNormalizedScreenValues(0, 30)
+        -- Leave additional space for the multiplayer ping above the map label.
+        local _, titleTopInset = getNormalizedScreenValues(0, 38)
         local title = getLocalizedCompactSoilMapLabel(self.activeMapMode)
         local textSize = fitTextSize(title, preferredTextSize,
             math.max(frameRight - frameLeft - titlePadding * 2, 0.001), 0.70)

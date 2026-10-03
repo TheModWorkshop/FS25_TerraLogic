@@ -128,28 +128,20 @@ local function compactionLoss(key, rawValue)
     return maximum * normalized ^ exponent
 end
 
+-- The colour describes the amount of compaction, not its layer-specific
+-- yield impact. Both layers therefore use the same scale.
 local function compactionDisplayQuality(key, rawValue)
-    local loss = compactionLoss(key, rawValue)
-    if loss < 0.01 then return 1 end
-    if loss < 0.04 then return 0.70 end
-    return 0.40
-end
-
-local function compactionStatusText(key, rawValue)
-    local loss = compactionLoss(key, rawValue)
-    if loss < 0.01 then return tr("terraLogic_fa_ui_good", "Good") end
-    if loss < 0.04 then return tr("terraLogic_fa_ui_watch", "Watch") end
-    return tr("terraLogic_fa_ui_action", "Action needed")
+    return 1-clamp01(rawValue)
 end
 
 local function qualityColor(value, key)
     value = clamp01(value)
-    local goodThreshold, watchThreshold = qualityThresholds(key)
-    if value >= goodThreshold then return 0.35, 0.82, 0.31, 1 end
-    -- Match the live work HUD exactly so the same severity never changes
-    -- colour merely because the player opened Field Analysis.
-    if value >= watchThreshold then return 1.00, 0.4287, 0.0006, 1 end
-    return 1.00, 0.18, 0.10, 1
+    if key == "surfaceCompaction" or key == "deepCompaction" then
+        return TerraLogicDisplay.color(key,1-value)
+    elseif key == "roughness" then return TerraLogicDisplay.color(key,1-value)
+    elseif key == "resilience" or key == "continuity" then return TerraLogicDisplay.color(key,value)
+    end
+    return TerraLogicDisplay.color("work", value)
 end
 
 local function consequenceColor(severity)
@@ -166,7 +158,7 @@ end
 
 local function formatLossPercent(value)
     local loss = math.max(tonumber(value) or 0, 0)
-    if loss < 0.0005 then return TerraLogicI18n.format("-%.1f%%", 0) end
+    if loss < 0.0005 then return TerraLogicI18n.format("%.1f%%", 0) end
     return TerraLogicI18n.format("-%.1f%%", loss * 100)
 end
 
@@ -708,6 +700,7 @@ function TerraLogicFieldAnalysis:buildSnapshot(x, z, serial, options)
         growthSteps=0, growthHistoryCoverage=0, growthHistoryUpdating=false,
         biologicalContinuity=0.25,
         moistureYieldActive=false, mechanics={},
+        soilDeduction=0, waterDeduction=0, workDeduction=0,
         surfaceRootLoss=0, deepRootLoss=0, trafficSurfaceMultiplier=1,
         trafficDeepMultiplier=1, rollerRescuePotential=0, categoryLosses={},
         rotationKnownShare=0, rotationRepeatedShare=0,
@@ -733,6 +726,7 @@ function TerraLogicFieldAnalysis:buildSnapshot(x, z, serial, options)
     local growthCropSamples, growthHistorySamples = 0, 0
     local activeWeight, cropCounts, cropStates = 0, {}, {}
     local surfaceMoistureSum, subsoilMoistureSum, profileCounts = 0, 0, {}
+    local soilDeductionSum, waterDeductionSum, workDeductionSum = 0, 0, 0
     local surfaceLossSum, deepLossSum, trafficSurfaceSum, trafficDeepSum = 0, 0, 0, 0
     local rollerRescueSum = 0
     local rotationKnownCount, rotationRepeatedCount, rotationDiverseCount = 0, 0, 0
@@ -892,11 +886,14 @@ function TerraLogicFieldAnalysis:buildSnapshot(x, z, serial, options)
             end
             rootProjected = clamp01(rootProjected or rootCurrent or 1)
             moistureProjected = clamp01(moistureProjected or 1)
-            local combined = TerraLogicQualityManager:getTerraLogicYieldFactor(
+            local combined, yieldDetail = TerraLogicQualityManager:getTerraLogicYieldFactor(
                 entries, rootProjected, moistureProjected, moistureActive, 1, state.resilience)
             rootSum, moistureSum = rootSum + rootProjected*weight, moistureSum + moistureProjected*weight
             surfaceLossSum, deepLossSum = surfaceLossSum + surfaceLoss*weight, deepLossSum + deepLoss*weight
             ledgerSum, totalSum = ledgerSum + ledger*weight, totalSum + combined*weight
+            soilDeductionSum = soilDeductionSum + yieldDetail.soilDeduction*weight
+            waterDeductionSum = waterDeductionSum + yieldDetail.waterDeduction*weight
+            workDeductionSum = workDeductionSum + yieldDetail.workDeduction*weight
             activeWeight = activeWeight + weight
             cropCounts[fruitIndex] = (cropCounts[fruitIndex] or 0) + weight
             cropStates[fruitIndex] = math.max(cropStates[fruitIndex] or -1, group.state)
@@ -949,6 +946,9 @@ function TerraLogicFieldAnalysis:buildSnapshot(x, z, serial, options)
     snapshot.tilthQuality = tilthQualitySum / #points
     local yieldDivisor = math.max(activeWeight, 0.000001)
     snapshot.rootFactor, snapshot.moistureFactor = rootSum / yieldDivisor, moistureSum / yieldDivisor
+    snapshot.soilDeduction = soilDeductionSum / yieldDivisor
+    snapshot.waterDeduction = waterDeductionSum / yieldDivisor
+    snapshot.workDeduction = workDeductionSum / yieldDivisor
     snapshot.surfaceRootLoss, snapshot.deepRootLoss =
         surfaceLossSum / yieldDivisor, deepLossSum / yieldDivisor
     snapshot.trafficSurfaceMultiplier = trafficSurfaceSum / #points
@@ -1255,6 +1255,19 @@ function TerraLogicFieldAnalysisFrame:onGuiSetupFinished()
         self.fieldBrowserList:setDataSource(self)
         self.fieldBrowserList:setDelegate(self)
     end
+    if self.recommendationList~=nil then
+        self.recommendationList:setDataSource(self)
+        self.recommendationList:setDelegate(self)
+    end
+    for _, name in ipairs({"scopeOverviewText", "scopeSoilText", "scopeYieldText", "scopeWeatherText", "scopeAdviceText", "scopePlannerText", "scopeFieldMapText"}) do
+        local picker = self[name]
+        if picker ~= nil and picker.setImageFilename ~= nil then
+            picker:setImageFilename(TerraLogicFieldAnalysis.MOD_DIR.."gui/tableRow.dds")
+        end
+    end
+    for _, element in ipairs(self.tableStripes or {}) do
+        element:setImageFilename(TerraLogicFieldAnalysis.MOD_DIR.."gui/tableRow.dds")
+    end
     if self.fieldBrowserPanel~=nil then self.fieldBrowserPanel:setVisible(false) end
     if self.menuHeaderIcon ~= nil then
         self.menuHeaderIcon:setImageFilename(
@@ -1277,6 +1290,19 @@ end
 
 function TerraLogicFieldAnalysisFrame:onFrameOpen()
     self.fieldBrowserOpen=false
+    if self.recommendationList~=nil then
+        self.recommendationList:setDataSource(self)
+        self.recommendationList:setDelegate(self)
+    end
+    for _, name in ipairs({"scopeOverviewText", "scopeSoilText", "scopeYieldText", "scopeWeatherText", "scopeAdviceText", "scopePlannerText", "scopeFieldMapText"}) do
+        local picker = self[name]
+        if picker ~= nil and picker.setImageFilename ~= nil then
+            picker:setImageFilename(TerraLogicFieldAnalysis.MOD_DIR.."gui/tableRow.dds")
+        end
+    end
+    for _, element in ipairs(self.tableStripes or {}) do
+        element:setImageFilename(TerraLogicFieldAnalysis.MOD_DIR.."gui/tableRow.dds")
+    end
     if self.fieldBrowserPanel~=nil then self.fieldBrowserPanel:setVisible(false) end
     TerraLogicFieldAnalysis.selectedField = nil
     if self.subCategoryBox ~= nil and self.subCategoryPaging ~= nil then
@@ -1286,7 +1312,20 @@ function TerraLogicFieldAnalysisFrame:onFrameOpen()
         self.subCategoryBox:invalidateLayout()
         self.subCategoryPaging:setTexts({"1", "2", "3", "4", "5"})
         self.subCategoryPaging:setSize(
-            self.subCategoryBox.maxFlowSize + 180 * g_pixelSizeScaledX)
+            self.subCategoryBox.maxFlowSize + 200 * g_pixelSizeScaledX, 57 * g_pixelSizeScaledY)
+        -- The native arrow backgrounds may extend beyond their button bounds.
+        -- Keep clipping off for this small control subtree, not for the page.
+        local function unclip(element)
+            element.clipping=false
+            for _,child in ipairs(element.elements or {}) do unclip(child) end
+        end
+        unclip(self.subCategoryPaging)
+        for _,part in ipairs({{"left",self.subCategoryPaging.leftButtonElement},
+                {"right",self.subCategoryPaging.rightButtonElement}}) do
+            if part[2]~=nil then
+                part[2]:setImageFilename(TerraLogicFieldAnalysis.MOD_DIR.."gui/tabArrow_"..part[1]..".dds")
+            end
+        end
         self.subCategoryPaging:setState(self.subCategoryState, false)
     end
     if self.subCategoryState == self.SUB.PLANNER then
@@ -1381,6 +1420,19 @@ end
 
 function TerraLogicFieldAnalysisFrame:closeFieldBrowser()
     self.fieldBrowserOpen=false
+    if self.recommendationList~=nil then
+        self.recommendationList:setDataSource(self)
+        self.recommendationList:setDelegate(self)
+    end
+    for _, name in ipairs({"scopeOverviewText", "scopeSoilText", "scopeYieldText", "scopeWeatherText", "scopeAdviceText", "scopePlannerText", "scopeFieldMapText"}) do
+        local picker = self[name]
+        if picker ~= nil and picker.setImageFilename ~= nil then
+            picker:setImageFilename(TerraLogicFieldAnalysis.MOD_DIR.."gui/tableRow.dds")
+        end
+    end
+    for _, element in ipairs(self.tableStripes or {}) do
+        element:setImageFilename(TerraLogicFieldAnalysis.MOD_DIR.."gui/tableRow.dds")
+    end
     if self.fieldBrowserPanel~=nil then self.fieldBrowserPanel:setVisible(false) end
     if self.backButtonInfo~=nil then self.backButtonInfo.callback=nil end
     local page=self.PAGE_BY_SUB[self.subCategoryState]
@@ -1398,14 +1450,36 @@ function TerraLogicFieldAnalysisFrame:refreshFieldBrowser()
 end
 
 function TerraLogicFieldAnalysisFrame:getNumberOfItemsInSection(list,section)
+    if list==self.recommendationList then return #(self.recommendationEntries or {}) end
     return list==self.fieldBrowserList and #(self.browserEntries or {}) or 0
 end
 
 function TerraLogicFieldAnalysisFrame:getCellTypeForItemInSection(list,section,index)
+    if list==self.recommendationList then
+        local entry=(self.recommendationEntries or {})[index]
+        return "row"..tostring(entry and entry.height or 82)
+    end
     return "default"
 end
 
 function TerraLogicFieldAnalysisFrame:populateCellForItemInSection(list,section,index,cell)
+    if list==self.recommendationList then
+        local entry=(self.recommendationEntries or {})[index]
+        if entry~=nil then
+            cell.terraLogicRecommendation=entry
+            for i=0,1 do
+                local background=cell:getDescendantByName("adviceBackground"..i)
+                if background~=nil then
+                    background:setImageFilename(TerraLogicFieldAnalysis.MOD_DIR.."gui/tableRow.dds")
+                    background:setVisible((index-1)%2==i)
+                end
+            end
+            cell:getDescendantByName("adviceTitle"):setText(entry.empty and "" or entry.title)
+            local body = cell:getDescendantByName("adviceBody")
+            if body ~= nil then body:setText(entry.text) end
+        end
+        return
+    end
     if list~=self.fieldBrowserList then return end
     local entry=(self.browserEntries or {})[index]
     if entry==nil then return end
@@ -1426,9 +1500,159 @@ function TerraLogicFieldAnalysisFrame:onClickBrowserField(element)
     TerraLogicFieldCatalog:selectEntry(entry)
 end
 
+local function compactBelow(target, source, minimumHeight, gap, baseY)
+    if target==nil or source==nil or target.setPosition==nil or target.position==nil
+        or source.size==nil or source.getTextHeight==nil then return end
+    local scale=source.textSize and source.textSize/14 or 1/1080
+    local h=math.max(minimumHeight*scale,source:getTextHeight() or 0)
+    target:setPosition(target.position[1],-(baseY*scale+h+gap*scale))
+end
+
+function TerraLogicFieldAnalysisFrame:layoutPlannerNotes()
+    local note=self.planner_noSoilImpact
+    if note~=nil and note.text~=nil and note.text~="" then
+        compactBelow(self.planner_operationNote,note,0,16,322)
+    elseif self.planner_operationNote~=nil and self.planner_operationNote.setPosition~=nil then
+        local scale=self.planner_operationNote.textSize and self.planner_operationNote.textSize/14 or 1/1080
+        self.planner_operationNote:setPosition(self.planner_operationNote.position[1],-322*scale)
+    end
+end
+
+function TerraLogicFieldAnalysisFrame:layoutSetupNotes()
+    local name=self.planner_setupName
+    if name==nil or name.getTextHeight==nil or name.size==nil then return end
+    local scale=name.textSize and name.textSize/14 or 1/1080
+    local h=math.max(20*scale,name:getTextHeight() or 0)
+    if name.setSize~=nil then name:setSize(name.size[1],h) end
+    -- Table header is at 124px; shift the whole group and following advice together.
+    local offset=64*scale+h+16*scale-124*scale
+    if self.planner_setupTable~=nil and self.planner_setupTable.setPosition~=nil then
+        self.planner_setupTable:setPosition(0,-offset)
+    end
+    if self.planner_setupAdvice~=nil and self.planner_setupAdvice.setPosition~=nil then
+        self.planner_setupAdvice:setPosition(self.planner_setupAdvice.position[1],-424*scale-offset)
+    end
+end
+
+-- Height is measured with the same width/font as the visible cell templates.
+function TerraLogicFieldAnalysisFrame:recommendationHeight(title, body)
+    local height=20
+    for _,part in ipairs({{self.recommendationMeasureTitle,title,42},{self.recommendationMeasureBody,body,101}}) do
+        local element,text,approxWidth=part[1],part[2],part[3]
+        local measured=math.ceil(#(text or "")/approxWidth)*20
+        if element~=nil and element.getTextHeight~=nil then
+            element:setText(text or "")
+            local scale=element.textSize and element.textSize/16 or 1/1080
+            measured=math.max(20,(element:getTextHeight() or 0)/scale)
+        end
+        height=math.max(height,measured)
+    end
+    return math.max(42,math.ceil((height+22-42-0.01)/20)*20+42)
+end
+
+function TerraLogicFieldAnalysisFrame:updateRecommendationList(recommendations)
+    local previous=self.selectedRecommendationKey
+    local entries,seen={},{}
+    local rank={now=1,next=2,long=3}
+    for _,item in ipairs(recommendations or {}) do
+        if rank[item.bucket]~=nil and item.key~="terraLogic_fa_action_goodDynamic"
+            and not seen[item.key or item.text] then
+            seen[item.key or item.text]=true
+            entries[#entries+1]={key=item.key,title=item.title,text=item.text,
+                bucket=item.bucket,priority=item.priority or 0}
+        end
+    end
+    table.sort(entries,function(a,b)
+        if rank[a.bucket]~=rank[b.bucket] then return rank[a.bucket]<rank[b.bucket] end
+        if a.priority~=b.priority then return a.priority>b.priority end
+        return tostring(a.key)<tostring(b.key)
+    end)
+    -- Very long localized text continues in another cell; no words are dropped.
+    local rows,total={},0
+    for _,entry in ipairs(entries) do
+        local chunk,part="",0
+        local function append()
+            if chunk=="" then return end
+            part=part+1
+            local height=math.min(442,self:recommendationHeight(entry.title,chunk))
+            rows[#rows+1]={key=part==1 and entry.key or entry.key..":"..part,
+                title=entry.title,text=chunk,height=height}
+            total=total+height;chunk=""
+        end
+        local text=tostring(entry.text or "")
+        if self:recommendationHeight(entry.title,text)<=442 then
+            chunk=text
+        else
+            for word in text:gmatch("%S+") do
+                local candidate=chunk=="" and word or chunk.." "..word
+                if chunk~="" and self:recommendationHeight(entry.title,candidate)>442 then append();candidate=word end
+                chunk=candidate
+            end
+        end
+        append()
+    end
+    self.recommendationEntries=rows
+    local selected,index=rows[1],1
+    for i,entry in ipairs(rows) do if entry.key==previous then selected=entry;index=i;break end end
+    self:showRecommendation(selected)
+    if self.recommendationEmpty~=nil then
+        self.recommendationEmpty:setVisible(#rows==0)
+        setText(self.recommendationEmpty,tr(self.snapshot~=nil and self.snapshot.valid
+            and "terraLogic_fa_actions_empty" or "terraLogic_fa_actions_noField","No recommendations available."))
+    end
+    if self.recommendationList~=nil then
+        self.recommendationList:reloadData()
+        if #rows>0 and self.recommendationList.setSelectedItem~=nil and previous~=self.selectedRecommendationKey then
+            self.recommendationList:setSelectedItem(1,index)
+        end
+    end
+    if self.recommendationScroll~=nil then self.recommendationScroll:setVisible(total>490) end
+end
+
+function TerraLogicFieldAnalysisFrame:onListSelectionChanged(list, section, index)
+    if list==self.recommendationList then
+        self:showRecommendation((self.recommendationEntries or {})[index])
+    end
+end
+
+function TerraLogicFieldAnalysisFrame:showRecommendation(entry)
+    self.selectedRecommendation=entry
+    self.selectedRecommendationKey=entry and entry.key or nil
+    setNoteText(self.recommendationTitle,entry and entry.title or "")
+    setNoteText(self.recommendationBody,entry and entry.text or "")
+end
+
+function TerraLogicFieldAnalysisFrame:onClickRecommendation(element)
+    if element~=nil then self:showRecommendation(element.terraLogicRecommendation) end
+end
+
+function TerraLogicFieldAnalysisFrame:onClickRecommendationDetails()
+    local entry=self.selectedRecommendation
+    if entry~=nil and InfoDialog~=nil and InfoDialog.show~=nil then
+        InfoDialog.show(entry.title.."\n\n"..entry.text,nil,nil,nil,tr("button_ok","OK"))
+    end
+end
+
 function TerraLogicFieldAnalysisFrame:setSubCategory(index)
     if self.subCategoryPaging ~= nil then self.subCategoryPaging:setState(index, true) end
     self:updateSubCategoryPages(index)
+end
+
+function TerraLogicFieldAnalysisFrame:updateCatalogScope()
+    local entry=TerraLogicFieldAnalysis.selectedField
+    if entry==nil then
+        for _,candidate in ipairs(TerraLogicFieldCatalog.entries or {}) do
+            if candidate.current then entry=candidate;break end
+        end
+    end
+    if entry==nil or self.snapshot==nil or not self.snapshot.valid then return end
+    local scope=formatFieldScope(self.snapshot)
+    if (entry.sectionNumber or 0)>0 or #(entry.fieldIds or {})==0 then
+        scope=TerraLogicFieldCatalog:entryName(entry)
+    end
+    local summary=TerraLogicI18n.format(tr("terraLogic_fa_ui_summaryScope", "%s | Field-wide assessment"),scope)
+    for _,id in ipairs({"scopeOverviewText","scopeSoilText","scopeYieldText","scopeWorkText"}) do setText(self[id],summary) end
+    for _,id in ipairs({"scopeWeatherText","scopeAdviceText","scopePlannerText","scopeFieldMapText"}) do setText(self[id],scope) end
 end
 
 function TerraLogicFieldAnalysisFrame:onClickOverview() self:setSubCategory(self.SUB.OVERVIEW) end
@@ -1726,42 +1950,14 @@ local function soilQuality(snapshot, key)
 end
 
 local function statusText(value)
-    if value >= 0.80 then return tr("terraLogic_fa_ui_good", "Good") end
-    if value >= 0.60 then return tr("terraLogic_fa_ui_watch", "Watch") end
-    return tr("terraLogic_fa_ui_action", "Action needed")
+    return TerraLogicDisplay.caption("work", value)
 end
-
 local function formatQuality(value)
-    return TerraLogicI18n.format("%s  |  %s", formatPercent(value), statusText(value))
+    return TerraLogicI18n.format("%s | %s", formatPercent(value), statusText(value))
 end
-
-local function metricStatusText(key, value)
-    local goodThreshold, watchThreshold = qualityThresholds(key)
-    if value >= goodThreshold then return tr("terraLogic_fa_ui_good", "Good") end
-    if value >= watchThreshold then return tr("terraLogic_fa_ui_watch", "Watch") end
-    return tr("terraLogic_fa_ui_action", "Action needed")
-end
-
-local function formatMetricQuality(key, value)
-    return TerraLogicI18n.format("%s  |  %s", formatPercent(value),
-        metricStatusText(key, value))
-end
-
-local function biologicalContinuityStatus(value)
-    value = clamp01(value)
-    if value >= 0.85 then
-        return tr("terraLogic_fa_ui_continuityEstablished", "Established")
-    elseif value >= 0.65 then
-        return tr("terraLogic_fa_ui_continuityRecovering", "Recovering")
-    elseif value >= 0.40 then
-        return tr("terraLogic_fa_ui_continuityRebuilding", "Rebuilding slowly")
-    end
-    return tr("terraLogic_fa_ui_continuityInterrupted", "Interrupted")
-end
-
 local function formatBiologicalContinuity(value)
-    return TerraLogicI18n.format("%s  |  %s", formatPercent(value),
-        biologicalContinuityStatus(value))
+    return TerraLogicI18n.format("%s | %s", formatPercent(value),
+        TerraLogicDisplay.caption("continuity", value))
 end
 
 local PLANNER_PURPOSE = {
@@ -2008,6 +2204,8 @@ function TerraLogicFieldAnalysisFrame:updatePlannerContent()
             0.35, 1)
     end
     setText(self.planner_speed, speed > 0 and TerraLogicI18n.formatSpeed(speed) or "-")
+    -- The help must use the same resolved implement and soil-adjusted speed.
+    self.plannerHelpSpeed = speed
     local resilienceImpact, continuityImpact =
         TerraLogicSoilManager:getImplementBiologicalImpact(key)
     setText(self.planner_resilienceImpact,
@@ -2050,25 +2248,11 @@ function TerraLogicFieldAnalysisFrame:updatePlannerContent()
                 or displayedSoilCondition(soilKey, after)
             local unchanged = math.abs(after-before) < 0.00005
             local rawDeltaPoints = (after-before)*100
-            setText(self["planner_result_"..id.."Before"], formatPercent(before),
-                beforeCondition, not isCompaction and soilKey or nil)
+            setText(self["planner_result_"..id.."Before"], formatPercent(before))
             setText(self["planner_result_"..id.."After"], formatPercent(after),
-                afterCondition, not isCompaction and soilKey or nil)
+                select(2,TerraLogicDisplay.rating(soilKey, soilKey=="roughness" and 1-after or after)))
             local deltaElement = self["planner_result_"..id.."Delta"]
-            setText(deltaElement, unchanged and "=" or TerraLogicI18n.format(
-                "%+.2f%%", rawDeltaPoints))
-            if deltaElement ~= nil and deltaElement.setTextColor ~= nil then
-                local improvement = afterCondition - beforeCondition
-                if unchanged then
-                    deltaElement:setTextColor(0.82, 0.82, 0.82, 1)
-                elseif improvement > 0.00005 then
-                    deltaElement:setTextColor(0.35, 0.82, 0.31, 1)
-                elseif improvement < -0.00005 then
-                    deltaElement:setTextColor(1.00, 0.18, 0.10, 1)
-                else
-                    deltaElement:setTextColor(1.00, 0.4287, 0.0006, 1)
-                end
-            end
+            setText(deltaElement, math.abs(rawDeltaPoints)<0.05 and "—" or TerraLogicI18n.format("%+.1f", rawDeltaPoints))
         end
     end
     setNoteText(self.planner_noSoilImpact, not hasSoil
@@ -2077,22 +2261,26 @@ function TerraLogicFieldAnalysisFrame:updatePlannerContent()
         or changedCount == 0
         and tr("terraLogic_fa_planner_ui_noSoilChange",
             "The selected implement type does not change soil conditions.") or "")
-    setText(self.planner_factors, hasSoil and TerraLogicI18n.format(
-        tr("terraLogic_fa_planner_ui_factors",
-            "Moisture stress: %.0f%%\nFrost restriction: %.0f%%\nTool penetration: %.0f%%"),
-        math.max(mechanic.wet or 0, mechanic.dry or 0)*100,
-        (mechanic.frost or 0)*100, (mechanic.penetration or 1)*100) or "")
+    setText(self.planner_moistureLimit, hasSoil and formatPercent(
+        math.max(mechanic.wet or 0, mechanic.dry or 0)) or "-")
+    setText(self.planner_frostLimit, hasSoil and formatPercent(mechanic.frost or 0) or "-")
+    setText(self.planner_penetration, hasSoil and formatPercent(mechanic.penetration or 1) or "-")
 
+    setNoteText(self.planner_operationNote, tr("terraLogic_fa_table_tradeoff", "See the operation help for its purpose and trade-offs."))
+    self:layoutPlannerNotes()
     local selectedImplement = attachedForClass or attached[1]
     local root = getControlledRootVehicle()
-    if root == nil then
+    if self.planner_setupTable~=nil then self.planner_setupTable:setVisible(root~=nil and selectedImplement~=nil) end
+    if self.planner_setupEmptyHint~=nil then self.planner_setupEmptyHint:setVisible(root==nil or selectedImplement==nil) end
+    if root == nil or selectedImplement == nil then
         setText(self.planner_setupName, tr("terraLogic_fa_planner_ui_enterVehicle",
             "Enter a vehicle and attach a supported implement for a setup analysis."))
         for _, id in ipairs({"planner_tractorMass","planner_implementMass",
                 "planner_totalMass","planner_axleLoad","planner_groundPressure",
                 "planner_traffic"}) do setText(self[id], "-") end
-        setNoteText(self.planner_setupAdvice, tr("terraLogic_fa_planner_ui_catalogHint",
-            "The operation forecast remains available. Use the arrows to compare supported implement classes."))
+        setNoteText(self.planner_setupAdvice, "")
+        self:layoutSetupNotes()
+        compactBelow(self.planner_setupEmptyHint,self.planner_setupName,20,12,64)
         self.plannerSetupHelpValues = {
             vehicleMass="-", equipmentMass="-", combinationMass="-",
             axleLoad="-", groundPressure="-", traffic="-"
@@ -2159,6 +2347,7 @@ function TerraLogicFieldAnalysisFrame:updatePlannerContent()
             "No supported TerraLogic implement is attached. Vehicle traffic is still analysed.")
     end
     setText(self.planner_setupName, setupName)
+    self:layoutSetupNotes()
     setText(self.planner_tractorMass, TerraLogicI18n.format("%.1f t", rootPreview.massT or 0))
     setText(self.planner_implementMass, TerraLogicI18n.format("%.1f t", implementMass))
     setText(self.planner_totalMass, TerraLogicI18n.format("%.1f t", totalMass))
@@ -2270,6 +2459,7 @@ function TerraLogicFieldAnalysisFrame:showPlannerHelp(metric)
         and TerraLogicImplementProfiles.PROFILES[definition.key] or nil
     local speed = profile ~= nil and profile.work ~= nil
         and tonumber(profile.work.optimalSpeedKph) or 0
+    speed = self.plannerHelpSpeed or speed
     local hasSoilEffect = TerraLogicSoilProfiles ~= nil
         and TerraLogicSoilProfiles:getProfile(definition.key) ~= nil
     local hasDraftEffect = profile ~= nil and profile.draft ~= nil
@@ -2338,17 +2528,59 @@ local function joinRecommendations(recommendations, firstIndex, lastIndex)
     return table.concat(lines, "\n\n")
 end
 
-local function joinBucket(recommendations, bucket, maximum)
+local function joinBucket(recommendations, bucket, maximum, compact)
     local lines = {}
     for _, item in ipairs(recommendations or {}) do
         if item.bucket == bucket and #lines < (maximum or 99) then
-            lines[#lines + 1] = "- " .. item.text
+            lines[#lines + 1] = compact and (item.shortText or item.text) or ("- " .. item.text)
         end
     end
-    return #lines > 0 and table.concat(lines, "\n\n") or "-"
+    if #lines > 0 then return table.concat(lines, "\n\n") end
+    local key = bucket == "now" and "noImmediate" or bucket == "next" and "noNext" or "noLong"
+    return tr("terraLogic_fa_ui_"..key, "No action needed.")
 end
 
-local function fruitName(index)
+function TerraLogicFieldAnalysisFrame:showActionHelp(bucket)
+    if self.snapshot == nil or self.snapshot.soil == nil then return end
+    local body=joinBucket(self:buildRecommendations(self.snapshot),bucket,1)
+    if InfoDialog ~= nil and InfoDialog.show ~= nil then
+        InfoDialog.show(body,nil,nil,nil,tr("button_ok","OK"))
+    end
+end
+
+-- Summarize the same deductions as the detailed ledger, never a second model.
+local fruitName
+function TerraLogicFieldAnalysisFrame:updateOverviewSummary(s)
+    local active = s ~= nil and TerraLogicFieldAnalysis.hasActiveYieldCrop(s)
+    setNoteText(self.overview_mainLoss, "")
+    setNoteText(self.overview_cropContext, "")
+    setNoteText(self.overview_coverage, "")
+    if not active then return end
+    local losses = {s.soilDeduction or 0, s.waterDeduction or 0, s.workDeduction or 0}
+    local keys = {"Soil", "Water", "Work"}
+    local largest, winner = 0, 1
+    for i, loss in ipairs(losses) do
+        if loss > largest then largest, winner = loss, i end
+    end
+    local ties = 0
+    for _, loss in ipairs(losses) do
+        if math.abs(loss-largest) < 0.0005 then ties = ties+1 end
+    end
+    local key = largest < 0.0005 and "terraLogic_fa_ui_noMainLoss"
+        or (ties > 1 and "terraLogic_fa_ui_mainLossMixed"
+            or "terraLogic_fa_ui_mainLoss"..keys[winner])
+    setNoteText(self.overview_mainLoss, tr(key, "See Work and Yield for details."))
+    local crop = fruitName(s.fruitTypeIndex)
+    if (s.cropCount or 0) > 1 then
+        crop = TerraLogicI18n.format(tr("terraLogic_fa_ui_cropMix", "%s (+%d more)"), crop, s.cropCount-1)
+    end
+    setNoteText(self.overview_cropContext, crop)
+end
+function TerraLogicFieldAnalysisFrame:onClickHelpActionNow() self:showActionHelp("now") end
+function TerraLogicFieldAnalysisFrame:onClickHelpActionNext() self:showActionHelp("next") end
+function TerraLogicFieldAnalysisFrame:onClickHelpActionLong() self:showActionHelp("long") end
+
+fruitName = function(index)
     if index == nil or index < 0 or g_fruitTypeManager == nil then
         return tr("terraLogic_fa_ui_noCrop", "No growing crop detected")
     end
@@ -2456,24 +2688,14 @@ function TerraLogicFieldAnalysisFrame:showMetricHelp(metric)
                 or "terraLogic_fa_help_soilPoor"
     elseif metric == "surface" then
         local raw = clamp01(s.soil.surfaceCompaction)
-        local quality = compactionDisplayQuality("surfaceCompaction", raw)
         titleKey, titleFallback = "terraLogic_fa_ui_surfaceCompaction", "Surface compaction"
         currentValue = formatPercent(raw)
-        textKey = quality >= 0.80
-            and "terraLogic_fa_help_surfaceGood"
-            or quality >= 0.60
-                and "terraLogic_fa_help_surfaceWatch"
-                or "terraLogic_fa_help_surfacePoor"
+        textKey = "terraLogic_fa_help_surfaceScale"
     elseif metric == "deep" then
         local raw = clamp01(s.soil.deepCompaction)
-        local quality = compactionDisplayQuality("deepCompaction", raw)
         titleKey, titleFallback = "terraLogic_fa_ui_deepCompaction", "Deep compaction"
         currentValue = formatPercent(raw)
-        textKey = quality >= 0.80
-            and "terraLogic_fa_help_deepGood"
-            or quality >= 0.60
-                and "terraLogic_fa_help_deepWatch"
-                or "terraLogic_fa_help_deepPoor"
+        textKey = "terraLogic_fa_help_deepScale"
     elseif metric == "tilth" then
         local raw = clamp01(s.soil.aggregateSize)
         titleKey, titleFallback = "terraLogic_fa_ui_tilth", "Tilth"
@@ -2510,19 +2732,17 @@ function TerraLogicFieldAnalysisFrame:showMetricHelp(metric)
         currentValue = formatPercent(quality)
         textKey = quality >= 0.85
             and "terraLogic_fa_help_continuityEstablished"
-            or quality >= 0.65
+            or quality >= 0.40
                 and "terraLogic_fa_help_continuityRecovering"
                 or "terraLogic_fa_help_continuityInterrupted"
     elseif metric == "yield" then
-        titleKey, titleFallback = "terraLogic_fa_ui_terraLogicShare", "Final yield potential"
-        currentValue = formatPercent(s.totalFactor)
-        textKey = s.totalFactor >= 0.95
-            and "terraLogic_fa_help_yieldGood" or "terraLogic_fa_help_yieldPoor"
+        titleKey, titleFallback = "terraLogic_fa_ui_terraLogicShare", "Estimated yield"
+        currentValue = TerraLogicI18n.format("%.1f%%", s.totalFactor * 100)
+        textKey = "terraLogic_fa_help_yieldGood"
     elseif metric == "root" then
-        titleKey, titleFallback = "terraLogic_fa_ui_rootFactor", "Soil and root development"
-        currentValue = formatPercent(s.rootFactor)
-        textKey = s.rootFactor >= 0.95
-            and "terraLogic_fa_help_rootGood" or "terraLogic_fa_help_rootPoor"
+        titleKey, titleFallback = "terraLogic_fa_ui_soilDeduction", "Soil during growth"
+        currentValue = TerraLogicI18n.format("%.1f", (s.soilDeduction or 0) * 100)
+        textKey = "terraLogic_fa_help_rootGood"
     elseif metric == "surfaceMoisture" then
         titleKey, titleFallback = "terraLogic_fa_ui_surfaceMoisture", "Topsoil moisture"
         currentValue = formatPercent(s.surfaceMoisture)
@@ -2540,14 +2760,9 @@ function TerraLogicFieldAnalysisFrame:showMetricHelp(metric)
                 and "terraLogic_fa_help_rootMoistureWet"
                 or "terraLogic_fa_help_rootMoistureGood"
     elseif metric == "moisture" then
-        titleKey, titleFallback = "terraLogic_fa_ui_moistureFactor", "Water supply during growth"
-        currentValue = s.moistureYieldActive and formatPercent(s.moistureFactor)
-            or tr("terraLogic_fa_ui_disabled", "Disabled")
+        titleKey, titleFallback = "terraLogic_fa_ui_waterDeduction", "Water supply during growth"
+        currentValue = TerraLogicI18n.format("%.1f", (s.waterDeduction or 0) * 100)
         textKey = not s.moistureYieldActive and "terraLogic_fa_help_moistureDisabled"
-            or s.subsoilMoisture < fieldCapacity * 0.68
-                and "terraLogic_fa_help_moistureDry"
-            or s.subsoilMoisture > math.min(wetOnset + 0.06, 0.92)
-                and "terraLogic_fa_help_moistureWet"
             or "terraLogic_fa_help_moistureGood"
     elseif metric == "work" then
         titleKey, titleFallback = "terraLogic_fa_ui_totalWorkQuality", "Total work quality"
@@ -2555,11 +2770,11 @@ function TerraLogicFieldAnalysisFrame:showMetricHelp(metric)
         currentValue = recorded and formatPercent(s.workQualityTotal)
             or tr("terraLogic_fa_ui_notRecorded", "Not recorded")
         textKey = not recorded and "terraLogic_fa_help_workNone"
-            or s.workQualityTotal >= 0.90
+            or s.workQualityTotal >= 0.80
             and "terraLogic_fa_help_workGood" or "terraLogic_fa_help_workPoor"
     elseif metric == "ledger" then
-        titleKey, titleFallback = "terraLogic_fa_ui_ledgerFactor", "Fieldwork yield factor"
-        currentValue = formatPercent(s.ledgerFactor)
+        titleKey, titleFallback = "terraLogic_fa_ui_workDeduction", "Fieldwork"
+        currentValue = TerraLogicI18n.format("%.1f", (s.workDeduction or 0) * 100)
         textKey = "terraLogic_fa_help_ledgerFactor"
     elseif metric == "workSeed" then
         titleKey, titleFallback = "terraLogic_fa_ui_seeding", "Seeding"
@@ -2646,11 +2861,12 @@ function TerraLogicFieldAnalysisFrame:showMetricHelp(metric)
         evenness={"terraLogic_fa_help_valueEvenness", "Evenness: %s"},
         resilience={"terraLogic_fa_help_valueResilience", "Soil resilience: %s"},
         continuity={"terraLogic_fa_help_valueContinuity", "Biological continuity: %s"},
-        yield={"terraLogic_fa_help_valueFinalYield", "Final yield potential: %s"},
-        root={"terraLogic_fa_help_valueRootFactor", "Root development factor: %s"},
+        yield={"terraLogic_fa_help_valueFinalYield", "Estimated yield: %s"},
+        root={"terraLogic_fa_help_deductionValue", "Yield deduction: %s percentage points"},
         surfaceMoisture={"terraLogic_fa_help_valueTopsoilMoisture", "Current topsoil moisture: %s"},
         rootMoisture={"terraLogic_fa_help_valueRootMoisture", "Current root-zone moisture: %s"},
-        moisture={"terraLogic_fa_help_valueWaterFactor", "Water-supply factor: %s"},
+        moisture={"terraLogic_fa_help_deductionValue", "Yield deduction: %s percentage points"},
+        ledger={"terraLogic_fa_help_deductionValue", "Yield deduction: %s percentage points"},
         work={"terraLogic_fa_help_valueWorkFactor", "Recorded field-work factor: %s"},
         workSeed={"terraLogic_fa_help_valueRecordedQuality", "Recorded work quality: %s"},
         workFertilizer={"terraLogic_fa_help_valueRecordedQuality", "Recorded work quality: %s"},
@@ -2670,13 +2886,52 @@ function TerraLogicFieldAnalysisFrame:showMetricHelp(metric)
             and not TerraLogicFieldAnalysis.hasActiveYieldCrop(s) then
         currentValue = "-"
         textKey = "terraLogic_fa_ui_estimateNone"
-    elseif metric == "ledger" and s.yieldRecordedWork ~= true then
-        currentValue = "-"
     end
     local body = TerraLogicI18n.format("%s\n\n%s\n\n%s",
         tr(titleKey, titleFallback),
         TerraLogicI18n.format(tr(valueLabel[1], valueLabel[2]),
             currentValue), tr(textKey, textKey))
+    local activeYield = TerraLogicFieldAnalysis.hasActiveYieldCrop(s)
+    if not activeYield and (metric == "yield" or metric == "root"
+            or metric == "moisture" or metric == "ledger") then
+        body = tr(titleKey, titleFallback) .. "\n\n" .. tr(textKey, textKey)
+    elseif metric == "yield" then
+        local delta = (s.totalFactor - 1) * 100
+        local explanation = math.abs(delta) < 0.05
+            and tr("terraLogic_fa_help_yieldSame", "")
+            or TerraLogicI18n.format(tr(delta > 0
+                and "terraLogic_fa_help_yieldMore" or "terraLogic_fa_help_yieldLess", "%.1f%%"), math.abs(delta))
+        body = TerraLogicI18n.format(tr(valueLabel[1], valueLabel[2]), currentValue)
+            .. "\n\n" .. explanation .. "\n\n" .. tr(textKey, textKey)
+    end
+    if activeYield and (metric == "yield" or metric == "root"
+            or (metric == "moisture" and s.moistureYieldActive)) then
+        body = body .. "\n\n" .. tr((s.growthSteps or 0) > 0
+            and "terraLogic_fa_help_growthHistory" or "terraLogic_fa_help_growthPreview", "")
+    end
+    local coverageKey = ({workSeed="seed",workFertilizer="fertilizer",workLime="lime",
+        workHerbicide="herbicide",workRoller="roller",workMulch="mulch"})[metric]
+    if coverageKey~=nil then
+        local share=(s.categoryCoverage or {})[coverageKey] or 0
+        if share>0 then
+            body=body.."\n\n"..TerraLogicI18n.format(tr("terraLogic_fa_ui_workCoverage",
+                "Recorded on approx. %d%% of field area"),math.max(1,math.floor(share*100+0.5)))
+        end
+    end
+    if metric == "seeding" then
+        body = body .. "\n\n" .. tr("terraLogic_fa_table_reference",
+            "Seeding forecast: precision planter at its reference speed. Other implements may respond differently.")
+    end
+    if metric == "workSeed" then
+        local share = (s.categoryCoverage or {}).seed or 0
+        local gain = (s.rollerRescuePotential or 0)
+            * math.clamp(((s.mechanics or {}).roller or {}).quality or 1,0,1)
+            * (TerraLogicQualityManager.QUALITY_AT_SHOP_SPEED or .95)
+        if share>0 and gain>0 then
+            body = body .. "\n\n" .. TerraLogicI18n.format(tr("terraLogic_fa_help_rollerPotential",
+                "Estimated recoverable sowing quality: +%.1f points on the area with recorded sowing. This is not a direct yield bonus."),gain/share*100)
+        end
+    end
     if InfoDialog ~= nil and InfoDialog.show ~= nil then
         InfoDialog.show(body, nil, nil, nil, tr("button_ok", "OK"))
     elseif g_currentMission ~= nil and g_currentMission.addIngameNotification ~= nil then
@@ -2759,9 +3014,17 @@ function TerraLogicFieldAnalysisFrame:buildRecommendations(snapshot)
     local recommendations = {}
     local function add(bucket, priority, key, fallback, ...)
         local template = tr(key, fallback)
+        -- Hide a rounded zero missed-area figure, but retain meaningful missed areas.
+        if key=="terraLogic_fa_action_seedbedDynamic" or key=="terraLogic_fa_action_seedbedDirectDynamic" then
+            local missed=select(2,...)
+            if tonumber(missed)~=nil and tonumber(missed)<0.05 then
+                template=tr(key.."NoMisses",template)
+            end
+        end
         local ok, text = pcall(TerraLogicI18n.format, template, ...)
         recommendations[#recommendations + 1] = {
-            bucket=bucket, priority=priority, text=ok and text or template}
+            bucket=bucket, priority=priority, key=key, title=tr(key.."Title", tr("terraLogic_fa_ui_advice", "Recommendation")), text=ok and text or template,
+            shortText=tr(key.."Short", ok and text or template)}
     end
     local mechanics = snapshot.mechanics or {}
     local plow = mechanics.plow or {}
@@ -2791,8 +3054,7 @@ function TerraLogicFieldAnalysisFrame:buildRecommendations(snapshot)
             worstDraft, math.floor(tillageEffect*100+0.5))
     elseif wetSeverity >= 0.18 then
         add("now", 96, "terraLogic_fa_action_wetDynamic",
-            "Let the topsoil drain. Current moisture raises traffic damage to x%.2f and tillage reaches only %d%% of its intended effect.",
-            snapshot.trafficSurfaceMultiplier or 1,
+            "Let the topsoil dry before heavy traffic or tillage. Soil-working effectiveness is currently %d%%.",
             math.floor(tillageEffect*100+0.5))
     elseif drySeverity >= 0.45 and (1-tillageEffect) >= 0.08 then
         add("now", 90, "terraLogic_fa_action_dryDynamic",
@@ -2867,21 +3129,21 @@ function TerraLogicFieldAnalysisFrame:buildRecommendations(snapshot)
         and rollerQualityGain * math.clamp(currentRollerQuality, 0, 1) or nil
     local currentRollerYieldGain = currentRollerGain ~= nil
         and currentRollerGain * seedPenaltyCap or nil
+    local recordedSeedShare = math.max((snapshot.categoryCoverage or {}).seed or 0, 0.000001)
     -- An extra pass is recommended only for a material result.  Half a yield
     -- percentage point across the sampled field is the minimum; smaller gains
-    -- remain visible on the Work Quality page without urging the player to add
-    -- traffic. Wet/frozen ground suppresses the advice until conditions suit it.
+    -- stay in the help instead of urging the player to add traffic. Wet/frozen ground suppresses the advice until conditions suit it.
     if rollerYieldGain >= 0.005 and frostSeverity < 0.08
         and wetSeverity < 0.18 then
         if currentRollerGain ~= nil then
             add("next", 98, "terraLogic_fa_action_rollerRescueCurrentDynamic",
                 "Improve seed contact now: a healthy roller could recover up to %.1f Sowing Quality points (about %.1f%% yield). The attached roller's condition limits the current setup to about %.1f points (%.1f%% yield). Missing seed cannot be replaced.",
-                rollerQualityGain*100, rollerYieldGain*100,
-                currentRollerGain*100, currentRollerYieldGain*100)
+                rollerQualityGain/recordedSeedShare*100, rollerYieldGain*100,
+                currentRollerGain/recordedSeedShare*100, currentRollerYieldGain*100)
         else
             add("next", 98, "terraLogic_fa_action_rollerRescueDynamic",
                 "Improve seed contact now: a healthy field roller at recommended speed can raise average Sowing Quality by up to %.1f points and recover about %.1f%% yield potential. It cannot replace seeds already missed.",
-                rollerQualityGain*100, rollerYieldGain*100)
+                rollerQualityGain/recordedSeedShare*100, rollerYieldGain*100)
         end
     end
     local resilience = soilQuality(snapshot, "resilience")
@@ -2937,9 +3199,37 @@ function TerraLogicFieldAnalysisFrame:buildRecommendations(snapshot)
     return recommendations
 end
 
+-- A result card has one populated state and one quiet empty state.
+function TerraLogicFieldAnalysisFrame:setYieldCardState(active, hasField)
+    for _,prefix in ipairs({"overview","yield"}) do
+        local content=self[prefix.."_yieldContent"]
+        local empty=self[prefix.."_yieldEmpty"]
+        if content~=nil and content.setVisible~=nil then content:setVisible(active) end
+        if empty~=nil and empty.setVisible~=nil then empty:setVisible(not active) end
+        setNoteText(self[prefix.."_yieldEmptyReason"], hasField
+            and tr("terraLogic_fa_ui_yieldEmptyReason", "No active harvest crop was detected on this field.")
+            or tr("terraLogic_fa_ui_yieldNoField", "Select a field to display its yield estimate."))
+    end
+end
+
 function TerraLogicFieldAnalysisFrame:updateContent()
+    if self.work_total~=nil then self.work_total:setVisible(false) end
+    if self.work_totalEmpty~=nil then self.work_totalEmpty:setVisible(true) end
+    self:setYieldCardState(false, false)
+    self:updateOverviewSummary(nil)
+    if self.planner_setupTable~=nil then self.planner_setupTable:setVisible(false) end
+    if self.planner_setupEmptyHint~=nil then self.planner_setupEmptyHint:setVisible(false) end
+    for _,id in ipairs({"weather_trafficTop","weather_trafficDeep","weather_seedQuality","weather_seedGaps"}) do setText(self[id], "-") end
+    -- Clear supplementary cells even when the next selection has no soil data.
+    for _, id in ipairs({"surface","deep","tilth","evenness","resilience","continuity"}) do
+        setText(self["overview_"..id.."Rating"], "")
+    end
+    for _, id in ipairs(TerraLogicFieldAnalysis.CATEGORY_KEYS) do
+        setText(self["work_"..id.."Rating"], "")
+    end
     local s = self.snapshot
     if s == nil or not s.valid then
+        self:updateRecommendationList({})
         local message = tr("terraLogic_fa_ui_noField", "No TerraLogic field soil was found at this position.")
         setText(self.scopeOverviewText, message)
         setText(self.scopeSoilText, message)
@@ -2953,7 +3243,7 @@ function TerraLogicFieldAnalysisFrame:updateContent()
             "overview_soilTotal", "overview_surface", "overview_deep",
             "overview_tilth", "overview_evenness", "overview_resilience",
             "overview_continuity",
-            "overview_yieldTotal", "overview_stage", "overview_crop", "overview_root",
+            "overview_yieldTotal", "overview_net", "overview_stage", "overview_crop", "overview_root",
             "overview_water", "overview_work", "soil_surface", "soil_deep",
             "soil_tilth", "soil_evenness", "soil_resilience", "soil_profile",
             "soil_surfaceMoisture", "soil_subsoilMoisture",
@@ -2984,7 +3274,7 @@ function TerraLogicFieldAnalysisFrame:updateContent()
         setText(self.yield_coverage, "")
         setText(self.work_harvestStatus, "")
         for _, key in ipairs(TerraLogicFieldAnalysis.CATEGORY_KEYS) do
-            setText(self["workCoverage_" .. key], "")
+            setNoteText(self["workCoverage_" .. key], "")
         end
         setText(self.overview_actionNow, "-")
         setText(self.overview_actionNext, "-")
@@ -3003,7 +3293,9 @@ function TerraLogicFieldAnalysisFrame:updateContent()
             setText(self["planner_result_"..id.."Delta"], "-")
         end
         setNoteText(self.planner_noSoilImpact, message)
-        setText(self.planner_factors, "")
+        setText(self.planner_moistureLimit, "-")
+        setText(self.planner_frostLimit, "-")
+        setText(self.planner_penetration, "-")
         setText(self.planner_setupName, message)
         setNoteText(self.planner_setupAdvice, "")
         -- Soil forecasting needs a field, but the attached vehicle's mass,
@@ -3018,7 +3310,8 @@ function TerraLogicFieldAnalysisFrame:updateContent()
             if entry.current then selected=entry;break end
         end
     end
-    if selected~=nil and #(selected.fieldIds or {})==0 and (selected.customId or 0)>0 then
+    if selected~=nil and ((selected.sectionNumber or 0)>0
+            or (#(selected.fieldIds or {})==0 and (selected.customId or 0)>0)) then
         scope=TerraLogicFieldCatalog:entryName(selected)
     end
     local summaryScope = TerraLogicI18n.format(tr("terraLogic_fa_ui_summaryScope",
@@ -3039,27 +3332,21 @@ function TerraLogicFieldAnalysisFrame:updateContent()
         local isCompaction = key == "surfaceCompaction"
             or key == "deepCompaction"
         local raw = clamp01(s.soil[key])
-        local display = isCompaction
-            and TerraLogicI18n.format("%s  |  %s", formatPercent(raw),
-                compactionStatusText(key, raw))
-            or key == "aggregateSize"
-            and TerraLogicI18n.format("%s  |  %s", formatPercent(s.soil.aggregateSize),
-                metricStatusText(key, value))
-            or formatMetricQuality(key, value)
-        local displayQuality = isCompaction
-            and compactionDisplayQuality(key, raw) or value
-        setText(self["overview_" .. id], display, displayQuality,
-            not isCompaction and key or nil)
-        setText(self["soil_" .. id], display, displayQuality,
-            not isCompaction and key or nil)
+        local displayed = (isCompaction or key=="aggregateSize") and raw or value
+        local display = TerraLogicI18n.format("%s | %s",formatPercent(displayed),
+            TerraLogicDisplay.caption(key,raw))
+        local _, color = TerraLogicDisplay.rating(key,raw)
+        setText(self["overview_" .. id], formatPercent(displayed))
+        setText(self["overview_" .. id .. "Rating"], TerraLogicDisplay.caption(key,raw), color)
+        setText(self["soil_" .. id], display, color)
         setText(self["soil_" .. id .. "Area"],
             criticalAreaText(s.critical[key] or 0))
     end
     setText(self.overview_soilTotal, formatPercent(s.soilQuality), s.soilQuality)
-    setText(self.overview_continuity,
-        formatBiologicalContinuity(s.biologicalContinuity or 0.25),
+    setText(self.overview_continuity, formatPercent(s.biologicalContinuity or 0.25))
+    setText(self.overview_continuityRating, TerraLogicDisplay.caption("continuity",s.biologicalContinuity or 0.25),
         s.biologicalContinuity or 0.25, "continuity")
-    setText(self.overview_yieldTotal, formatPercent(s.totalFactor),
+    setText(self.overview_yieldTotal, TerraLogicI18n.format("%.1f%%", s.totalFactor*100),
         consequenceQuality(1-s.totalFactor, totalYieldLossMaximum()))
     setText(self.overview_crop, fruitName(s.fruitTypeIndex))
     setText(self.overview_root, formatPercent(s.rootFactor),
@@ -3070,6 +3357,8 @@ function TerraLogicFieldAnalysisFrame:updateContent()
         consequenceQuality(s.moistureYieldActive and 1-s.moistureFactor or 0,
             rootZoneLossMaximum()))
     local recordedWork = hasRecordedWork(s)
+    if self.work_total~=nil then self.work_total:setVisible(recordedWork) end
+    if self.work_totalEmpty~=nil then self.work_totalEmpty:setVisible(not recordedWork) end
     setText(self.work_harvestStatus, s.harvestPending
         and tr("terraLogic_fa_ui_harvestPending", "Harvest is not yet complete in some areas.") or "")
     local yieldWork = s.yieldRecordedWork == true
@@ -3077,9 +3366,13 @@ function TerraLogicFieldAnalysisFrame:updateContent()
         yieldWork and formatPercent(s.ledgerFactor) or "-",
         yieldWork and consequenceQuality(1-s.ledgerFactor, totalYieldLossMaximum()) or nil)
     local recommendations = self:buildRecommendations(s)
-    setText(self.overview_actionNow, joinBucket(recommendations, "now", 1))
-    setText(self.overview_actionNext, joinBucket(recommendations, "next", 1))
-    setText(self.overview_actionLong, joinBucket(recommendations, "long", 1))
+    for _, item in ipairs({{"now", "Now", "noImmediate"}, {"next", "Next", "noNext"}, {"long", "Long", "noLong"}}) do
+        local text = joinBucket(recommendations, item[1], 1, true)
+        if text == "-" then text = tr("terraLogic_fa_ui_"..item[3], "No action needed.") end
+        setNoteText(self["overview_action"..item[2]], text)
+    end
+    self:updateOverviewSummary(s)
+    self:updateRecommendationList(recommendations)
     setText(self.soil_profile, formatSoilProfiles(s))
     local seedMechanic = (s.mechanics or {}).precisionPlanter
         or (s.mechanics or {}).sowingMachine or {}
@@ -3101,7 +3394,7 @@ function TerraLogicFieldAnalysisFrame:updateContent()
     setText(self.soil_consequenceText,
         tr("terraLogic_fa_note_soilConsequenceNote",
             "These consequences use the same soil, weather and implement model as fieldwork. Compaction is shown directly: 0% is loose and 100% is severely compacted; a warning appears when the expected effect becomes material."))
-    setText(self.yield_total, formatPercent(s.totalFactor),
+    setText(self.yield_total, TerraLogicI18n.format("%.1f%%", s.totalFactor*100),
         consequenceQuality(1-s.totalFactor, totalYieldLossMaximum()))
     setText(self.yield_crop, fruitName(s.fruitTypeIndex))
     setText(self.yield_root, formatPercent(s.rootFactor),
@@ -3112,20 +3405,26 @@ function TerraLogicFieldAnalysisFrame:updateContent()
             rootZoneLossMaximum()))
     setText(self.yield_ledger, formatPercent(s.ledgerFactor),
         consequenceQuality(1-s.ledgerFactor, totalYieldLossMaximum()))
-    setText(self.yield_surfaceLoss, formatLossPercent(s.surfaceRootLoss),
-        consequenceQuality(s.surfaceRootLoss,
-            compactionLossMaximum("surfaceCompaction")))
-    setText(self.yield_deepLoss, formatLossPercent(s.deepRootLoss),
-        consequenceQuality(s.deepRootLoss,
-            compactionLossMaximum("deepCompaction")))
-    setText(self.yield_waterLoss, s.moistureYieldActive
-        and formatLossPercent(1-s.moistureFactor)
-        or tr("terraLogic_fa_ui_disabled", "Disabled"),
-        consequenceQuality(s.moistureYieldActive
-            and 1-s.moistureFactor or 0, rootZoneLossMaximum()))
-    setText(self.yield_workLoss, formatLossPercent(1-s.ledgerFactor),
-        consequenceQuality(1-s.ledgerFactor, totalYieldLossMaximum()))
+    setText(self.yield_surfaceLoss, formatLossPercent(s.soilDeduction),
+        (s.soilDeduction or 0)>=0.0005 and consequenceQuality(s.soilDeduction, 0.50) or nil)
+    setText(self.yield_waterLoss, formatLossPercent(s.waterDeduction),
+        (s.waterDeduction or 0)>=0.0005 and consequenceQuality(s.waterDeduction, 0.50) or nil)
+    setText(self.yield_workLoss, formatLossPercent(s.workDeduction),
+        (s.workDeduction or 0)>=0.0005 and consequenceQuality(s.workDeduction, 0.50) or nil)
+    setText(self.yield_deepLoss, TerraLogicI18n.format(tr("terraLogic_fa_ui_netYieldFormat",
+        "%+.1f%% compared with base yield"), (s.totalFactor-1)*100),
+        consequenceQuality(1-s.totalFactor, totalYieldLossMaximum()))
+    setText(self.overview_net, TerraLogicI18n.format(tr("terraLogic_fa_ui_netYieldFormat",
+        "%+.1f%% compared with base yield"),(s.totalFactor-1)*100),
+        consequenceQuality(1-s.totalFactor,totalYieldLossMaximum()))
+    setText(self.overview_surfaceLoss, formatLossPercent(s.soilDeduction),
+        (s.soilDeduction or 0)>=0.0005 and consequenceQuality(s.soilDeduction, 0.50) or nil)
+    setText(self.overview_waterLoss, formatLossPercent(s.waterDeduction),
+        (s.waterDeduction or 0)>=0.0005 and consequenceQuality(s.waterDeduction, 0.50) or nil)
+    setText(self.overview_workLoss, formatLossPercent(s.workDeduction),
+        (s.workDeduction or 0)>=0.0005 and consequenceQuality(s.workDeduction, 0.50) or nil)
     local activeCrop = TerraLogicFieldAnalysis.hasActiveYieldCrop(s)
+    self:setYieldCardState(activeCrop, true)
     local cropCaption = fruitName(s.fruitTypeIndex)
     if (s.cropCount or 0) > 1 then
         cropCaption = TerraLogicI18n.format(tr("terraLogic_fa_ui_cropMix", "%s (+%d more)"),
@@ -3136,12 +3435,12 @@ function TerraLogicFieldAnalysisFrame:updateContent()
     local status = not activeCrop
         and tr("terraLogic_fa_ui_estimateNone", "No active crop - no yield estimate yet.")
         or ((s.growthSteps or 0) > 0
-            and tr("terraLogic_fa_ui_estimateHistory", "Estimate includes growth recorded so far.")
-            or tr("terraLogic_fa_ui_estimatePreview", "Preliminary estimate using current conditions."))
-    setText(self.overview_stage, status)
-    setText(self.yield_stage, status)
+            and tr("terraLogic_fa_ui_contextHistory", "Applies to the existing crop, not unsown areas. Includes growth recorded so far; the estimate can change as growth continues.")
+            or tr("terraLogic_fa_ui_contextCurrent", "Applies to the existing crop, not unsown areas. Based on current conditions; the estimate can change during growth."))
+    setNoteText(self.overview_stage, activeCrop and tr("terraLogic_fa_ui_overviewYieldNote", "Applies only to the existing crop. The estimate can change during growth.") or "")
+    setNoteText(self.yield_stage, status)
     local coverage = activeCrop and TerraLogicI18n.format(
-        tr("terraLogic_fa_ui_cropCoverage", "Existing crop: approx. %d%% of field area"),
+        tr("terraLogic_fa_ui_cropAreaValue", "Approx. %d%%"),
         math.max(1, math.floor(clamp01(s.cropShare)*100+0.5))) or ""
     setText(self.overview_coverage, coverage)
     setText(self.yield_coverage, coverage)
@@ -3151,37 +3450,32 @@ function TerraLogicFieldAnalysisFrame:updateContent()
         for _, name in ipairs({"overview_root", "overview_water", "overview_yieldTotal",
                 "yield_root", "yield_moisture", "yield_total", "yield_surfaceLoss",
                  "yield_deepLoss", "yield_waterLoss", "yield_workLoss",
-                 "overview_work", "yield_ledger"}) do
+                 "overview_work", "yield_ledger", "overview_net"}) do
             setText(self[name], "-")
         end
     end
     if not yieldWork then
         setText(self.yield_ledger, "-")
-        setText(self.yield_workLoss, "-")
+        -- No recorded work contributes zero to the additive deductions.
     end
     for _, key in ipairs(TerraLogicFieldAnalysis.CATEGORY_KEYS) do
         local value = s.categories[key]
         local display = value ~= nil and value >= 0
-            and formatQuality(value)
-            or tr("terraLogic_fa_ui_notRecorded", "Not recorded")
-        if key == "seed" and value ~= nil and value >= 0 then
-            local rollerMechanic = (s.mechanics or {}).roller or {}
-            local expectedRollerGain = (s.rollerRescuePotential or 0)
-                * math.clamp((tonumber(rollerMechanic.quality) or 1)
-                    * (TerraLogicQualityManager ~= nil
-                        and TerraLogicQualityManager.QUALITY_AT_SHOP_SPEED
-                        or 0.95), 0, 1)
-            if expectedRollerGain >= 0.001 then
-                display = TerraLogicI18n.format(tr(
-                    "terraLogic_fa_ui_seedQualityRollerFormat",
-                    "%s | Roller +%.1f"), display,
-                    expectedRollerGain*100)
+            and formatPercent(value)
+            or ""
+        local color = value ~= nil and value >= 0 and value or nil
+        setText(self["work_" .. key], display, color~=nil and select(2,TerraLogicDisplay.rating("work",color)) or nil)
+        setText(self["work_" .. key .. "Rating"], color~=nil and TerraLogicDisplay.caption("work",color)
+            or tr("terraLogic_fa_ui_notRecorded", "Not recorded"),
+            color~=nil and select(2,TerraLogicDisplay.rating("work",color)) or nil)
+        if color == nil then
+            for _, suffix in ipairs({"", "Rating"}) do
+                local element = self["work_"..key..suffix]
+                if element ~= nil then element:setTextColor(0.65, 0.65, 0.65, 1) end
             end
         end
-        local color = value ~= nil and value >= 0 and value or nil
-        setText(self["work_" .. key], display, color)
         local share = (s.categoryCoverage or {})[key] or 0
-        setText(self["workCoverage_" .. key], share > 0 and TerraLogicI18n.format(
+        setNoteText(self["workCoverage_" .. key], share > 0 and share < 0.995 and TerraLogicI18n.format(
             tr("terraLogic_fa_ui_workCoverage", "Recorded on approx. %d%% of field area"),
             math.max(1, math.floor(clamp01(share)*100+0.5))) or "")
     end
@@ -3250,17 +3544,12 @@ function TerraLogicFieldAnalysisFrame:updateContent()
     local tillageEffect = math.min(plowMechanic.effectiveness or 1,
         cultivatorMechanic.effectiveness or 1)
     local trafficMultiplier = s.trafficSurfaceMultiplier or 1
-    setText(self.weather_traffic, TerraLogicI18n.format(
-        tr("terraLogic_fa_ui_trafficLayers", "Top x%.2f / Deep x%.2f"),
-        trafficMultiplier, s.trafficDeepMultiplier or 1),
-        1-math.clamp((math.max(trafficMultiplier,s.trafficDeepMultiplier or 1)-1)/0.45,0,1))
-    setText(self.weather_tillage, TerraLogicI18n.format("x%.2f", tillageDraft),
-        1-math.clamp(math.max(tillageDraft-1,0)/0.45,0,1))
-    setText(self.weather_seeding, formatPercent(tillageEffect), tillageEffect)
-    setText(self.weather_cropWater, TerraLogicI18n.format(
-        tr("terraLogic_fa_ui_qualityDropoutFormat", "%d%% quality / %.1f%% missed areas"),
-        math.floor((seedMechanic.quality or 1)*100+0.5),
-        (seedMechanic.dropout or 0)*100), seedMechanic.quality or 1)
+    setText(self.weather_trafficTop, TerraLogicI18n.format("x%.2f", trafficMultiplier))
+    setText(self.weather_trafficDeep, TerraLogicI18n.format("x%.2f", s.trafficDeepMultiplier or 1))
+    setText(self.weather_tillage, TerraLogicI18n.format("x%.2f", tillageDraft))
+    setText(self.weather_seeding, formatPercent(tillageEffect))
+    setText(self.weather_seedQuality, formatPercent(seedMechanic.quality or 1))
+    setText(self.weather_seedGaps, TerraLogicI18n.format("%.1f%%", (seedMechanic.dropout or 0)*100))
     local currentEffects = {}
     local function addCurrentEffect(key, fallback, ...)
         if #currentEffects >= 3 then return end
@@ -3312,11 +3601,19 @@ function TerraLogicFieldAnalysisFrame:updateContent()
         addCurrentEffect("terraLogic_fa_condition_good",
             "No material weather-related restriction is active here.")
     end
-    setText(self.weather_effectSummary, table.concat(currentEffects, "\n\n"))
+    if #currentEffects == 1 then
+        currentEffects[1] = currentEffects[1]:gsub("^%- ", "")
+    end
+    self.weatherEffectDetails=table.concat(currentEffects, "\n\n")
+    local effectKey = (s.surfaceFrozen or s.subsoilFrozen) and "weatherFrost"
+        or trafficMultiplier>=1.10 and "weatherWet"
+        or ((seedMechanic.quality or 1)<0.97 or (seedMechanic.dropout or 0)>=0.005) and "weatherSeed"
+        or "weatherGood"
+    setNoteText(self.weather_effectSummary, tr("terraLogic_fa_table_"..effectKey, "Check conditions in the Planner."))
 
     setText(self.work_total,
         recordedWork and formatPercent(s.workQualityTotal) or "-",
-        recordedWork and consequenceQuality(1-s.workQualityTotal, 1) or nil)
+        recordedWork and select(2, TerraLogicDisplay.rating("work",s.workQualityTotal)) or nil)
     setText(self.adviceListNow, joinBucket(recommendations, "now", 3))
     setText(self.adviceListNext, joinBucket(recommendations, "next", 4))
     setText(self.adviceListLong, joinBucket(recommendations, "long", 3))
@@ -3411,6 +3708,9 @@ function TerraLogicFieldAnalysisSyncEvent:writeStream(streamId, connection)
     streamWriteFloat32(streamId, s.biologicalContinuity or 0.25)
     streamWriteBool(streamId, s.moistureYieldActive)
     for _, key in ipairs(TerraLogicFieldAnalysis.CATEGORY_KEYS) do streamWriteFloat32(streamId, s.categories[key] or -1) end
+    streamWriteFloat32(streamId, s.soilDeduction or 0)
+    streamWriteFloat32(streamId, s.waterDeduction or 0)
+    streamWriteFloat32(streamId, s.workDeduction or 0)
     streamWriteFloat32(streamId, s.surfaceRootLoss or 0)
     streamWriteFloat32(streamId, s.deepRootLoss or 0)
     streamWriteFloat32(streamId, s.trafficSurfaceMultiplier or 1)
@@ -3484,6 +3784,9 @@ function TerraLogicFieldAnalysisSyncEvent:readStream(streamId, connection)
     s.biologicalContinuity=streamReadFloat32(streamId)
     s.moistureYieldActive=streamReadBool(streamId)
     for _, key in ipairs(TerraLogicFieldAnalysis.CATEGORY_KEYS) do s.categories[key]=streamReadFloat32(streamId) end
+    s.soilDeduction=streamReadFloat32(streamId)
+    s.waterDeduction=streamReadFloat32(streamId)
+    s.workDeduction=streamReadFloat32(streamId)
     s.surfaceRootLoss=streamReadFloat32(streamId); s.deepRootLoss=streamReadFloat32(streamId)
     s.trafficSurfaceMultiplier=streamReadFloat32(streamId)
     s.trafficDeepMultiplier=streamReadFloat32(streamId)

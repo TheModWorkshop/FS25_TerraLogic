@@ -70,8 +70,6 @@ TerraLogicQualityManager.CONDITION_QUALITY_CURVE = {
 TerraLogicQualityManager.MINIMUM_FINAL_YIELD_FACTOR = 0.60
 TerraLogicQualityManager.MAXIMUM_FINAL_YIELD_FACTOR = 1.10
 TerraLogicQualityManager.MINIMUM_ROOT_ZONE_FACTOR = 0.65
-TerraLogicQualityManager.ROOT_ZONE_SPREAD_EXPONENT = 1.15
-TerraLogicQualityManager.YIELD_LOSS_SPREAD_EXPONENT = 1.25
 TerraLogicQualityManager.MAXIMUM_TOTAL_YIELD_PENALTY = 0.40
 local CATEGORY_BALANCE = TerraLogicImplementProfiles.WORK_QUALITY_CATEGORIES
 TerraLogicQualityManager.COMPONENTS = {
@@ -3108,6 +3106,36 @@ function TerraLogicQualityManager:getCellAtWorldPosition(x, z, fallbackX, fallba
     return cached ~= false and cached or nil, false
 end
 
+-- Local previews use the same crop-stage weights as field analysis. Clients
+-- already receive the recorded averages with the work-quality cell.
+function TerraLogicQualityManager:getPreviewMoistureFactor(ix, iz, cell)
+    local fruit, growth = self:getGrowthStateAtCell(ix, iz)
+    local recorded = self:getGrowthMoistureYieldFactor(
+        {ix=ix, iz=iz}, false, true, fruit)
+    if recorded ~= nil then return recorded end
+    if TerraLogicSoilMoistureManager == nil then return 1 end
+    local x, z = (ix+0.5)*self.CELL_SIZE, (iz+0.5)*self.CELL_SIZE
+    local soil = TerraLogicSoilManager ~= nil
+        and TerraLogicSoilManager:getPFSoilTypeAtWorldPosition(x, z) or nil
+    local steps = math.clamp(tonumber(cell ~= nil and cell.rootYieldSteps) or 0,
+        0, self.PLOW_GROWTH_STAGES)
+    if steps > 0 and cell.moistureYieldAverage ~= nil then
+        local completed, total, future = 0, 0, 0
+        for stage=1,self.PLOW_GROWTH_STAGES do
+            local response = TerraLogicSoilMoistureManager:getCropYieldResponse(soil, fruit, stage)
+            local weight = math.max(tonumber(response.stageWeight) or 0, 0)
+            total = total + weight
+            if stage <= steps then completed = completed + weight
+            else future = future + math.clamp(response.factor or 1, 0, 1)*weight end
+        end
+        return total > 0 and (cell.moistureYieldAverage*completed+future)/total
+            or cell.moistureYieldAverage
+    end
+    local stage = self:getSemanticPlowGrowthStage(fruit, growth, nil)
+    local response = TerraLogicSoilMoistureManager:getCropYieldResponse(soil, fruit, stage)
+    return response ~= nil and response.factor or 1
+end
+
 function TerraLogicQualityManager:getSummaryAtWorldPosition(x, z, fallbackX, fallbackZ)
     -- The quality box describes the land under the player, not the camera
     -- crosshair or an averaged neighbouring footprint.
@@ -3148,6 +3176,7 @@ function TerraLogicQualityManager:getSummaryAtWorldPosition(x, z, fallbackX, fal
                 harvestPenalty = 0,
                 affectsYield = false,
                 rootYieldFactor = rootFactor,
+                moistureYieldFactor = self:getPreviewMoistureFactor(ix, iz, cell),
                 rootShallowLoss = shallowLoss,
                 rootDeepLoss = deepLoss,
                 dynamicSoil = true
@@ -3273,15 +3302,9 @@ function TerraLogicQualityManager:getEffectiveYieldFactor(entries, useHarvestPen
     )
 end
 
-local function yieldSmoothStep(value)
-    value = math.clamp(tonumber(value) or 0, 0, 1)
-    return value * value * (3 - 2 * value)
-end
-
--- Converts every TerraLogic cause into one continuous signed harvest factor.
--- The lower branch spreads real losses; the upper branch is reachable only
--- when every critical part of the same assessment is healthy. It is therefore
--- not a separate flat bonus and cannot hide a serious soil or work problem.
+-- One shared calculation for harvest, previews and the PF bridge.
+-- Factors retain their growth-history and operation-specific meaning. Their
+-- deficits are percentage-point deductions from the 110% starting potential.
 function TerraLogicQualityManager:getTerraLogicYieldFactor(
         entries, rootFactor, moistureFactor, moistureEnabled,
         liveFactor, resilience)
@@ -3290,98 +3313,38 @@ function TerraLogicQualityManager:getTerraLogicYieldFactor(
     moistureFactor = moistureEnabled == false and 1
         or math.clamp(tonumber(moistureFactor) or 1, 0, 1)
     liveFactor = math.clamp(tonumber(liveFactor) or 1, 0, 1)
-    resilience = math.clamp(tonumber(resilience) or 0.50, 0, 1)
-
-    -- HUD/analysis summaries may prepend a synthetic soil entry containing the
-    -- same root factor supplied explicitly below. Exclude it here so diagnostic
-    -- callers cannot charge compaction twice; persisted cell entries never
-    -- contain this synthetic record.
     local ledgerEntries = {}
     for _, entry in ipairs(entries) do
+        -- Synthetic soil entries duplicate the explicit root factor.
         if entry.rootYieldFactor == nil then
             ledgerEntries[#ledgerEntries + 1] = entry
         end
     end
-    local ledgerFactor = self:getEffectiveYieldFactor(ledgerEntries, true)
-    local rootZoneFactor = math.max(
-        rootFactor * moistureFactor, self.MINIMUM_ROOT_ZONE_FACTOR)
-    local retainedFactor = math.clamp(
-        liveFactor * ledgerFactor * rootZoneFactor, 0, 1)
-
-    -- Make mediocre and poor results economically visible without a threshold.
-    -- Biological resilience is reflected through soil development only.
-    -- Retained as a zero-valued diagnostic for existing HUD/audit consumers.
-    -- Resilience affects soil development, never the harvest directly.
-    local resiliencePenalty = 0
-    -- Root-zone losses retain their independent 35% ceiling. Widen their
-    -- middle range inside that fixed interval, then spread fieldwork/harvest
-    -- errors separately. Only combined causes reach the overall 40% floor.
-    local rootProgress = math.clamp(
-        (rootZoneFactor-self.MINIMUM_ROOT_ZONE_FACTOR)
-            / math.max(1-self.MINIMUM_ROOT_ZONE_FACTOR, 0.0001), 0, 1)
-    local spreadRootFactor = self.MINIMUM_ROOT_ZONE_FACTOR
-        + (1-self.MINIMUM_ROOT_ZONE_FACTOR)
-            * rootProgress ^ self.ROOT_ZONE_SPREAD_EXPONENT
-    local executionFactor = math.clamp(liveFactor*ledgerFactor, 0, 1)
-        ^ self.YIELD_LOSS_SPREAD_EXPONENT
-    local lossFactor = spreadRootFactor * executionFactor
-        * (1 - resiliencePenalty)
-
-    local minimumWorkQuality = 1
-    local workQualitySum, workQualityCount = 0, 0
-    local seedQuality, hasSeedRecord = 0, false
-    for _, entry in ipairs(entries) do
-        local definition = self.GROUP_DEFINITIONS[entry.name]
-        if definition == nil or definition.affectsYield ~= false then
-            local quality = math.clamp(tonumber(entry.quality) or 1, 0, 1)
-            minimumWorkQuality = math.min(minimumWorkQuality, quality)
-            workQualitySum = workQualitySum + quality
-            workQualityCount = workQualityCount + 1
-            if entry.name == "seed" then
-                seedQuality, hasSeedRecord = quality, true
-            end
-        end
-    end
-    local averageWorkQuality = workQualityCount > 0
-        and workQualitySum / workQualityCount or 0
-
-    local rootScore = yieldSmoothStep((rootFactor - 0.95) / 0.05)
-    local moistureScore = moistureEnabled == false and 1
-        or yieldSmoothStep((moistureFactor - 0.95) / 0.05)
-    local workScore = yieldSmoothStep((averageWorkQuality - 0.95) / 0.05)
-    local excellenceScore = rootScore * 0.40 + moistureScore * 0.20
-        + workScore * 0.40
-
-    -- A recorded, clean establishment is required for the positive branch.
-    -- The gates are smooth: no damage or reward changes at one exact percent.
-    -- One weakest-link gate replaces overlapping multiplicative gates.
-    -- Resilience influences soil development, not eligibility for excellence.
-    -- Missing sowing records never create an unearned positive contribution.
-    local limitingQuality = math.min(rootFactor, moistureFactor,
-        minimumWorkQuality, seedQuality, liveFactor)
-    local positiveGate = hasSeedRecord
-        and yieldSmoothStep((limitingQuality - 0.90) / 0.09) or 0
-    local positivePotential = 0.10 * excellenceScore * positiveGate
-    local finalFactor = math.clamp(
-        lossFactor + positivePotential,
-        self.MINIMUM_FINAL_YIELD_FACTOR,
-        self.MAXIMUM_FINAL_YIELD_FACTOR)
-
+    local ledgerFactor = math.clamp(
+        self:getEffectiveYieldFactor(ledgerEntries, true), 0, 1)
+    local soilDeduction, waterDeduction, workDeduction =
+        1-rootFactor, 1-moistureFactor, 1-ledgerFactor*liveFactor
+    local totalDeduction = soilDeduction + waterDeduction + workDeduction
+    local maximumDeduction = self.MAXIMUM_FINAL_YIELD_FACTOR
+        - self.MINIMUM_FINAL_YIELD_FACTOR
+    -- Allocate the shared floor proportionally, so even capped local results
+    -- and field-wide averages have an exactly additive explanation.
+    local scale = totalDeduction > maximumDeduction
+        and maximumDeduction / totalDeduction or 1
+    soilDeduction, waterDeduction, workDeduction =
+        soilDeduction*scale, waterDeduction*scale, workDeduction*scale
+    local appliedDeduction = soilDeduction + waterDeduction + workDeduction
+    local finalFactor = math.clamp(self.MAXIMUM_FINAL_YIELD_FACTOR-appliedDeduction,
+        self.MINIMUM_FINAL_YIELD_FACTOR, self.MAXIMUM_FINAL_YIELD_FACTOR)
     return finalFactor, {
         ledgerFactor=ledgerFactor,
-        rootZoneFactor=rootZoneFactor,
-        spreadRootFactor=spreadRootFactor,
-        executionFactor=executionFactor,
-        retainedFactor=retainedFactor,
-        resiliencePenalty=resiliencePenalty,
-        lossFactor=lossFactor,
-        positivePotential=positivePotential,
-        excellenceScore=excellenceScore,
-        positiveGate=positiveGate,
-        minimumWorkQuality=minimumWorkQuality,
-        averageWorkQuality=averageWorkQuality,
-        seedQuality=seedQuality,
-        hasSeedRecord=hasSeedRecord
+        soilDeduction=soilDeduction, waterDeduction=waterDeduction,
+        workDeduction=workDeduction, deductionScale=scale,
+        -- Existing audit consumers use these two fields as a decomposition.
+        positivePotential=self.MAXIMUM_FINAL_YIELD_FACTOR-1,
+        lossFactor=1-appliedDeduction, resiliencePenalty=0,
+        rootZoneFactor=rootFactor*moistureFactor,
+        retainedFactor=rootFactor*moistureFactor*ledgerFactor*liveFactor
     }
 end
 

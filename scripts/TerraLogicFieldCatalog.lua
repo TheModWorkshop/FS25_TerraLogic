@@ -64,18 +64,43 @@ function TerraLogicFieldCatalog:entryName(entry)
     local ids=entry.fieldIds or {}
     if #ids>0 then
         local values={};for _,id in ipairs(ids) do values[#values+1]=tostring(id) end
-        return (g_i18n:getText("terraLogic_fa_browserField")).." "..table.concat(values," + ")
+        local name=(g_i18n:getText("terraLogic_fa_browserField")).." "..table.concat(values," + ")
+        return name..((entry.sectionNumber or 0)>0 and "-"..tostring(entry.sectionNumber) or "")
     end
     return TerraLogicI18n.format(g_i18n:getText("terraLogic_fa_browserCustom"),entry.customId or 1)
 end
 
 function TerraLogicFieldCatalog:deliver(connection, generation, entries, complete, x, z, farmId)
+    -- Spatial ordering is independent of discovery/player position. Only real
+    -- components participate; a provisional native entry is not a section.
+    -- Commit ranks only for a completed catalog; partial discoveries must not
+    -- repeatedly renumber an already visible section.
+    if complete then
+    local groups={}
+    for _,entry in ipairs(entries) do
+        entry.sectionNumber=0
+        if not entry.provisional and #(entry.fieldIds or {})==1 then
+            local id=entry.fieldIds[1]
+            groups[id]=groups[id] or {};table.insert(groups[id],entry)
+        end
+    end
+    for _,group in pairs(groups) do
+        if #group>1 then
+            table.sort(group,function(a,b)
+                local az,bz=a.anchorZ or a.z,b.anchorZ or b.z
+                if az~=bz then return az<bz end
+                return (a.anchorX or a.x)<(b.anchorX or b.x)
+            end)
+            for i,entry in ipairs(group) do entry.sectionNumber=i end
+        end
+    end
+    end
     local result = {}
     for _, entry in ipairs(entries) do
         -- Ownership can change while the menu is open or a cache is alive.
         if owns(entry.x, entry.z, farmId) then
             result[#result+1] = {x=entry.x, z=entry.z, key=entry.key,
-                fieldIds=entry.fieldIds or {},customId=entry.customId or 0,
+                fieldIds=entry.fieldIds or {},customId=entry.customId or 0,sectionNumber=entry.sectionNumber or 0,
                 areaHa=entry.areaHa or 0,condition=entry.condition,
                 current=entry.cells[cellKey(x,z)] == true}
         end
@@ -198,7 +223,7 @@ function TerraLogicFieldCatalog:stepDiscovery(job)
         local result=job.geometry.result
         job.geometry=nil
         local cells=result[8]
-        if #cells>0 then job.completed=result;job.mask={};job.cellIndex=1 end
+        if #cells>0 then job.completed=result;job.mask={};job.cellIndex=1;job.anchorX=nil;job.anchorZ=nil end
         return false
     end
     if job.completed ~= nil then
@@ -207,6 +232,9 @@ function TerraLogicFieldCatalog:stepDiscovery(job)
             local cell=cells[job.cellIndex]
             if cell==nil then break end
             local k=cellKey(cell.x,cell.z)
+            if job.anchorZ==nil or cell.z<job.anchorZ or (cell.z==job.anchorZ and cell.x<job.anchorX) then
+                job.anchorX,job.anchorZ=cell.x,cell.z
+            end
             job.mask[k],job.covered[k]=true,true
             job.cellIndex=job.cellIndex+1
         end
@@ -239,6 +267,7 @@ function TerraLogicFieldCatalog:stepDiscovery(job)
                 z=merged and merged.z or first.z,
                 key=merged and merged.key or cellKey(first.x,first.z),
                 cells=job.mask,probes=cells,fieldIds=ids,customId=customId,areaHa=result[2],
+                anchorX=job.anchorX,anchorZ=job.anchorZ,
                 order=result[6]>=0 and result[6] or result[7][1] or math.huge}
             job.entries[#job.entries+1]=entry
             if TerraLogicSoilManager.getStateAtWorldPosition~=nil then
@@ -467,8 +496,11 @@ function TerraLogicFieldCatalog:updateControls()
     local key = self.complete and "terraLogic_fa_ownedFields" or "terraLogic_fa_findingFields"
     local label = g_i18n ~= nil and g_i18n:getText(key) or key
     if self.complete then label=TerraLogicI18n.format(label,index,count) end
-    for _,note in ipairs(frame.fieldSelectionNote or {}) do note:setText(label) end
+    -- Keep the centered field control stationary while discovery is running.
+    for _,note in ipairs(frame.fieldSelectionNote or {}) do note:setText(self.complete and label or "") end
+    for _,note in ipairs(frame.fieldSearchNote or {}) do note:setText(self.complete and "" or label) end
     if frame.refreshFieldBrowser~=nil then frame:refreshFieldBrowser() end
+    if frame.updateCatalogScope~=nil then frame:updateCatalogScope() end
 end
 
 TerraLogicFieldCatalogRequestEvent={}
@@ -504,7 +536,7 @@ function TerraLogicFieldCatalogEvent:writeStream(id,connection)
         streamWriteFloat32(id,e.x);streamWriteFloat32(id,e.z);streamWriteBool(id,e.current == true)
         local ids=e.fieldIds or {};streamWriteUInt16(id,#ids)
         for _,fieldId in ipairs(ids) do streamWriteInt32(id,fieldId) end
-        streamWriteInt32(id,e.customId or 0);streamWriteFloat32(id,e.areaHa or 0)
+        streamWriteInt32(id,e.customId or 0);streamWriteUInt16(id,e.sectionNumber or 0);streamWriteFloat32(id,e.areaHa or 0)
         streamWriteFloat32(id,e.condition or -1)
     end
 end
@@ -516,6 +548,7 @@ function TerraLogicFieldCatalogEvent:readStream(id,connection)
         entries[i]={x=x,z=z,key=cellKey(x,z),current=streamReadBool(id)}
         local ids={};for _=1,streamReadUInt16(id) do ids[#ids+1]=streamReadInt32(id) end
         entries[i].fieldIds=ids;entries[i].customId=streamReadInt32(id)
+        entries[i].sectionNumber=streamReadUInt16(id)
         entries[i].areaHa=streamReadFloat32(id)
         local condition=streamReadFloat32(id);entries[i].condition=condition>=0 and condition or nil
     end
