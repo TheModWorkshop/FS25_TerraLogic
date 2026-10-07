@@ -57,7 +57,7 @@ You do not need to understand every number before starting. Use this simple rout
 1. **Inspect the field.** Stand on it, open the ESC menu and select the TerraLogic icon. Read **Overview**, then check **Weather and Effects**. Is the main problem compaction, a rough seedbed, wet soil or frost?
 2. **Find the affected area.** Activate a soil map with `ALT + T`. Compare the map with the field average. One damaged wheel track is different from a problem across the whole field.
 3. **Choose a suitable operation.** Use **Planner** to compare equipment. Address the property that needs attention: deep compaction, upper-soil compaction, coarse tilth or unevenness.
-4. **Set your working speed deliberately.** Begin around the work HUD's green range and watch quality, load and warnings. Use cruise control to hold a suitable speed; reduce it if the implement struggles.
+4. **Set your working speed deliberately.** Start within the recommended range shown in the work HUD, then watch Work Quality and the warnings. The speed bar shows your speed relative to that range; it is not a quality indicator. Difficult soil conditions or worn equipment may require slower work even within the green range.
 5. **Check what changed.** Look at the soil map after the pass. Later, use **Work and Yield** to see the recorded work and the developing yield estimate.
 
 For example, ploughing can leave loose topsoil but a coarse, uneven surface. A conventional seeder may need to slow down considerably on that ground. A suitable shallow cultivator or harrow adds a pass but can improve seed placement. On an already suitable stubble field, direct drilling may save that preparation altogether.
@@ -80,6 +80,8 @@ Press the direct-selection shortcut for the active map again to switch it off. T
 
 While a tutorial card or its topic index is visible, a short **right-click** toggles the mouse cursor. Use it to click the tutorial buttons. Right-click again or close the tutorial to release it. Mouse movement does not rotate the on-foot or vehicle camera while the tutorial owns the cursor.
 
+With the tutorial cursor enabled, hold the left mouse button on the window's top bar to drag it. Release the button to leave it in the new position.
+
 ## Reading the soil
 
 TerraLogic tracks local conditions rather than assigning one uniform score to a field. A narrow tire lane can be compacted while the ground beside it stays loose. Adjacent operations with different equipment can leave different seedbeds.
@@ -98,7 +100,7 @@ A field can be even but compacted, loose but coarse, or resilient while still ca
 
 ### Maps, local values and field averages
 
-With a soil map active, the field-information HUD shows the five soil values beneath you when on foot. The field analysis menu instead assesses the connected field area you are standing on. A local value can therefore differ considerably from the field average.
+With a soil map active, the field-information HUD shows the five soil values beneath you when on foot. The field analysis menu instead assesses the selected connected field area. A local value can therefore differ considerably from the field average.
 
 The maps show the simulated soil, not just the game's visible ground texture. Newly initialized fields may look fairly uniform until traffic, work and weather create differences. Normal fields receive starting conditions suited to their field state; new areas created with a plough also receive soil data.
 
@@ -106,17 +108,23 @@ Use map colours to locate differences, then use the values and question-mark exp
 
 ## The field analysis menu
 
-Open the **ESC menu → TerraLogic icon** while standing on the field you want to inspect. The five pages answer different questions:
+Open the **ESC menu → TerraLogic icon** to inspect a field. When available, the analysis starts with the connected field area beneath you. Use the dropdown at the top to select another available field or section.
+
+Separate sections of the same native field receive distinct names, such as **Field 2-1** and **Field 2-2**. These names help identify them in Field Analysis and its selection list; they do not replace the field labels on the game's minimap.
+
+The five pages answer different questions:
 
 | Page | What it helps you understand |
 | --- | --- |
 | Overview | The field's soil condition, biological continuity, yield estimate and main recommendations. |
-| Work and Yield | Recorded fieldwork and how root development, water supply and work quality contribute to yield potential. |
+| Work and Yield | Recorded work quality, yield deductions and the existing crop's share of the selected area. |
 | Weather and Effects | Moisture, temperatures in different soil layers and their consequences for traffic and fieldwork. |
 | Planner | The likely result of a selected operation under the current conditions. |
-| Actions | Useful measures now, for the next operation and over the longer term. |
+| Recommendations | Suggested actions and their explanations, ordered by urgency and practical relevance. |
 
-Question-mark buttons explain the meaning and practical use of individual values. Recommendations are guidance, not a required sequence of jobs.
+Question-mark buttons explain the meaning and practical use of individual values.
+
+Recommendations pairs each suggested action with an explanation of the problem and how the action can help. Advice to prevent immediate damage comes first, followed by suitable preparation and longer-term soil care. This is guidance, not a mandatory sequence. Check whether the advice applies to unsown ground or an existing crop before making another pass.
 
 ### Compare operations before driving
 
@@ -130,9 +138,11 @@ Use these forecasts to choose a suitable tool, then check the actual result. Ext
 
 ### Read missing and preliminary values correctly
 
-A dash or **Not performed** means there is no applicable result or recorded operation, not a failed job. With no active crop, there is no crop yield estimate. A newly established crop starts with a preliminary estimate; recorded growing conditions contribute as it develops.
+**Not recorded** means that TerraLogic has no work record for that operation on the assessed area. It does not mean the work was poor or prove that the operation was never performed. Recorded work quality is evaluated where records exist. Open the operation's question-mark explanation to check its recorded area coverage.
 
-The same yield estimate is shown in **Overview** and **Work and Yield**. The latter adds the breakdown needed to understand where potential was lost.
+With no active crop, no crop yield estimate is available. Once a crop is present, the estimate applies to that crop, not to unsown parts of the field. Crop information shows how much of the selected area is covered.
+
+**Overview** and **Work and Yield** use the same yield estimate. Work and Yield adds the breakdown of soil, water and fieldwork deductions. The estimate can change as more growing conditions are recorded.
 
 ## Choosing equipment and preparing a seedbed
 
@@ -185,6 +195,12 @@ Compaction changes dynamically with the load carried by the vehicle and its equi
 
 **Ground contact pressure** describes how concentrated the load is beneath tires or tracks. It mainly affects the upper soil. **Axle load** matters more for deeper compaction. The planner's contact-pressure value is an estimate of pressure on the ground, not tire inflation pressure.
 
+TerraLogic reads the current load supported by each wheel from the game's physics. It estimates the tire contact area from tire dimensions and load, then calculates average ground contact pressure. The pressure shown is therefore a modelled ground-pressure value, not a direct pressure reading from the engine or the tire's inflation pressure.
+
+Deep compaction uses the combined load of wheels belonging to the same axle. Tire width affects the area exposed to that load, but the surface contact-pressure value is not used directly to calculate deep compaction. Wider tires can reduce surface pressure without removing the risk from a heavily loaded axle.
+
+Soil type, moisture, frost and resilience further modify the response. Repeated passes can accumulate compaction, but a lighter vehicle does not loosen soil that was already compacted by a heavier load.
+
 Wide tires, dual wheels and tracks spread weight over a larger contact area and can reduce surface compaction. Narrow crop-care tires can protect suitable standing crops from wheel damage, but concentrate the load on less soil. Wide tires do not make a very heavy axle harmless to the subsoil.
 
 ### Why fixed traffic lanes matter
@@ -213,16 +229,21 @@ Combines and standard crop harvesters retain their usual working-speed and damag
 
 ### Use the work HUD
 
-The work HUD shows the relevant speed range, work quality, mechanical load, wear and contextual warnings.
+The compact work HUD separates speed guidance from the result of the operation:
 
-- **Green** indicates the normal operating range, not guaranteed perfect work.
-- **Work quality** describes the result of the operation.
-- **Mechanical load** describes stress on the implement, not the tractor's engine-load percentage.
-- **Warnings** identify problems such as unsuitable conditions, excessive load or stone impacts.
+- **Recommended speed, on the left:** the numbers show the recommended working range. The bar shows your current speed relative to that range. Read your actual speed on the game's speedometer.
+- **Work Quality, on the right:** describes how well the operation is being carried out. The speed bar does not represent this percentage.
+- **Warnings, above the HUD:** explain problems such as unsuitable soil conditions, high implement load, damaging overload or stone impacts. Mechanical load and wear are no longer shown as permanent readouts.
+
+The green speed range is guidance, not a guarantee of perfect quality or safe load. Soil conditions, moisture, frost and equipment wear can still require slower work.
+
+With several recognized implements, the HUD shows their count. Speed guidance follows the limiting implement, while Work Quality shows the lowest currently assessed quality. For balers and loading wagons, **Material pickup** describes collection performance rather than sowing or application quality. A dash means that no applicable quality value is currently available.
+
+Warning cards have a fixed height and room for two lines. When several messages are queued, they rotate using your selected warning duration. Compaction warnings can also appear while driving without an active working implement.
 
 Set cruise control to a sensible starting speed, then adjust it while watching the result. Small cruise-control fluctuations do not necessarily require intervention; sustained overload and meaningful quality losses do.
 
-In the default **Dynamic** mode, the HUD fades after steady work in the green range and returns when speed changes or a warning appears.
+Choose how much of the HUD to display in [Tutorials and settings](#tutorials-and-settings).
 
 ### Different jobs have different consequences
 
@@ -330,6 +351,12 @@ These percentages are relative factors, not promised litres or tonnes per hectar
 - **Water supply:** drought and prolonged wetness can affect development when moisture-related yield effects are enabled.
 - **Fieldwork:** recorded sowing and supported application quality contribute according to the operation.
 
+The calculation starts at **110% yield potential**. Deductions for soil conditions, water supply and fieldwork are subtracted in percentage points.
+
+For example, deductions of 2 points for soil, 1 point for water and 3 points for fieldwork produce **104%**: four percent more than the yield calculated without TerraLogic under otherwise identical conditions.
+
+The resulting factor is limited to **60–110%**. Missing plants remain a separate loss: the lower limit does not create a harvest on unsown ground. The breakdown explains the same TerraLogic factor used by the harvest calculation and Precision Farming integration.
+
 Resilience and crop rotation affect yield through the soil. They add no separate direct yield bonus or penalty. Well-loosened, well-prepared soil can therefore support a good crop even before high resilience has developed.
 
 Individual quality indicators stop at 100%, while final yield potential can reach 110% because it uses a different reference: the harvest without TerraLogic.
@@ -352,12 +379,17 @@ Cards stay open until you dismiss them. **The game continues running**, so stop 
 
 The first introduction card also offers a button to disable tutorials. You can revisit topics through the library in settings, reset the tutorial later, or read the more detailed **Help → TerraLogic** pages. Resetting the tutorial does not reset soil or field data.
 
+Tutorial cards and the topic library share a locally saved window position. Future tutorials open in the same place, including after restarting the game.
+
+Movement is limited so that part of the window and a usable section of its top bar remain accessible. If you want to restore the original position, use **Reset tutorial position** in TerraLogic's settings. This does not reset tutorial progress or affect soil, field or vehicle data.
+
 ### Main settings
 
 | Setting | Purpose and initial default |
 | --- | --- |
 | TerraLogic tutorial | Introduction and contextual tips. |
-| Speed display | Dynamic; Always visible and Off are also available. Off hides TerraLogic HUD warnings too. |
+| Work HUD | Dynamic by default. Also offers Always visible, Warnings only and Off. |
+| Reset tutorial position | Returns the tutorial window to its default position without resetting reading progress. |
 | Warning display duration | 5 seconds; adjustable from 1 to 10 seconds. |
 | Soil map minimap zoom | 4x while a TerraLogic soil map is active. |
 | Soil map updates | Normal by default; Fast refreshes maps sooner but uses more processing power and, in multiplayer, more network traffic. |
@@ -365,6 +397,14 @@ The first introduction card also offers a button to disable tutorials. You can r
 | Soil moisture affects yield | On; controls the moisture-related yield effect. |
 | Visible-stone damage | Extended stone damage; base-game damage behaviour is also selectable. |
 | Stone-impact warnings | On. |
+
+**Dynamic** shows the work HUD when useful. During steady work within the recommended range, it fades after three seconds unless warnings or increased wear require attention. Leaving the range or changing cruise speed brings it back.
+
+**Always visible** also keeps the display available for recognized implements that are raised or switched off.
+
+**Warnings only** hides the speed and quality display while retaining warning cards.
+
+**Off** hides both the work HUD and TerraLogic's HUD warnings. These display modes do not disable the simulation.
 
 The resilience-development setting scales biological gains and soil-disturbance losses together. It does not accelerate the physical recovery of compaction, tilth or evenness.
 
@@ -412,6 +452,11 @@ When using More Realistic, select the desired pulling-resistance provider in Ter
 | No crop yield estimate | Check whether there is an active crop. Growing crops begin with a preliminary estimate before growth history is available. |
 | Maps take time to update | Allow refresh work to progress; try Fast if the PC or server has capacity. |
 | Tutorial cursor seems unavailable | A card or topic index must be visible. Use a short right-click to toggle it. |
+| Warnings appear, but the speed and quality display is missing | Check whether Work HUD is set to Warnings only. |
+| The work HUD disappears during normal work | Dynamic mode fades it after steady work within the recommended range when no warning or increased wear requires attention. |
+| No TerraLogic HUD warnings appear | Check whether Work HUD is set to Off. Stone-impact notifications also have their own setting. |
+| The tutorial window is in an inconvenient position | Enable the cursor with a short right-click and drag the top bar, or use Reset tutorial position in settings. |
+| Several entries belong to the same field number | They may be separate connected sections. Use the numbered section names in the field dropdown to distinguish them. |
 
 For bugs, feedback or feature suggestions, use the [TerraLogic GitHub repository](https://github.com/Saibotsu/FS25_TerraLogic).
 
