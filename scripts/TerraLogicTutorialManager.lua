@@ -27,11 +27,14 @@ function M:load()
     self.snoozed,self.libraryIndex,self.libraryGroup={},false,1
     self.restartRequested,self.resetDialogOpen,self.cursorRestorePending=false,false,false
     self.buttons,self.rightGesture,self.previousCursor=nil,nil,nil
+    self.windowX,self.windowY,self.drag=nil,nil,nil
     for i,item in ipairs(TerraLogicTutorialLessons) do item.index=i; self.byId[item.id]=item end
     local p=path()
     if p and fileExists(p) then
         local xml=loadXMLFile("terraLogicTutorial",p)
         if xml and xml~=0 then
+            self.windowX=getXMLFloat(xml,"tutorial#windowX")
+            self.windowY=getXMLFloat(xml,"tutorial#windowY")
             -- Legacy modal messages were marked read on display, not dismissal.
             -- Offer the new introduction once; never infer completion from them.
             if (getXMLInt(xml,"tutorial#version") or 0)>=4 then
@@ -55,6 +58,9 @@ function M:save()
     local xml=createXMLFile("terraLogicTutorial",p,"tutorial")
     if not xml or xml==0 then return end
     setXMLInt(xml,"tutorial#version",4); setXMLString(xml,"tutorial#resume",self.resume or "")
+    local x,y=self:getWindowRect()
+    setXMLFloat(xml,"tutorial#windowX",x)
+    setXMLFloat(xml,"tutorial#windowY",y)
     for _,item in ipairs(TerraLogicTutorialLessons) do
         local k="tutorial.lessons."..item.id
         setXMLBool(xml,k.."#completed",self.seen[item.id]==true)
@@ -64,6 +70,7 @@ function M:save()
     saveXMLFile(xml); delete(xml)
 end
 function M:releaseCursor()
+    if self.drag then self.drag=nil; self:save() end
     if (self.cursorOwned or self.cursorRestorePending) and g_inputBinding then
         if self:isGameplayViewActive() then
             g_inputBinding:setShowMouseCursor(self.previousCursor==true)
@@ -529,9 +536,29 @@ function M:drawButton(label,x,y,w,h,action,arg,leftAligned,status)
     end
     self.buttons[#self.buttons+1]={x=x,y=y,w=w,h=h,action=action,arg=arg}
 end
+-- Normalized coordinates survive resolution changes. Keep at least 20% of
+-- the width visible and the full title height on screen. The extra horizontal
+-- reserve leaves a usable drag target even beside the close button.
+function M:getWindowRect()
+    local w,h=.345,.445
+    local x,y=tonumber(self.windowX),tonumber(self.windowY)
+    if not x or x~=x then x=.635 end
+    if not y or y~=y then y=.395 end
+    local visible=math.max(w*.2,.12)
+    x=math.clamp(x,visible-w,1-visible)
+    y=math.clamp(y,.008,1-h-.008)
+    self.windowX,self.windowY=x,y
+    return x,y,w,h
+end
+function M:resetPosition()
+    self.drag=nil
+    self.windowX,self.windowY=nil,nil
+    self.buttons=nil
+    self:save()
+end
 function M:draw()
     if not self:isCardVisible() or not drawFilledRect or not renderText or not getTextWidth then return end
-    local x,y,w,h=.635,.395,.345,.445
+    local x,y,w,h=self:getWindowRect()
     self:drawBackground(x,y,w,h)
     self.buttons={}
     setTextAlignment(RenderText.ALIGN_LEFT); setTextBold(false); setTextColor(.78,.78,.78,1)
@@ -609,10 +636,32 @@ function M:draw()
 end
 function M:mouseEvent(x,y,isDown,isUp,button)
     if not self:isCardVisible() or not Input or not g_inputBinding then
+        if self.drag then self.drag=nil; self:save() end
         self.rightGesture=nil
         return -- No action event, cursor change or crane-input interception.
     end
     self.mouseX,self.mouseY=x,y
+    if self.drag then
+        if not self.cursorOwned or not g_inputBinding:getShowMouseCursor() then
+            self.drag=nil; self:save(); return
+        end
+        self.windowX=x-self.drag.x
+        self.windowY=y-self.drag.y
+        self:getWindowRect()
+        self.buttons=nil
+        if isUp and button==Input.MOUSE_BUTTON_LEFT then
+            self.drag=nil; self:save()
+        end
+        return
+    end
+    if isDown and button==Input.MOUSE_BUTTON_LEFT and self.cursorOwned
+        and g_inputBinding:getShowMouseCursor() then
+        local wx,wy,w,h=self:getWindowRect()
+        if x>=wx and x<=wx+w-.04 and y>=wy+h-.047 and y<=wy+h then
+            self.drag={x=x-wx,y=y-wy}
+            return
+        end
+    end
     local gesture=self.rightGesture
     if gesture then
         local dx=(x-gesture.x)*(g_screenWidth or 1920)

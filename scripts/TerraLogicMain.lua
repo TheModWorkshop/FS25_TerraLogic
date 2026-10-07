@@ -4755,9 +4755,9 @@ function TerraLogicMain:drawSpeedHud()
         self.speedHudCruiseSpeed = cruiseSpeed
     end
 
-    -- Dynamic mode follows readiness, then applies the original unobtrusive
-    -- speed-zone behaviour: blue and red remain visible; the nominal green
-    -- range fades after three stable seconds and returns after a cruise-speed
+    -- Dynamic mode follows readiness: outside the recommended speed range it
+    -- remains visible; within that range it fades after three stable seconds
+    -- and returns after a cruise-speed
     -- change. Context warnings always keep the card visible.
     local displayRecommendedSpeed = getWorkHudDisplayRecommendedSpeed(
         recommendedSpeed, shopSpeed)
@@ -4776,6 +4776,14 @@ function TerraLogicMain:drawSpeedHud()
         self, warningImplement, warningQuality, warningContext,
         warningActive, warningMechanicalActive, now)
     local wearRank = maximumWearRank
+    if hudMode == "warnings" then
+        self.speedHudFadeAlpha = 0
+        TerraLogicTutorialManager:observeHud(qualityImplement or implement,
+            qualityContext, quality ~= nil, warning ~= nil, currentSpeed)
+        local _, warningY = getSpeedHudScaledPixels(0, 42)
+        self:drawWorkHudWarning(warning, warningCount, warningIndex, now, warningY)
+        return
+    end
     local hasContextWarning = warning ~= nil
     local shouldShow = implement ~= nil
         and now >= (self.speedHudVehicleNameHiddenUntil or 0)
@@ -4787,7 +4795,9 @@ function TerraLogicMain:drawSpeedHud()
         qualityContext, quality ~= nil, alpha > 0, currentSpeed)
     if alpha <= 0 then self.workHudWarningLayoutState = nil; return end
 
-    local boxWidth, boxHeight = getSpeedHudScaledPixels(380, 92)
+    -- Two distinct columns: speed guidance on the left, work result on the
+    -- right. Keep the game's default font and a shared heading size.
+    local boxWidth, boxHeight = getSpeedHudScaledPixels(380, 54)
     local _, boxY = getSpeedHudScaledPixels(0, 42)
     local boxX = 0.5 - boxWidth * 0.5
     if not self:renderSpeedHudBackground(
@@ -4795,83 +4805,99 @@ function TerraLogicMain:drawSpeedHud()
         drawFilledRect(boxX, boxY, boxWidth, boxHeight,
             0.01, 0.01, 0.01, 0.58 * alpha)
     end
-    local backgroundInsetX, backgroundInsetY = getSpeedHudScaledPixels(3, 3)
-    drawFilledRect(boxX+backgroundInsetX, boxY+backgroundInsetY,
-        boxWidth-backgroundInsetX*2, boxHeight-backgroundInsetY*2,
-        0.01, 0.01, 0.01, 0.18*alpha)
-    local padX, _ = getSpeedHudScaledPixels(15, 0)
-    local _, topY = getSpeedHudScaledPixels(0, 70)
-    local _, loadY = getSpeedHudScaledPixels(0, 49)
-    local _, barY = getSpeedHudScaledPixels(0, 31)
+    local padX = getSpeedHudScaledPixels(15, 0)
+    local speedWidth = getSpeedHudScaledPixels(210, 0)
+    local dividerX = boxX + getSpeedHudScaledPixels(235, 0)
+    local qualityX = boxX + getSpeedHudScaledPixels(245, 0)
+    local rightX = boxX + boxWidth - padX
+    local qualityCenterX = (qualityX + rightX) * 0.5
+    local _, topY = getSpeedHudScaledPixels(0, 33)
+    local _, bottomY = getSpeedHudScaledPixels(0, 11)
+    local _, barY = getSpeedHudScaledPixels(0, 15)
     local _, barHeight = getSpeedHudScaledPixels(0, 7)
-    local _, bottomY = getSpeedHudScaledPixels(0, 10)
     local _, smallSize = getSpeedHudScaledPixels(0,
         math.max(getSpeedHudDefaultTextPixels() - 3, 10))
+    local _, valueSize = getSpeedHudScaledPixels(0,
+        getSpeedHudDefaultTextPixels() + 3)
+    local lineWidth, lineHeight = getSpeedHudScaledPixels(1, 32)
+    local _, lineY = getSpeedHudScaledPixels(0, 11)
+    drawFilledRect(dividerX, boxY + lineY, lineWidth, lineHeight,
+        1, 1, 1, 0.14 * alpha)
     local white = {1, 1, 1, alpha}
     local muted = {0.78, 0.82, 0.84, alpha}
     local orange = {SPEED_HUD_CAUTION_COLOR[1],
         SPEED_HUD_CAUTION_COLOR[2], SPEED_HUD_CAUTION_COLOR[3], alpha}
-    local criticalRed = {SPEED_HUD_CRITICAL_COLOR[1],
-        SPEED_HUD_CRITICAL_COLOR[2], SPEED_HUD_CRITICAL_COLOR[3], alpha}
-
-    setTextBold(false)
-    setTextAlignment(RenderText.ALIGN_LEFT)
-    setTextColor(unpack(muted))
     local qualitySpec = qualityImplement ~= nil
         and qualityImplement.spec_terraLogic or spec
     local pickup = qualitySpec.implementClassKey == "baler"
         or qualitySpec.implementClassKey == "loaderWagon"
     local qualityLabel = pickup
-        and getWorkHudText("terraLogic_workHudPickup", "MATERIAL PICKUP")
-        or getWorkHudText("terraLogic_workHudQuality", "WORK QUALITY")
-    if (activeImplementCount or 0) > 1 then
-        qualityLabel = qualityLabel .. " · " .. TerraLogicI18n.format(
-            getWorkHudText("terraLogic_speedHudActiveImplements", "%d tools"),
-            activeImplementCount)
-    end
-    local showQualityValue = qualityImplement == nil
-        or qualityImplement.spec_terraLogic == nil
-        or qualityImplement.spec_terraLogic.implementClassKey ~= "defoliator"
+        and getWorkHudText("terraLogic_workHudPickupCompact", "Material pickup")
+        or getWorkHudText("terraLogic_workHudQualityCompact", "Work quality")
+    local showQualityValue = qualitySpec.implementClassKey ~= "defoliator"
     if not showQualityValue then
-        qualityLabel = getWorkHudText("terraLogic_fa_planner_ui_class_defoliator", "Defoliator")
+        qualityLabel = getWorkHudText(
+            "terraLogic_fa_planner_ui_class_defoliator", "Defoliator")
     end
-    renderText(boxX + padX, boxY + topY, smallSize, qualityLabel)
-    setTextAlignment(RenderText.ALIGN_RIGHT)
-    if showQualityValue and quality ~= nil then
-        if quality < 0.75 then setTextColor(unpack(orange))
-        else setTextColor(unpack(white)) end
-        renderText(boxX + boxWidth - padX, boxY + topY, smallSize,
-            TerraLogicI18n.format("%d %%", math.floor(quality * 100 + 0.5)))
-    elseif showQualityValue then
-        setTextColor(unpack(muted))
-        renderText(boxX + boxWidth - padX, boxY + topY, smallSize, "-")
+    local speedLabel = getWorkHudText("terraLogic_workHudSpeedCompact", "Recommended speed")
+    local speedValue = TerraLogicI18n.formatSpeedRange(
+        displayRecommendedSpeed, shopSpeed)
+    setTextBold(false)
+    -- Fit all headings together, never shrink only one column independently.
+    if getTextWidth ~= nil then
+        local gap = getSpeedHudScaledPixels(8, 0)
+        local speedTextWidth = getTextWidth(smallSize, speedLabel)
+            + getTextWidth(smallSize, speedValue)
+        local qualityTextWidth = getTextWidth(smallSize, qualityLabel)
+        local fit = math.min(1, (speedWidth - gap) / math.max(speedTextWidth, 0.0001),
+            (rightX - qualityX) / math.max(qualityTextWidth, 0.0001))
+        smallSize = smallSize * fit
     end
-
-    local loadSpec = loadImplement ~= nil
-        and loadImplement.spec_terraLogic or spec
-    local loadRatio = math.max(tonumber(loadSpec.mechanicalLoadRatio) or 0, 0)
-    local hasMechanicalLoad = loadSpec.mechanicalLoadModel ~= "none"
-        and loadIsMechanicalActive
-    local loadColor = loadSpec.workHudMechanicalWarningActive == true
-        and orange or muted
     setTextAlignment(RenderText.ALIGN_LEFT)
-    setTextColor(unpack(loadColor))
-    renderText(boxX + padX, boxY + loadY, smallSize,
-        getWorkHudText(
-            hasMechanicalLoad and "terraLogic_workHudLoad"
-                or "terraLogic_workHudLoadUnavailable",
-            "MECHANICAL LOAD"))
+    setTextColor(unpack(muted))
+    renderText(boxX + padX, boxY + topY, smallSize, speedLabel)
+    setTextAlignment(RenderText.ALIGN_CENTER)
+    renderText(qualityCenterX, boxY + topY, smallSize, qualityLabel)
     setTextAlignment(RenderText.ALIGN_RIGHT)
-    renderText(boxX + boxWidth - padX, boxY + loadY, smallSize,
-        hasMechanicalLoad
-            and TerraLogicI18n.format("%d %%", math.floor(loadRatio * 100 + 0.5))
-            or "-")
+    setTextColor(unpack(white))
+    renderText(boxX + padX + speedWidth, boxY + topY, smallSize, speedValue)
+    local qualityText = quality ~= nil
+        and TerraLogicI18n.format("%d %%", math.floor(quality * 100 + 0.5))
+        or "-"
+    local countText = (activeImplementCount or 0) > 1
+        and TerraLogicI18n.format(
+            getWorkHudText("terraLogic_speedHudActiveImplements", "%d tools"),
+            activeImplementCount) or nil
+    local valueX = qualityCenterX
+    local countX = qualityCenterX
+    -- With several tools, center the complete count/value group rather than
+    -- placing the count underneath the centered percentage.
+    if countText ~= nil and showQualityValue and getTextWidth ~= nil then
+        local countWidth = getTextWidth(smallSize, countText)
+        local valueWidth = getTextWidth(valueSize, qualityText)
+        local gap = getSpeedHudScaledPixels(8, 0)
+        countX = qualityCenterX - (countWidth + gap + valueWidth) * 0.5
+            + countWidth * 0.5
+        valueX = qualityCenterX + (countWidth + gap) * 0.5
+    end
+    setTextAlignment(RenderText.ALIGN_CENTER)
+    if showQualityValue then
+        if quality == nil then setTextColor(unpack(muted))
+        elseif quality < 0.75 then setTextColor(unpack(orange))
+        else setTextColor(unpack(white)) end
+        renderText(valueX, boxY + bottomY, valueSize, qualityText)
+    end
+    if countText ~= nil then
+        setTextColor(unpack(muted))
+        renderText(countX, boxY + bottomY, smallSize, countText)
+    end
+    setTextBold(false)
 
     -- Zoom the speed scale around the useful range. The central 60 percent is
     -- the recommended-to-shop interval, with equally sized slow and overspeed
     -- areas. The tachometer supplies the number; this bar supplies context.
     local barX = boxX + padX
-    local barWidth = boxWidth - padX * 2
+    local barWidth = speedWidth
     local safetyShare, recommendedShare = 0.20, 0.60
     local realSpeed = displayRecommendedSpeed
     local usefulRange = math.max(shopSpeed-realSpeed, 0.1)
@@ -4917,51 +4943,6 @@ function TerraLogicMain:drawSpeedHud()
     drawFilledRect(markerX-markerWidth*0.5,
         boxY+barY-markerExtra, markerWidth,
         barHeight+markerExtra*2, 1, 1, 1, alpha)
-
-    -- Describe the current continuous wear, not only its speed/load share.
-    -- Soil abrasion is part of that same rate; discrete stones remain event
-    -- warnings. Reset while merely work-ready so no stale prior pass is shown.
-    local wearKey, wearFallback = "terraLogic_workHudWearNormal", "WEAR RATE NORMAL"
-    if wearRank == 3 then
-        wearKey, wearFallback = "terraLogic_workHudWearExtreme", "WEAR RATE EXTREME"
-    elseif wearRank == 2 then
-        wearKey, wearFallback = "terraLogic_workHudWearHigh", "WEAR RATE HIGH"
-    elseif wearRank == 1 then
-        wearKey, wearFallback = "terraLogic_workHudWearIncreased", "WEAR RATE INCREASED"
-    end
-    local recommended = TerraLogicI18n.format("%s %s",
-        getWorkHudText("terraLogic_workHudRecommended", "RECOMMENDED"),
-        TerraLogicI18n.formatSpeedRange(realSpeed, shopSpeed))
-    local showWearLabel = loadIsMechanicalActive or wearRank >= 1
-    local wearLabel = getWorkHudText(wearKey, wearFallback)
-    local bottomSize = smallSize
-    if getTextWidth ~= nil then
-        local usedWidth = getTextWidth(bottomSize, recommended)
-            + (showWearLabel and getTextWidth(bottomSize, wearLabel) or 0)
-        local availableWidth = boxWidth-padX*2
-            - (showWearLabel and select(1, getSpeedHudScaledPixels(8, 0)) or 0)
-        if usedWidth > availableWidth then
-            bottomSize = bottomSize * availableWidth / usedWidth
-        end
-    end
-    setTextAlignment(RenderText.ALIGN_LEFT)
-    setTextColor(unpack(muted))
-    renderText(boxX+padX, boxY+bottomY, bottomSize, recommended)
-    setTextAlignment(RenderText.ALIGN_RIGHT)
-    if wearRank >= 3 then
-        setTextColor(unpack(criticalRed))
-    elseif wearRank >= 1 then
-        setTextColor(unpack(orange))
-    else
-        setTextColor(unpack(muted))
-    end
-    -- A normal wear-rate label adds no useful information for tools without
-    -- a mechanical-load model (for example tedders and windrowers). Preserve
-    -- it whenever mechanical load exists, and still show genuinely increased
-    -- speed/abrasion wear on any supported tool.
-    if showWearLabel then
-        renderText(boxX + boxWidth - padX, boxY + bottomY, bottomSize, wearLabel)
-    end
 
     local _, warningGap = getSpeedHudScaledPixels(0, 7)
     self:drawWorkHudWarning(warning, warningCount, warningIndex, now,

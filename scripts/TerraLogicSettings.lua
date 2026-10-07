@@ -88,7 +88,7 @@ function TerraLogicSettings:loadLocal()
     if xml ~= nil and xml ~= 0 then
         local mode = string.lower(tostring(
             getXMLString(xml, "settings#speedHudMode") or "dynamic"))
-        self.speedHudMode = (mode == "always" or mode == "off")
+        self.speedHudMode = (mode == "always" or mode == "off" or mode == "warnings")
             and mode or "dynamic"
         self.warningDisplaySeconds = math.clamp(math.floor(
             tonumber(getXMLInt(xml, "settings#warningDisplaySeconds"))
@@ -557,9 +557,13 @@ end
 
 function TerraLogicSettingsMenuCallbacks:onSpeedHudModeChanged(state)
     TerraLogicSettings.speedHudMode = ({
-        "dynamic", "always", "off"
+        "dynamic", "always", "warnings", "off"
     })[state] or "dynamic"
     TerraLogicSettings:saveLocal()
+end
+
+function TerraLogicSettingsMenuCallbacks:onTutorialPositionReset()
+    TerraLogicTutorialManager:resetPosition()
 end
 
 function TerraLogicSettingsMenuCallbacks:onWarningDisplaySecondsChanged(state)
@@ -762,12 +766,16 @@ function TerraLogicSettings:tryInstallMenu()
         "terraLogic_settingTutorialResetAction",
         "terraLogic_settingTutorialReset",
         "terraLogic_settingTutorialResetTooltip")
+    addButton("terraLogicTutorialPositionReset", "onTutorialPositionReset",
+        "terraLogic_tutorialPositionResetAction", "terraLogic_tutorialPositionResetTitle",
+        "terraLogic_tutorialPositionResetTooltip")
     local speedHudState = self.speedHudMode == "always" and 2
-        or (self.speedHudMode == "off" and 3 or 1)
+        or (self.speedHudMode == "warnings" and 3 or (self.speedHudMode == "off" and 4 or 1))
     self.speedHudModeOption = addOption(
         "terraLogicSpeedHudMode", "onSpeedHudModeChanged",
         {g_i18n:getText("terraLogic_settingHudDynamic"),
             g_i18n:getText("terraLogic_settingHudAlways"),
+            g_i18n:getText("terraLogic_settingHudWarnings"),
             g_i18n:getText("terraLogic_settingHudOff")},
         speedHudState,
         "terraLogic_settingHudModeTitle", "terraLogic_settingHudModeTooltip")
@@ -921,7 +929,7 @@ function TerraLogicSettings:tryInstallMenu()
                 if hudControl ~= nil then
                     local mode = TerraLogicSettings.speedHudMode
                     hudControl:setState(mode == "always" and 2
-                        or (mode == "off" and 3 or 1))
+                        or (mode == "warnings" and 3 or (mode == "off" and 4 or 1)))
                     hudControl:setDisabled(false)
                 end
                 local warningDurationControl =
