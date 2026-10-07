@@ -242,6 +242,10 @@ local RECOVERY_AGE_WORK = {
     weeder={target=0.97, strength=0.50},
     slurryInjector={target=0.97, strength=0.50}
 }
+for key, rule in pairs(TerraLogicSpecialImplements.BIOLOGY) do
+    RESILIENCE_TILLAGE[key] = rule.resilience
+    RECOVERY_AGE_WORK[key] = {target=rule.target, strength=rule.strength}
+end
 
 -- Monthly background recovery. Living-root effects remain in
 -- ROOT_GROWTH_RESPONSE; these values represent slower pore ageing, fauna,
@@ -475,7 +479,7 @@ end
 -- Field Analysis page uses this to preview real implement behaviour without
 -- creating a WorkArea, mutating the implement, or writing a density map.
 function TerraLogicSoilManager:getSuitabilityAtState(state, soilTypeIndex,
-        classKey, workDepthCm)
+        classKey, workDepthCm, rawGround)
     local profile = TerraLogicSoilProfiles ~= nil
         and TerraLogicSoilProfiles:getSuitabilityProfile(classKey) or nil
     if state == nil or profile == nil then
@@ -488,6 +492,7 @@ function TerraLogicSoilManager:getSuitabilityAtState(state, soilTypeIndex,
     end
     local qualitySum, qualityWeight, dropoutSum, dropoutWeight = 0, 0, 0, 0
     for layerId, factor in pairs(profile.factors or {}) do
+        factor = TerraLogicSpecialImplements.getSuitabilityFactor(classKey, layerId, factor, rawGround)
         local score = getSuitabilityFactorScore(state[layerId], factor)
         local qWeight = math.max(tonumber(factor.qualityWeight) or 0, 0)
         local dWeight = math.max(tonumber(factor.dropoutWeight) or 0, 0)
@@ -560,10 +565,12 @@ local MOISTURE_TEXTURE_COHESION = {
 }
 
 local MOISTURE_HIGH_SHEAR = {
+    ridgeFormer=true,
     powerHarrow=true, spader=true, roller=true
 }
 
 local MOISTURE_NARROW_SLOT = {
+    vegetablePlanter=true, sugarcanePlanter=true,
     sowingMachine=true, precisionPlanter=true,
     directDrill=true, precisionDirectDrill=true,
     slurryInjector=true
@@ -659,7 +666,7 @@ function TerraLogicSoilManager:prepareWorkAreaSuitability(
         -- ground. Query the authoritative ground-type channel directly;
         -- checking fruit, grass and meadow density maps again for every bare
         -- seedbed cell was both redundant and substantially more expensive.
-        local cultivatable = self:isCultivatableTerrainAtWorldPosition(x, z)
+        local cultivatable, rawGround = self:isCultivatableTerrainAtWorldPosition(x, z)
         if cultivatable == nil then
             local surface = TerraLogicQualityManager:
                 getSurfaceTypeAtWorldPosition(x, z)
@@ -700,6 +707,7 @@ function TerraLogicSoilManager:prepareWorkAreaSuitability(
             frostDropoutSum = frostDropoutSum
                 + (moisture ~= nil and moisture.frostDropoutFraction or 0)
             for layerId, factor in pairs(profile.factors or {}) do
+                factor = TerraLogicSpecialImplements.getSuitabilityFactor(classKey, layerId, factor, rawGround)
                 local score = getSuitabilityFactorScore(state[layerId], factor)
                 local qWeight = math.max(tonumber(factor.qualityWeight) or 0, 0)
                 local dWeight = math.max(tonumber(factor.dropoutWeight) or 0, 0)
@@ -910,29 +918,9 @@ local function gradient(value)
     return 0.90, 0.80 * (1 - t) + 0.12, 0.12, 0.78
 end
 
--- Compaction is stored and displayed directly: 0 is loose/good, 1 is
--- severely compacted/bad.  The two layers need different colour boundaries
--- because their root-yield curves have different agronomic consequences.
--- Green ends at 1% layer loss; red begins at 4% layer loss.  Deriving the
--- values from ROOT_YIELD keeps maps, HUD and Field Analysis in lockstep with
--- the harvest model if that balance is tuned later.
+-- Compatibility accessor: display thresholds no longer depend on yield loss.
 local function compactionThresholds(layerId)
-    local profile = TerraLogicSoilProfiles ~= nil
-        and TerraLogicSoilProfiles.ROOT_YIELD ~= nil
-        and TerraLogicSoilProfiles.ROOT_YIELD[layerId] or nil
-    local good = clamp01(profile ~= nil and profile.good
-        or (layerId == "deepCompaction" and 0.10 or 0.30))
-    local maximum = math.max(tonumber(profile ~= nil
-        and profile.maximumLoss) or (layerId == "deepCompaction" and 0.26 or 0.15),
-        0.0001)
-    local exponent = math.max(tonumber(profile ~= nil
-        and profile.exponent) or (layerId == "deepCompaction" and 1.45 or 1.40),
-        1)
-    local function valueAtLoss(loss)
-        return clamp01(good + (1-good)
-            * (math.clamp(loss/maximum, 0, 1) ^ (1/exponent)))
-    end
-    return valueAtLoss(0.01), valueAtLoss(0.04)
+    return 0.30, 0.70
 end
 
 -- Resilience is a direct good/bad scale and needs a perceptually monotonic
@@ -1053,9 +1041,9 @@ function TerraLogicSoilManager:tryInitializeRaster()
     if self.rasterReady then return true end
     local terrainNode = getTerrainDataNode()
     if DensityMapModifier == nil or terrainNode == nil then
-        if not self.rasterDeferredLogged then
+        if TerraLogicLogging.verbose and not self.rasterDeferredLogged then
             self.rasterDeferredLogged = true
-            Logging.info(
+            TerraLogicLogging.debug(
                 "[FS25_TerraLogic] Soil raster deferred until terrain data is ready")
         end
         return false
@@ -1118,7 +1106,7 @@ function TerraLogicSoilManager:tryInitializeRaster()
     self.rasterDeferredLogged = false
     self.visualizationDirty = self.activeMapMode > 0
     self.overlayRefreshTime = 0
-    Logging.info(
+    TerraLogicLogging.debug(
         "[FS25_TerraLogic] Soil raster ready: %d layers, center=%d/%d/%d/%d/%d",
         initializedLayers,
         self:getRawAtWorldPosition(self.layers[1].id, 0, 0),
@@ -1273,7 +1261,7 @@ function TerraLogicSoilManager:createVisualizationMaps()
             self:writeLegacyRegion(layer.id, legacyCell, true)
         end
     end
-    Logging.info(
+    TerraLogicLogging.debug(
         "[FS25_TerraLogic] Soil visualization masks ready: surface=%d deep=%d tilth=%d evenness=%d resilience=%d fieldPolygons=%d legacyRegions=%d fallback=%s",
         self.visualizationMapSizes.surfaceCompaction.x,
         self.visualizationMapSizes.deepCompaction.x,
@@ -1549,7 +1537,7 @@ function TerraLogicSoilManager:load()
         -- A persisted pending flag resumes safely after an unusually early
         -- save without reinitializing already completed fields.
         self.ownedPresetInitializationPending = true
-        Logging.info(
+        TerraLogicLogging.debug(
             "[FS25_TerraLogic] One-time owned-field soil preset initialization scheduled")
     else
         -- Builds before this marker may already contain months or years of
@@ -1559,7 +1547,7 @@ function TerraLogicSoilManager:load()
             self.OWNED_PRESET_INITIALIZATION_VERSION
         self.ownedPresetInitializationPending = false
         self.ownedPresetInitializedFields = {}
-        Logging.info(
+        TerraLogicLogging.debug(
             "[FS25_TerraLogic] Existing TerraLogic soil maps detected; owned-field preset initialization marked complete without overwriting player data")
     end
     self.recoveryLastIntegratedGameHours =
@@ -1575,7 +1563,7 @@ function TerraLogicSoilManager:load()
     end
     self:tryInitializeRaster()
     self:queueNpcPresetScan(self.NPC_PRESET_SCAN_DELAY_MS)
-    Logging.info(
+    TerraLogicLogging.debug(
         "[FS25_TerraLogic] Soil model loaded: surface=%d@1m deep=%d@2m tilth=%d@2m evenness=%d@2m resilience=%d@8m recoveryAge=%d@8m/12bit (terrain %.0f m, raster=%s, deepMigration=%s)",
         self.mapSizes.surfaceCompaction.x,
         self.mapSizes.deepCompaction.x,
@@ -1886,7 +1874,7 @@ function TerraLogicSoilManager:loadSparseState()
     end)
     xml:delete()
     if sourceCount > 0 then
-        Logging.info(
+        TerraLogicLogging.debug(
             "[FS25_TerraLogic] Queued %d legacy 4m soil regions for layer migration",
             sourceCount)
     end
@@ -2801,12 +2789,12 @@ function TerraLogicSoilManager:scanNpcPresetFields()
         end
     end
     if queued > 0 then
-        Logging.info(
+        TerraLogicLogging.debug(
             "[FS25_TerraLogic] Queued %d changed NPC field preset(s)",
             queued)
     end
     if ownedQueued > 0 then
-        Logging.info(
+        TerraLogicLogging.debug(
             "[FS25_TerraLogic] Queued %d one-time owned-field preset(s)",
             ownedQueued)
     end
@@ -2826,7 +2814,7 @@ function TerraLogicSoilManager:scanNpcPresetFields()
             self.OWNED_PRESET_INITIALIZATION_VERSION
         self.ownedPresetInitializationPending = false
         self.ownedPresetInitializedFields = {}
-        Logging.info(
+        TerraLogicLogging.debug(
             "[FS25_TerraLogic] One-time owned-field soil preset initialization complete")
     end
     return foundField and not waitingForState
@@ -2947,7 +2935,7 @@ function TerraLogicSoilManager:finishNpcPresetJob(job)
     self.visualizationDirty = true
     local now = g_currentMission ~= nil and g_currentMission.time or 0
     self.overlayRefreshTime = now + self.OVERLAY_REFRESH_DELAY_MS
-    Logging.info(
+    TerraLogicLogging.debug(
         "[FS25_TerraLogic] %s field preset complete: field=%s farmland=%d preset=%s crop=%s phase=%d variedPatches=%d",
         ownedBootstrap and "Initial owned"
             or (ownedRepair and "Repaired owned" or "NPC"),
@@ -3910,10 +3898,16 @@ function TerraLogicSoilManager:processNaturalRecoveryCell(job, index)
         or coverKey == "deepPerennial"
     local deepBiologyBoost = livingCover
         and (1 + 0.50 * restFactor * clamp01(environment.biologicalFactor)) or 1
+    -- Established, undisturbed living cover strengthens monthly recovery.
+    -- Keep root-growth events, targets and bare/residue recovery unchanged.
+    local surfaceRecoveryBoost = livingCover and (1 + 0.25 * restFactor) or 1
+    local deepRecoveryBoost = livingCover and (1 + 0.35 * restFactor) or 1
     tryMove("surfaceCompaction", cover.surfaceTarget, -1, 0.0060,
-        surfaceRecoveryFactor, texture.surface, cover.activity, 11, 1.20)
+        surfaceRecoveryFactor, texture.surface,
+        cover.activity * surfaceRecoveryBoost, 11, 1.20)
     tryMove("deepCompaction", cover.deepTarget, -1, 0.0018,
-        deepRecoveryFactor, texture.deep, cover.activity * deepBiologyBoost, 23, 1.60)
+        deepRecoveryFactor, texture.deep,
+        cover.activity * deepBiologyBoost * deepRecoveryBoost, 23, 1.60)
 
     -- Covered soil can slowly rebuild an intermediate crumb structure from
     -- either coarse clods or an over-pulverized state. Bare soil receives only
@@ -4061,7 +4055,7 @@ function TerraLogicSoilManager:finishNaturalRecovery(job)
         self.visualizationDirty = true
     end
     local samples = math.max(job.environmentSamples or 0, 1)
-    Logging.info(
+    TerraLogicLogging.debug(
         "[FS25_TerraLogic] Natural recovery pass: setting=%dx resilience=%dx physical=%dx fieldCells=%d age=%d surface/deep/tilth/evenness=%d/%d/%d/%d resilience(gain/decay)=%d/%d env(bio/surface/deep/thawSurface/thawDeep)=%.3f/%.3f/%.3f/%.3f/%.3f pending=%d cover(bare/sown/residue/annual/rootCrop/deepRoot/perennial/deepPerennial)=%d/%d/%d/%d/%d/%d/%d/%d",
         job.developmentSpeed,
         getResilienceDevelopmentSpeed(job.developmentSpeed),
@@ -4082,7 +4076,7 @@ function TerraLogicSoilManager:finishNaturalRecovery(job)
         job.coverCounts.perennial or 0,
         job.coverCounts.deepPerennial or 0)
     local snapshot = job.snapshot or {}
-    Logging.info(
+    TerraLogicLogging.debug(
         "[FS25_TerraLogic] Recovery snapshot: serial=%d source=%s observed=%.2f gameHours daysPerPeriod=%g meanSoil=%.2f/%.2fC thaw=%.3f/%.3f queue=%d",
         tonumber(snapshot.serial) or 0, tostring(snapshot.source or "legacy"),
         tonumber(snapshot.hours) or 0,
@@ -4728,12 +4722,12 @@ function TerraLogicSoilManager:isCultivatableTerrainAtWorldPosition(x, z)
         and FieldGroundType.getTypeByValue ~= nil
         and FieldGroundType.NONE ~= nil then
         local ok, groundType = pcall(FieldGroundType.getTypeByValue, value)
-        if ok then return groundType ~= FieldGroundType.NONE end
+        if ok then return groundType ~= FieldGroundType.NONE, value end
     end
     -- Older/custom maps may not expose the converter. The decoded GROUND_TYPE
     -- value still uses zero for NONE, unlike the former raw terrainDetailId
     -- query which mixed all packed terrain channels together.
-    return tonumber(value) ~= 0
+    return tonumber(value) ~= 0, value
 end
 
 function TerraLogicSoilManager:getCultivatableTerrainCoverage(
@@ -5692,10 +5686,12 @@ end
 -- never authorize neighbouring or interpolated non-field cells.
 -- Shared soil susceptibility, excluding load, coverage and distance to target.
 -- Moisture's target shifts remain separate; frost only reduces the impulse.
+local NEUTRAL_TRAFFIC_TEXTURE = {surface=1, deep=1}
 function TerraLogicSoilManager:getTrafficSensitivityFactors(
         soilType, resilience, surfaceMoisture, deepMoisture,
         surfaceFrozen, deepFrozen, texture)
     texture = texture or TerraLogicSoilProfiles:getPFTrafficResponse(soilType)
+        or NEUTRAL_TRAFFIC_TEXTURE
     local biology = 1.30 - 0.60 * clamp01(resilience or 0.50)
     return (texture.surface or 1) * biology * (surfaceMoisture or 1)
             * (surfaceFrozen and 0.20 or 1),
@@ -5850,7 +5846,10 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
     local function moistureAdjustedTarget(baseTarget, multiplier,
             wetShift, dryShift)
         if baseTarget == nil then return nil end
-        local wet = clamp01(((tonumber(multiplier) or 1) - 1) / 0.58)
+        -- Traffic moisture impulses retain their 50% moderation. Recover the
+        -- original positive moisture excursion for targets only; dry shifts
+        -- and neutral targets must remain bit-for-bit unchanged.
+        local wet = clamp01(((tonumber(multiplier) or 1) - 1) * 2 / 0.58)
         local dry = clamp01((1 - (tonumber(multiplier) or 1)) / 0.28)
         return clamp01(baseTarget + wetShift * wet - dryShift * dry)
     end
@@ -6057,6 +6056,8 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
             and moistureMechanics.wetSeverity or 0,
         trafficSurfaceMultiplier=moistureSurfaceMultiplier,
         trafficDeepMultiplier=moistureDeepMultiplier,
+        surfaceTrafficSensitivity=surfaceSensitivity,
+        deepTrafficSensitivity=deepSensitivity,
         textureSurfaceMultiplier=textureSurfaceMultiplier,
         textureDeepMultiplier=textureDeepMultiplier,
         resilience=resilience,
@@ -7510,6 +7511,11 @@ function TerraLogicSoilManager:applyWorkArea(
         and plowParameters ~= nil
         and plowParameters.limitToField == false
         and rawChangedArea > 0
+    if createsNewField and currentWorkAreaGeometry~=nil and TerraLogicFieldCatalog~=nil then
+        local geometry=currentWorkAreaGeometry
+        TerraLogicFieldCatalog:markTopologyDirty(geometry.sx+geometry.widthX*.5+geometry.heightX*.5,
+            geometry.sz+geometry.widthZ*.5+geometry.heightZ*.5)
+    end
     -- Surface, deep, aggregate, roughness and recovery share only three raster
     -- resolutions. Rasterize each size once per callback; the finer occupancy
     -- sampling therefore does not multiply work for every individual layer.
@@ -8082,10 +8088,10 @@ function TerraLogicSoilManager:applyWorkArea(
         and frostQualitySum / moistureSampleCount or nil
     spec.soilLastFrostPenetrationFactor = moistureSampleCount > 0
         and frostPenetrationSum / moistureSampleCount or nil
-    if eligibleCells > 0 and (spec.soilPassLogTime == nil
+    if TerraLogicLogging.verbose and eligibleCells > 0 and (spec.soilPassLogTime == nil
             or now - spec.soilPassLogTime >= 5000) then
         spec.soilPassLogTime = now
-        Logging.info(
+        TerraLogicLogging.debug(
             "[FS25_TerraLogic] Soil pass %s: vanillaArea(changed/total)=%.3f/%.3f touched=%d field=%d changed=%d/%d speed=%.1f/%.1f ratio=%.2f overspeed=%.2f wearStrength=%.3f moisture=%.3f effect=%.3f frost=%.3f penetration=%.3f",
             tostring(classKey), rawChangedArea, rawTotalArea,
             touchedCellCount, eligibleCells, changedCells, changedLayers,
@@ -8277,21 +8283,7 @@ function TerraLogicSoilManager:getRootYieldFactorForArea(
 end
 
 function TerraLogicSoilManager:getColor(layerId, value)
-    if layerId == "aggregateSize" then
-        return tilthGradient(value)
-    end
-    if layerId == "surfaceCompaction" or layerId == "deepCompaction" then
-        -- Maps and the on-foot bars retain the fine continuous scale. Only
-        -- Field Analysis text uses the discrete agronomic traffic light.
-        return gradient(clamp01(value))
-    end
-    if layerId == "resilience" then
-        -- The dedicated palette is monotonic, so every persisted 8-bit step
-        -- can be shown truthfully without the misleading colour reversal that
-        -- originally motivated coarse two-percent display bands.
-        return resilienceGradient(value)
-    end
-    return gradient(1 - self:getDisplayValue(layerId, value))
+    return TerraLogicDisplay.mapColor(layerId, value)
 end
 
 function TerraLogicSoilManager:buildOverlay(mode)
@@ -8343,9 +8335,9 @@ function TerraLogicSoilManager:buildOverlay(mode)
     generateDensityMapVisualizationOverlay(self.overlay)
     self.overlayPending = true
     self.visualizationDirty = false
-    if self.overlayLoggedMode ~= mode then
+    if TerraLogicLogging.verbose and self.overlayLoggedMode ~= mode then
         self.overlayLoggedMode = mode
-        Logging.info(
+        TerraLogicLogging.debug(
             "[FS25_TerraLogic] Soil overlay active: mode=%d layer=%s handle=%s map=%s",
             mode, tostring(layer.id), tostring(self.overlay),
             tostring(sourceMap))
@@ -8419,7 +8411,7 @@ function TerraLogicSoilManager:applyPrecisionFarmingMinimapSuppression(
             if ok then restored = restored + 1 end
         end
     end
-    Logging.info(
+    TerraLogicLogging.debug(
         "[FS25_TerraLogic] Precision Farming minimap %s (%d live requests)",
         suppressed and "suppressed" or "restored", restored)
     return true
@@ -8480,7 +8472,7 @@ function TerraLogicSoilManager:installPrecisionFarmingMinimapHook()
     end
     self.pfValueMapClass = valueMapClass
     self.pfMinimapHookInstalled = true
-    Logging.info(
+    TerraLogicLogging.debug(
         "[FS25_TerraLogic] Precision Farming minimap arbitration installed")
     return true
 end
@@ -8495,7 +8487,7 @@ function TerraLogicSoilManager:applyMapModeState(mode)
         self.overlayRefreshTime = g_currentMission ~= nil
             and g_currentMission.time or 0
     end
-    Logging.info(
+    TerraLogicLogging.debug(
         "[FS25_TerraLogic] Soil minimap mode %d (hook=%s)",
         self.activeMapMode,
         tostring(self.minimapHookInstalled == true))
@@ -8519,7 +8511,7 @@ function TerraLogicSoilManager:setMapMode(mode)
             + self.MINIMAP_ZOOM_TRANSITION_MS
         self:setPrecisionFarmingMinimapSuppressed(true)
         self:setMinimapZoomTarget(1)
-        Logging.info(
+        TerraLogicLogging.debug(
             "[FS25_TerraLogic] Soil minimap transition TL -> PF queued")
         return
     end
@@ -8530,7 +8522,7 @@ function TerraLogicSoilManager:setMapMode(mode)
             + self.PF_MINIMAP_TRANSITION_MS
         self:setMinimapZoomTarget(1)
         self:setPrecisionFarmingMinimapSuppressed(true)
-        Logging.info(
+        TerraLogicLogging.debug(
             "[FS25_TerraLogic] Soil minimap transition PF -> TL mode %d queued",
             mode)
         return
@@ -8671,7 +8663,7 @@ function TerraLogicSoilManager:resetServerNetworkLayerRevision(layerIndex)
         g_server:broadcastEvent(
             TerraLogicSoilTileRevisionResetEvent.new(layerIndex))
     end
-    Logging.info(
+    TerraLogicLogging.debug(
         "[FS25_TerraLogic] Soil tile revision generation safely reset for layer %d",
         layerIndex)
 end
@@ -9404,7 +9396,7 @@ function TerraLogicSoilManager:installMinimapBaseLayerHook(ingameMap)
             nativeDraw, ingameMap, baseElement, ...)
     end
     self.minimapBaseHookElement = element
-    Logging.info(
+    TerraLogicLogging.debug(
         "[FS25_TerraLogic] Minimap base texture joined to soil zoom")
     return true
 end
@@ -9425,9 +9417,10 @@ function TerraLogicSoilManager:drawMinimapOverlay(ingameMap)
     -- controlled-vehicle requirement is needed here.
     self.minimapUiVisible = true
     local canDrawOverlay = self.overlay ~= nil and self.overlayReady == true
-    if canDrawOverlay and self.minimapDrawLoggedMode ~= self.activeMapMode then
+    if TerraLogicLogging.verbose and canDrawOverlay
+        and self.minimapDrawLoggedMode ~= self.activeMapMode then
         self.minimapDrawLoggedMode = self.activeMapMode
-        Logging.info(
+        TerraLogicLogging.debug(
             "[FS25_TerraLogic] Standalone soil minimap draw mode=%d overlay=%s",
             self.activeMapMode, tostring(self.overlay))
     end
@@ -9548,7 +9541,8 @@ function TerraLogicSoilManager:drawMinimapUi(ingameMap)
         and frameTop > frameBottom then
         local _, preferredTextSize = getNormalizedScreenValues(0, 10)
         local titlePadding = getNormalizedScreenValues(10, 0)
-        local _, titleTopInset = getNormalizedScreenValues(0, 30)
+        -- Leave additional space for the multiplayer ping above the map label.
+        local _, titleTopInset = getNormalizedScreenValues(0, 38)
         local title = getLocalizedCompactSoilMapLabel(self.activeMapMode)
         local textSize = fitTextSize(title, preferredTextSize,
             math.max(frameRight - frameLeft - titlePadding * 2, 0.001), 0.70)
@@ -9841,7 +9835,7 @@ function TerraLogicSoilManager:installMinimapHook()
     map.terraLogicSoilHook = true
     self.minimapHookInstalled = true
     self.minimapHookMap = map
-    Logging.info("[FS25_TerraLogic] Soil minimap hook installed (%s)",
+    TerraLogicLogging.debug("[FS25_TerraLogic] Soil minimap hook installed (%s)",
         tostring(self.minimapHookMethod))
     return true
 end

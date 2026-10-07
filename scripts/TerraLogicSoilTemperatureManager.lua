@@ -262,7 +262,7 @@ function TerraLogicSoilTemperatureManager:load()
     self.calendarScale = self.NOMINAL_DAYS_PER_PERIOD
         / math.max(self.daysPerPeriod, 1)
     self.calendarScale = math.max(1, math.min(self.calendarScale, 30))
-    Logging.info(
+    TerraLogicLogging.debug(
         "[FS25_TerraLogic] Soil temperature loaded: air=%.2f C surface@%dcm=%.2f C subsoil@%dcm=%.2f C frost=%s/%s pendingThaw=%.3f/%.3f calendar=%g days/period x%.2f (%s, %s)",
         self.airTemperatureC, self.SURFACE_DEPTH_CM,
         self.surfaceTemperatureC, self.SUBSOIL_DEPTH_CM,

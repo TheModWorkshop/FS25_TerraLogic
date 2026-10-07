@@ -70,8 +70,6 @@ TerraLogicQualityManager.CONDITION_QUALITY_CURVE = {
 TerraLogicQualityManager.MINIMUM_FINAL_YIELD_FACTOR = 0.60
 TerraLogicQualityManager.MAXIMUM_FINAL_YIELD_FACTOR = 1.10
 TerraLogicQualityManager.MINIMUM_ROOT_ZONE_FACTOR = 0.65
-TerraLogicQualityManager.ROOT_ZONE_SPREAD_EXPONENT = 1.15
-TerraLogicQualityManager.YIELD_LOSS_SPREAD_EXPONENT = 1.25
 TerraLogicQualityManager.MAXIMUM_TOTAL_YIELD_PENALTY = 0.40
 local CATEGORY_BALANCE = TerraLogicImplementProfiles.WORK_QUALITY_CATEGORIES
 TerraLogicQualityManager.COMPONENTS = {
@@ -446,6 +444,12 @@ function TerraLogicQualityManager:createCutterAreaProbe(cutter, workArea)
             end
         end
     end
+    -- Reuse the existing footprint calculation for PF write attribution.
+    probe.pfGeometry = {
+        minX=math.min(sx,sx+widthX,sx+heightX,sx+widthX+heightX),
+        maxX=math.max(sx,sx+widthX,sx+heightX,sx+widthX+heightX),
+        minZ=math.min(sz,sz+widthZ,sz+heightZ,sz+widthZ+heightZ),
+        maxZ=math.max(sz,sz+widthZ,sz+heightZ,sz+widthZ+heightZ)}
     return probe
 end
 
@@ -1120,11 +1124,13 @@ function TerraLogicQualityManager:getWorkQualityModel(
     local soilComponentAllowed = classKey == "plow" and component == "soilPlow"
         or (classKey == "subsoiler" or classKey == "cultivator"
             or classKey == "shallowCultivator" or classKey == "discHarrow"
-            or classKey == "powerHarrow" or classKey == "spader")
+            or classKey == "powerHarrow" or classKey == "spader"
+            or classKey == "ridgeFormer")
             and component == "soilCultivate"
         or (classKey == "sowingMachine" or classKey == "directDrill"
             or classKey == "precisionPlanter"
-            or classKey == "precisionDirectDrill") and component == "seed"
+            or classKey == "precisionDirectDrill"
+            or TerraLogicSpecialImplements.SEED_CLASSES[classKey]) and component == "seed"
         or classKey == "roller" and component == "roller"
         or classKey == "mulcher" and component == "mulch"
         or classKey == "mower" and component == "mower"
@@ -1312,6 +1318,12 @@ local function probeCropOccupancyCell(manager, ix, iz)
     end
     manager.lastCropOccupancyProbe = result
     return result
+end
+
+-- Read-only occupancy access for field summaries. No new persistent raster.
+function TerraLogicQualityManager:getAnalysisCropSamples(ix, iz)
+    local probe = probeCropOccupancyCell(self, ix, iz)
+    return probe.valid and probe.samples or {}, probe.valid
 end
 
 function TerraLogicQualityManager:getGrowthStateAtCell(ix, iz)
@@ -1517,7 +1529,7 @@ end
 -- soil samples exactly, preserving the relationship between a tyre track, an
 -- unsown lane and the roots beside it at every visible growth state.
 function TerraLogicQualityManager:getCropWeightedRootYieldFactor(
-        ix, iz, fruitTypeIndex)
+        ix, iz, fruitTypeIndex, sampleFilter)
     local x = (ix + 0.5) * self.CELL_SIZE
     local z = (iz + 0.5) * self.CELL_SIZE
     local fallbackFactor, fallbackSurfaceLoss, fallbackDeepLoss = 1, 0, 0
@@ -1539,7 +1551,9 @@ function TerraLogicQualityManager:getCropWeightedRootYieldFactor(
     local cropSamples, occupiedQuadrantSet = 0, {}
     for _, sample in ipairs(occupancy.samples) do
         if sample.fruitTypeIndex == fruitTypeIndex
-            and sample.growthState ~= nil then
+            and sample.growthState ~= nil
+            and (sampleFilter == nil or sampleFilter(sample.fruitTypeIndex,
+                sample.growthState, sample.x, sample.z)) then
             local factor, surfaceLoss, deepLoss = TerraLogicSoilManager:
                 getRootYieldFactorAtWorldPosition(sample.x, sample.z)
             weightedFactor = weightedFactor
@@ -1743,7 +1757,7 @@ function TerraLogicQualityManager:getGrowthRootYieldFactor(
 end
 
 function TerraLogicQualityManager:getGrowthMoistureYieldFactor(
-        position, finalize, projected)
+        position, finalize, projected, projectedFruitType)
     if position ~= nil and (position.chunkKey == nil
         or position.offset == nil) and position.ix ~= nil
         and position.iz ~= nil then
@@ -1767,7 +1781,7 @@ function TerraLogicQualityManager:getGrowthMoistureYieldFactor(
         and TerraLogicSoilMoistureManager ~= nil then
         local x = (position.ix + 0.5) * self.CELL_SIZE
         local z = (position.iz + 0.5) * self.CELL_SIZE
-        local fruitTypeIndex = select(1,
+        local fruitTypeIndex = projectedFruitType or select(1,
             self:getGrowthStateAtCell(position.ix, position.iz))
         local soilTypeIndex = TerraLogicSoilManager ~= nil
             and TerraLogicSoilManager.getPFSoilTypeAtWorldPosition ~= nil
@@ -2428,13 +2442,17 @@ function TerraLogicQualityManager:markPartialHarvest(
     local old = self.partialHarvestCells[key]
     local validFruitType = fruitTypeIndex ~= nil
         and (FruitType == nil or fruitTypeIndex ~= FruitType.UNKNOWN)
-    local marker = {
+    local marker = old or {
         ix = position.ix,
         iz = position.iz,
         domain = domain,
         fruitTypeIndex = validFruitType and fruitTypeIndex
             or (old ~= nil and old.fruitTypeIndex or nil)
     }
+    if validFruitType and marker.fruitTypeIndex ~= fruitTypeIndex then
+        marker = {ix=position.ix, iz=position.iz, domain=domain,
+            fruitTypeIndex=fruitTypeIndex}
+    end
     local changed = old == nil or old.domain ~= marker.domain
         or old.fruitTypeIndex ~= marker.fruitTypeIndex
     self.partialHarvestCells[key] = marker
@@ -2449,7 +2467,17 @@ function TerraLogicQualityManager:completePartialHarvest(
         .. ":" .. tostring(expectedDomain)
     local marker = self.partialHarvestCells[key]
     if marker == nil then return false end
+    if position.chunkKey == nil or position.offset == nil then
+        local _, _, chunkKey, offset = getChunkPosition(position.ix, position.iz)
+        position.chunkKey, position.offset = chunkKey, offset
+    end
     self.partialHarvestCells[key] = nil
+    -- A delayed worker may only close the harvest it originally observed.
+    self.pendingHarvestClears[key] = nil
+    if marker.remainderClosed == true then
+        self.dirty = true
+        return true
+    end
     local _, currentGrowthState = self:getGrowthStateAtCell(
         position.ix, position.iz)
     local stateInfo = marker.fruitTypeIndex ~= nil
@@ -2663,29 +2691,36 @@ end
 function TerraLogicQualityManager:scheduleHarvestClear(
         cutter, positions, fruitTypeIndex, useMinForageState)
     if cutter == nil or positions == nil then return 0 end
-    local pending = self.pendingHarvestClears[cutter]
-    if pending == nil then
-        pending = {}
-        self.pendingHarvestClears[cutter] = pending
-    end
+    local now = g_currentMission ~= nil and g_currentMission.time or 0
     local added = 0
     for _, position in ipairs(positions) do
-        local key = tostring(position.ix) .. ":" .. tostring(position.iz)
-        local previous = pending[key]
-        if previous == nil then added = added + 1 end
-        local validFruitType = fruitTypeIndex ~= nil
-            and (FruitType == nil or fruitTypeIndex ~= FruitType.UNKNOWN)
-        position.fruitTypeIndex = validFruitType and fruitTypeIndex
-            or (previous ~= nil and previous.fruitTypeIndex or nil)
-        if validFruitType then
-            position.useMinForageState = useMinForageState == true
-        else
-            position.useMinForageState = previous ~= nil
-                and previous.useMinForageState == true
+        local key = tostring(position.ix) .. ":" .. tostring(position.iz) .. ":arable"
+        local marker = self.partialHarvestCells[key]
+        if marker ~= nil and marker.remainderClosed ~= true then
+            local entry = self.pendingHarvestClears[key]
+            if entry == nil or entry.marker ~= marker then
+                entry = {ix=position.ix, iz=position.iz, key=key, marker=marker}
+                self.pendingHarvestClears[key] = entry
+                self:enqueueHarvestCheck(entry)
+                added = added + 1
+            end
+            entry.fruitTypeIndex = marker.fruitTypeIndex
+            entry.useMinForageState = useMinForageState == true
+            marker.useMinForageState = entry.useMinForageState
+            entry.nextCheckAt = now + 750
         end
-        pending[key] = position
     end
     return added
+end
+
+-- A bounded linked queue avoids scanning every outstanding cell each frame.
+-- Entries own a marker identity; new work invalidates that identity before write.
+function TerraLogicQualityManager:enqueueHarvestCheck(entry)
+    if entry.queued then return end
+    entry.queued, entry.next = true, nil
+    if self.harvestCheckTail then self.harvestCheckTail.next = entry
+    else self.harvestCheckHead = entry end
+    self.harvestCheckTail = entry
 end
 
 function TerraLogicQualityManager:cellHasRemainingHarvestFruit(position)
@@ -2710,69 +2745,129 @@ function TerraLogicQualityManager:cellHasRemainingHarvestFruit(position)
         position.useMinForageState == true
     )
     if not ok or area == nil then return true, false end
-    return tonumber(area) ~= nil and tonumber(area) > 0, true
+    area = tonumber(area)
+    if area == nil or area ~= area or area < 0 then return true, false end
+    local pixelArea = g_currentMission ~= nil
+        and g_currentMission.getFruitPixelsToSqm ~= nil
+        and tonumber(g_currentMission:getFruitPixelsToSqm()) or nil
+    return area > 0, true, pixelArea ~= nil and pixelArea > 0
+        and area * pixelArea or nil
+end
+
+function TerraLogicQualityManager:isNegligibleHarvestRemainder(entry, areaSqm)
+    if areaSqm == nil or areaSqm > 0.25
+        or areaSqm > self.CELL_SIZE * self.CELL_SIZE * 0.02 then return false end
+    local manager = TerraLogicSoilManager
+    if manager == nil or manager.getRecoveryFruitStateInfo == nil then return false end
+    local info = manager:getRecoveryFruitStateInfo(entry.fruitTypeIndex)
+    if info == nil then return false end
+    for source, regrows in pairs(info.regrowthSources or {}) do
+        -- This table also contains ordinary growing-to-growing transitions.
+        -- Only regrowth from a cut state makes the crop a repeat-harvest crop.
+        if regrows and (info.cut or {})[source] then return false end
+    end
+    local util = FSDensityMapUtil
+    if util == nil or util.getIsFieldAtWorldPos == nil then return false end
+    -- Never apply the tolerance to mixed field-border cells or a detected young/
+    -- different crop. Only tiny residual candidates pay for this extra check.
+    local probe = probeCropOccupancyCell(self, entry.ix, entry.iz)
+    if not probe.valid then return false end
+    for _, sample in ipairs(probe.samples) do
+        local ok, isField = pcall(util.getIsFieldAtWorldPos, sample.x, sample.z)
+        if not ok or isField ~= true then return false end
+        local fruit, state = sample.fruitTypeIndex, sample.growthState
+        if fruit ~= nil and fruit > 0 and state ~= nil then
+            local currentInfo = manager:getRecoveryFruitStateInfo(fruit)
+            if currentInfo == nil then return false end
+            local cut = (currentInfo.cut or {})[state] == true
+            local dead = (currentInfo.withered or {})[state] == true
+            if not cut and not dead then
+                if fruit ~= entry.fruitTypeIndex then return false end
+                local semantic = self:getSemanticPlowGrowthStage(fruit, state, nil)
+                if semantic == nil or semantic < self.PLOW_GROWTH_STAGES then return false end
+            end
+        end
+    end
+    return true
+end
+
+function TerraLogicQualityManager:processHarvestCheck(entry, now)
+    if self.pendingHarvestClears[entry.key] ~= entry
+        or self.partialHarvestCells[entry.key] ~= entry.marker then return false end
+    local remaining, known, areaSqm = self:cellHasRemainingHarvestFruit(entry)
+    if known and not remaining then
+        -- Harvestable-area queries alone cannot distinguish bare ground from
+        -- young crops (including a partly cut forage crop after save/load).
+        local probe = probeCropOccupancyCell(self, entry.ix, entry.iz)
+        if not probe.valid then known = false end
+        for _, sample in ipairs(probe.samples) do
+            local fruit, state = sample.fruitTypeIndex, sample.growthState
+            if fruit ~= nil and fruit > 0 and state ~= nil then
+                local info = TerraLogicSoilManager ~= nil
+                    and TerraLogicSoilManager:getRecoveryFruitStateInfo(fruit) or nil
+                if info == nil then known = false
+                elseif not (info.cut or {})[state] and not (info.withered or {})[state]
+                    and not (fruit == entry.fruitTypeIndex and (info.regrowthSources or {})[state]) then
+                    known = false
+                end
+            end
+        end
+    end
+    local negligible = known and remaining
+        and self:isNegligibleHarvestRemainder(entry, areaSqm)
+    if known and (not remaining or negligible) then
+        if negligible and entry.tinyObserved ~= true then
+            entry.tinyObserved = true
+            entry.nextCheckAt = now + 1000
+            return false
+        end
+        local completed = self:completePartialHarvest(entry, "arable", false)
+        if negligible and completed then
+            -- Preserve only an acknowledgement, not quality. Picking up the
+            -- last stalk later must not record a second rotation/biology cycle.
+            entry.marker.remainderClosed = true
+            self.partialHarvestCells[entry.key] = entry.marker
+            self.dirty = true
+        end
+        return completed
+    end
+    entry.tinyObserved = false
+    entry.nextCheckAt = now + (known and 10000 or 30000)
+    return false
 end
 
 function TerraLogicQualityManager:flushPendingHarvestClears(cutter, maxCells)
-    local pending = cutter ~= nil and self.pendingHarvestClears[cutter] or nil
-    if pending == nil then return 0 end
-    maxCells = tonumber(maxCells) or 32
-    local advanced, pendingCount, checked = 0, 0, 0
-    local retained, unknown = 0, 0
-    for _ in pairs(pending) do pendingCount = pendingCount + 1 end
-    for key, position in pairs(pending) do
-        if checked >= maxCells then break end
-        checked = checked + 1
-        pending[key] = nil
-        local hasRemainingFruit, queryKnown =
-            self:cellHasRemainingHarvestFruit(position)
-        if not queryKnown then
-            unknown = unknown + 1
-        elseif hasRemainingFruit then
-            -- The fixed four-metre cell was only touched at its edge. Keep its
-            -- quality data; it will be scheduled again when the cutter reaches
-            -- the remaining crop in a later frame or adjacent pass.
-            retained = retained + 1
-        else
-            local completed = self:completePartialHarvest(
-                position, "arable", false)
-            if not completed then
-                completed = self:advanceCellAfterHarvest(position)
+    if g_currentMission == nil or not g_currentMission:getIsServer() then return 0 end
+    local now = g_currentMission.time or 0
+    if now < (self.harvestCheckNextTick or 0) then return 0 end
+    self.harvestCheckNextTick = now + 100
+    local checked, advanced, visited = 0, 0, 0
+    local stop = self.harvestCheckTail
+    while self.harvestCheckHead ~= nil and checked < (maxCells or 4) and visited < 32 do
+        local entry = self.harvestCheckHead
+        self.harvestCheckHead = entry.next
+        if self.harvestCheckHead == nil then self.harvestCheckTail = nil end
+        entry.next, entry.queued = nil, false
+        visited = visited + 1
+        if self.pendingHarvestClears[entry.key] == entry
+            and self.partialHarvestCells[entry.key] == entry.marker then
+            if now >= (entry.nextCheckAt or 0) then
+                checked = checked + 1
+                if self:processHarvestCheck(entry, now) then advanced = advanced + 1 end
             end
-            if completed then advanced = advanced + 1 end
+            if self.pendingHarvestClears[entry.key] == entry then self:enqueueHarvestCheck(entry) end
+        elseif self.pendingHarvestClears[entry.key] == entry then
+            self.pendingHarvestClears[entry.key] = nil
         end
-    end
-    local deferred = 0
-    for _ in pairs(pending) do deferred = deferred + 1 end
-    if deferred == 0 then self.pendingHarvestClears[cutter] = nil end
-    if advanced > 0 then self.dirty = true end
-    if TerraLogicLogging ~= nil and TerraLogicLogging.verbose == true
-        and (self.harvestClearDiagnosticCount or 0) < 40 then
-        self.harvestClearDiagnosticCount =
-            (self.harvestClearDiagnosticCount or 0) + 1
-        TerraLogicLogging.debug(
-            "[FS25_TerraLogic] Harvest clear: pendingCells=%d checked=%d advanced=%d retainedCrop=%d unknown=%d deferred=%d",
-            pendingCount,
-            checked,
-            advanced,
-            retained,
-            unknown,
-            deferred
-        )
+        if entry == stop then break end
     end
     return advanced
 end
 
 function TerraLogicQualityManager:flushAllPendingHarvestClears()
-    local cutters = {}
-    for cutter in pairs(self.pendingHarvestClears) do
-        cutters[#cutters + 1] = cutter
-    end
-    local cleared = 0
-    for _, cutter in ipairs(cutters) do
-        cleared = cleared + self:flushPendingHarvestClears(cutter, math.huge)
-    end
-    return cleared
+    -- Save the remaining markers instead of an unbounded save-time density scan.
+    -- The same bounded worker resumes them after loading.
+    return self:flushPendingHarvestClears(nil, 4)
 end
 
 -- Records only cells accepted by both Vanilla's changed area and surface rules.
@@ -3011,6 +3106,36 @@ function TerraLogicQualityManager:getCellAtWorldPosition(x, z, fallbackX, fallba
     return cached ~= false and cached or nil, false
 end
 
+-- Local previews use the same crop-stage weights as field analysis. Clients
+-- already receive the recorded averages with the work-quality cell.
+function TerraLogicQualityManager:getPreviewMoistureFactor(ix, iz, cell)
+    local fruit, growth = self:getGrowthStateAtCell(ix, iz)
+    local recorded = self:getGrowthMoistureYieldFactor(
+        {ix=ix, iz=iz}, false, true, fruit)
+    if recorded ~= nil then return recorded end
+    if TerraLogicSoilMoistureManager == nil then return 1 end
+    local x, z = (ix+0.5)*self.CELL_SIZE, (iz+0.5)*self.CELL_SIZE
+    local soil = TerraLogicSoilManager ~= nil
+        and TerraLogicSoilManager:getPFSoilTypeAtWorldPosition(x, z) or nil
+    local steps = math.clamp(tonumber(cell ~= nil and cell.rootYieldSteps) or 0,
+        0, self.PLOW_GROWTH_STAGES)
+    if steps > 0 and cell.moistureYieldAverage ~= nil then
+        local completed, total, future = 0, 0, 0
+        for stage=1,self.PLOW_GROWTH_STAGES do
+            local response = TerraLogicSoilMoistureManager:getCropYieldResponse(soil, fruit, stage)
+            local weight = math.max(tonumber(response.stageWeight) or 0, 0)
+            total = total + weight
+            if stage <= steps then completed = completed + weight
+            else future = future + math.clamp(response.factor or 1, 0, 1)*weight end
+        end
+        return total > 0 and (cell.moistureYieldAverage*completed+future)/total
+            or cell.moistureYieldAverage
+    end
+    local stage = self:getSemanticPlowGrowthStage(fruit, growth, nil)
+    local response = TerraLogicSoilMoistureManager:getCropYieldResponse(soil, fruit, stage)
+    return response ~= nil and response.factor or 1
+end
+
 function TerraLogicQualityManager:getSummaryAtWorldPosition(x, z, fallbackX, fallbackZ)
     -- The quality box describes the land under the player, not the camera
     -- crosshair or an averaged neighbouring footprint.
@@ -3051,6 +3176,7 @@ function TerraLogicQualityManager:getSummaryAtWorldPosition(x, z, fallbackX, fal
                 harvestPenalty = 0,
                 affectsYield = false,
                 rootYieldFactor = rootFactor,
+                moistureYieldFactor = self:getPreviewMoistureFactor(ix, iz, cell),
                 rootShallowLoss = shallowLoss,
                 rootDeepLoss = deepLoss,
                 dynamicSoil = true
@@ -3176,15 +3302,9 @@ function TerraLogicQualityManager:getEffectiveYieldFactor(entries, useHarvestPen
     )
 end
 
-local function yieldSmoothStep(value)
-    value = math.clamp(tonumber(value) or 0, 0, 1)
-    return value * value * (3 - 2 * value)
-end
-
--- Converts every TerraLogic cause into one continuous signed harvest factor.
--- The lower branch spreads real losses; the upper branch is reachable only
--- when every critical part of the same assessment is healthy. It is therefore
--- not a separate flat bonus and cannot hide a serious soil or work problem.
+-- One shared calculation for harvest, previews and the PF bridge.
+-- Factors retain their growth-history and operation-specific meaning. Their
+-- deficits are percentage-point deductions from the 110% starting potential.
 function TerraLogicQualityManager:getTerraLogicYieldFactor(
         entries, rootFactor, moistureFactor, moistureEnabled,
         liveFactor, resilience)
@@ -3193,98 +3313,38 @@ function TerraLogicQualityManager:getTerraLogicYieldFactor(
     moistureFactor = moistureEnabled == false and 1
         or math.clamp(tonumber(moistureFactor) or 1, 0, 1)
     liveFactor = math.clamp(tonumber(liveFactor) or 1, 0, 1)
-    resilience = math.clamp(tonumber(resilience) or 0.50, 0, 1)
-
-    -- HUD/analysis summaries may prepend a synthetic soil entry containing the
-    -- same root factor supplied explicitly below. Exclude it here so diagnostic
-    -- callers cannot charge compaction twice; persisted cell entries never
-    -- contain this synthetic record.
     local ledgerEntries = {}
     for _, entry in ipairs(entries) do
+        -- Synthetic soil entries duplicate the explicit root factor.
         if entry.rootYieldFactor == nil then
             ledgerEntries[#ledgerEntries + 1] = entry
         end
     end
-    local ledgerFactor = self:getEffectiveYieldFactor(ledgerEntries, true)
-    local rootZoneFactor = math.max(
-        rootFactor * moistureFactor, self.MINIMUM_ROOT_ZONE_FACTOR)
-    local retainedFactor = math.clamp(
-        liveFactor * ledgerFactor * rootZoneFactor, 0, 1)
-
-    -- Make mediocre and poor results economically visible without a threshold.
-    -- Biological resilience is reflected through soil development only.
-    -- Retained as a zero-valued diagnostic for existing HUD/audit consumers.
-    -- Resilience affects soil development, never the harvest directly.
-    local resiliencePenalty = 0
-    -- Root-zone losses retain their independent 35% ceiling. Widen their
-    -- middle range inside that fixed interval, then spread fieldwork/harvest
-    -- errors separately. Only combined causes reach the overall 40% floor.
-    local rootProgress = math.clamp(
-        (rootZoneFactor-self.MINIMUM_ROOT_ZONE_FACTOR)
-            / math.max(1-self.MINIMUM_ROOT_ZONE_FACTOR, 0.0001), 0, 1)
-    local spreadRootFactor = self.MINIMUM_ROOT_ZONE_FACTOR
-        + (1-self.MINIMUM_ROOT_ZONE_FACTOR)
-            * rootProgress ^ self.ROOT_ZONE_SPREAD_EXPONENT
-    local executionFactor = math.clamp(liveFactor*ledgerFactor, 0, 1)
-        ^ self.YIELD_LOSS_SPREAD_EXPONENT
-    local lossFactor = spreadRootFactor * executionFactor
-        * (1 - resiliencePenalty)
-
-    local minimumWorkQuality = 1
-    local workQualitySum, workQualityCount = 0, 0
-    local seedQuality, hasSeedRecord = 0, false
-    for _, entry in ipairs(entries) do
-        local definition = self.GROUP_DEFINITIONS[entry.name]
-        if definition == nil or definition.affectsYield ~= false then
-            local quality = math.clamp(tonumber(entry.quality) or 1, 0, 1)
-            minimumWorkQuality = math.min(minimumWorkQuality, quality)
-            workQualitySum = workQualitySum + quality
-            workQualityCount = workQualityCount + 1
-            if entry.name == "seed" then
-                seedQuality, hasSeedRecord = quality, true
-            end
-        end
-    end
-    local averageWorkQuality = workQualityCount > 0
-        and workQualitySum / workQualityCount or 0
-
-    local rootScore = yieldSmoothStep((rootFactor - 0.95) / 0.05)
-    local moistureScore = moistureEnabled == false and 1
-        or yieldSmoothStep((moistureFactor - 0.95) / 0.05)
-    local workScore = yieldSmoothStep((averageWorkQuality - 0.95) / 0.05)
-    local excellenceScore = rootScore * 0.40 + moistureScore * 0.20
-        + workScore * 0.40
-
-    -- A recorded, clean establishment is required for the positive branch.
-    -- The gates are smooth: no damage or reward changes at one exact percent.
-    -- One weakest-link gate replaces overlapping multiplicative gates.
-    -- Resilience influences soil development, not eligibility for excellence.
-    -- Missing sowing records never create an unearned positive contribution.
-    local limitingQuality = math.min(rootFactor, moistureFactor,
-        minimumWorkQuality, seedQuality, liveFactor)
-    local positiveGate = hasSeedRecord
-        and yieldSmoothStep((limitingQuality - 0.90) / 0.09) or 0
-    local positivePotential = 0.10 * excellenceScore * positiveGate
-    local finalFactor = math.clamp(
-        lossFactor + positivePotential,
-        self.MINIMUM_FINAL_YIELD_FACTOR,
-        self.MAXIMUM_FINAL_YIELD_FACTOR)
-
+    local ledgerFactor = math.clamp(
+        self:getEffectiveYieldFactor(ledgerEntries, true), 0, 1)
+    local soilDeduction, waterDeduction, workDeduction =
+        1-rootFactor, 1-moistureFactor, 1-ledgerFactor*liveFactor
+    local totalDeduction = soilDeduction + waterDeduction + workDeduction
+    local maximumDeduction = self.MAXIMUM_FINAL_YIELD_FACTOR
+        - self.MINIMUM_FINAL_YIELD_FACTOR
+    -- Allocate the shared floor proportionally, so even capped local results
+    -- and field-wide averages have an exactly additive explanation.
+    local scale = totalDeduction > maximumDeduction
+        and maximumDeduction / totalDeduction or 1
+    soilDeduction, waterDeduction, workDeduction =
+        soilDeduction*scale, waterDeduction*scale, workDeduction*scale
+    local appliedDeduction = soilDeduction + waterDeduction + workDeduction
+    local finalFactor = math.clamp(self.MAXIMUM_FINAL_YIELD_FACTOR-appliedDeduction,
+        self.MINIMUM_FINAL_YIELD_FACTOR, self.MAXIMUM_FINAL_YIELD_FACTOR)
     return finalFactor, {
         ledgerFactor=ledgerFactor,
-        rootZoneFactor=rootZoneFactor,
-        spreadRootFactor=spreadRootFactor,
-        executionFactor=executionFactor,
-        retainedFactor=retainedFactor,
-        resiliencePenalty=resiliencePenalty,
-        lossFactor=lossFactor,
-        positivePotential=positivePotential,
-        excellenceScore=excellenceScore,
-        positiveGate=positiveGate,
-        minimumWorkQuality=minimumWorkQuality,
-        averageWorkQuality=averageWorkQuality,
-        seedQuality=seedQuality,
-        hasSeedRecord=hasSeedRecord
+        soilDeduction=soilDeduction, waterDeduction=waterDeduction,
+        workDeduction=workDeduction, deductionScale=scale,
+        -- Existing audit consumers use these two fields as a decomposition.
+        positivePotential=self.MAXIMUM_FINAL_YIELD_FACTOR-1,
+        lossFactor=1-appliedDeduction, resiliencePenalty=0,
+        rootZoneFactor=rootFactor*moistureFactor,
+        retainedFactor=rootFactor*moistureFactor*ledgerFactor*liveFactor
     }
 end
 
@@ -3546,10 +3606,7 @@ function TerraLogicQualityManager:applyHarvestQuality(
         if (changed or intervalElapsed)
             and (self.harvestDiagnosticCount or 0) < 160 then
             local pendingCount = 0
-            local pending = self.pendingHarvestClears[cutter]
-            if pending ~= nil then
-                for _ in pairs(pending) do pendingCount = pendingCount + 1 end
-            end
+            for _ in pairs(self.pendingHarvestClears) do pendingCount = pendingCount + 1 end
             self.harvestDiagnosticCount =
                 (self.harvestDiagnosticCount or 0) + 1
             TerraLogicLogging.debug(
@@ -3619,6 +3676,7 @@ function TerraLogicQualityManager:load()
     self.chunks = {}
     self.applicationCellStamps = {}
     self.pendingHarvestClears = {}
+    self.harvestCheckHead, self.harvestCheckTail, self.harvestCheckNextTick = nil, nil, nil
     self.pendingMowerClears = {}
     self.partialHarvestCells = {}
     self.plowGrowthPending = false
@@ -3898,8 +3956,19 @@ function TerraLogicQualityManager:load()
                     ix = ix,
                     iz = iz,
                     domain = domain,
-                    fruitTypeIndex = fruitTypeIndex
+                    fruitTypeIndex = fruitTypeIndex,
+                    remainderClosed = getXMLBool(xml, key .. "#remainderClosed") == true,
+                    useMinForageState = getXMLBool(xml, key .. "#useMinForageState") == true
                 }
+                local marker = self.partialHarvestCells[markerKey]
+                if domain == "arable" and not marker.remainderClosed then
+                    local entry = {ix=ix, iz=iz, key=markerKey, marker=marker,
+                        fruitTypeIndex=fruitTypeIndex,
+                        useMinForageState=marker.useMinForageState,
+                        nextCheckAt=(g_currentMission.time or 0)+5000}
+                    self.pendingHarvestClears[markerKey] = entry
+                    self:enqueueHarvestCheck(entry)
+                end
                 loadedPartialHarvests = loadedPartialHarvests + 1
             end
             partialIndex = partialIndex + 1
@@ -3985,6 +4054,8 @@ function TerraLogicQualityManager:save()
                 setXMLInt(xml, xmlKey .. "#x", position.ix)
                 setXMLInt(xml, xmlKey .. "#z", position.iz)
                 setXMLString(xml, xmlKey .. "#domain", marker.domain)
+                setXMLBool(xml, xmlKey .. "#remainderClosed", marker.remainderClosed == true)
+                setXMLBool(xml, xmlKey .. "#useMinForageState", marker.useMinForageState == true)
                 if marker.fruitTypeIndex ~= nil then
                     setXMLInt(
                         xml, xmlKey .. "#fruitType", marker.fruitTypeIndex)
@@ -4144,11 +4215,17 @@ if Cutter ~= nil and Cutter.processCutterArea ~= nil
     and Cutter.terraLogicSpatialHarvestHookInstalled ~= true then
     local originalProcessCutterArea = Cutter.processCutterArea
     Cutter.processCutterArea = function(self, workArea, dt)
+        if TerraLogicPFHarvestTrace ~= nil and TerraLogicPFHarvestTrace.active ~= nil then
+            TerraLogicPFHarvestTrace.safe("stage", "area.begin", self, workArea)
+        end
         local manager = TerraLogicQualityManager
         local isServer = g_currentMission ~= nil
             and g_currentMission:getIsServer()
         local probe = isServer
             and manager:createCutterAreaProbe(self, workArea) or nil
+        if TerraLogicPFYieldBridge ~= nil and isServer then
+            TerraLogicPFYieldBridge:begin(self, probe ~= nil and probe.pfGeometry or nil)
+        end
         local params = self.spec_cutter ~= nil
             and self.spec_cutter.workAreaParameters or nil
         local areaBefore = params ~= nil
@@ -4164,6 +4241,9 @@ if Cutter ~= nil and Cutter.processCutterArea ~= nil
                 (tonumber(params.lastMultiplierArea) or multiplierBefore)
                     - multiplierBefore)
         end
+        if TerraLogicPFHarvestTrace ~= nil and TerraLogicPFHarvestTrace.active ~= nil then
+            TerraLogicPFHarvestTrace.safe("stage", "area.afterOriginal", self, workArea)
+        end
         return resultArea, resultMultiplierArea
     end
     Cutter.terraLogicSpatialHarvestHookInstalled = true
@@ -4176,9 +4256,13 @@ if Cutter ~= nil and Cutter.onEndWorkAreaProcessing ~= nil
     and Cutter.terraLogicQualityEndHookInstalled ~= true then
     local originalOnEndWorkAreaProcessing = Cutter.onEndWorkAreaProcessing
     Cutter.onEndWorkAreaProcessing = function(self, dt, hasProcessed)
+        if TerraLogicPFHarvestTrace ~= nil and TerraLogicPFHarvestTrace.active ~= nil then
+            TerraLogicPFHarvestTrace.safe("stage", "end.beforeTL", self)
+        end
         local spec = self.spec_cutter
         local params = spec ~= nil and spec.workAreaParameters or nil
         local harvestedArea = params ~= nil and tonumber(params.lastArea) or 0
+        local pfMultiplierBefore = params ~= nil and tonumber(params.lastMultiplierArea) or 0
         if g_currentMission ~= nil and g_currentMission:getIsServer()
             and harvestedArea > 0 then
             local workArea = self.getWorkAreaByIndex ~= nil
@@ -4196,7 +4280,17 @@ if Cutter ~= nil and Cutter.onEndWorkAreaProcessing ~= nil
         elseif g_currentMission ~= nil and g_currentMission:getIsServer() then
             TerraLogicQualityManager:flushPendingHarvestClears(self)
         end
+        if TerraLogicPFYieldBridge ~= nil then
+            TerraLogicPFYieldBridge:complete(self, pfMultiplierBefore,
+                params ~= nil and tonumber(params.lastMultiplierArea) or pfMultiplierBefore)
+        end
+        if TerraLogicPFHarvestTrace ~= nil and TerraLogicPFHarvestTrace.active ~= nil then
+            TerraLogicPFHarvestTrace.safe("stage", "end.afterTL", self)
+        end
         local result = originalOnEndWorkAreaProcessing(self, dt, hasProcessed)
+        if TerraLogicPFHarvestTrace ~= nil and TerraLogicPFHarvestTrace.active ~= nil then
+            TerraLogicPFHarvestTrace.safe("stage", "end.afterOriginal", self)
+        end
         self.terraLogicHarvestCapture = nil
         return result
     end

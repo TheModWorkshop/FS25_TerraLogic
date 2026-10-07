@@ -28,6 +28,7 @@ TerraLogicSettings = {
     fieldHudMode = "soil",
     vehicleSoilMapMode = 0,
     soilMinimapZoom = 4.0,
+    debugEnabled = false,
     menuInstalled = false
 }
 -- Numeric source signature only; it is deliberately excluded from gameplay math.
@@ -44,6 +45,14 @@ OSDLogging = TerraLogicLogging
 function TerraLogicLogging.debug(message, ...)
     if TerraLogicLogging.verbose then
         Logging.info(message, ...)
+    end
+end
+
+-- Diagnostic warnings (e.g. a modded vehicle's unusual XML wear rate) are
+-- distinct from actual failures, which continue using Logging.warning/error.
+function TerraLogicLogging.debugWarning(message, ...)
+    if TerraLogicLogging.verbose then
+        Logging.warning(message, ...)
     end
 end
 
@@ -79,7 +88,7 @@ function TerraLogicSettings:loadLocal()
     if xml ~= nil and xml ~= 0 then
         local mode = string.lower(tostring(
             getXMLString(xml, "settings#speedHudMode") or "dynamic"))
-        self.speedHudMode = (mode == "always" or mode == "off")
+        self.speedHudMode = (mode == "always" or mode == "off" or mode == "warnings")
             and mode or "dynamic"
         self.warningDisplaySeconds = math.clamp(math.floor(
             tonumber(getXMLInt(xml, "settings#warningDisplaySeconds"))
@@ -281,6 +290,23 @@ function TerraLogicSettings:applyMoistureYieldEnabled(value)
     end
 end
 
+function TerraLogicSettings:getDebugEnabled()
+    return self.debugEnabled == true
+end
+
+function TerraLogicSettings:applyDebugEnabled(value)
+    local wasEnabled = self:getDebugEnabled()
+    self.debugEnabled = value == true
+    TerraLogicLogging.verbose = self.debugEnabled
+    if self.debugOption ~= nil then
+        self.debugOption:setState(self.debugEnabled and 2 or 1)
+    end
+    if self.debugEnabled and not wasEnabled and TerraLogicQualityManager ~= nil
+        and TerraLogicQualityManager.resetHarvestDiagnostics ~= nil then
+        TerraLogicQualityManager:resetHarvestDiagnostics()
+    end
+end
+
 function TerraLogicSettings:applyDraftModel(value)
     value = string.lower(tostring(value or ""))
     if value ~= self.DRAFT_MR then value = self.DRAFT_TERRALOGIC end
@@ -295,6 +321,8 @@ end
 
 -- Loads synchronized gameplay settings and migrates legacy OSD settings.
 function TerraLogicSettings:load()
+    -- Missing keys and a new mission must never inherit a previous debug session.
+    self:applyDebugEnabled(false)
     self:applyMapUpdatePreset("gentle")
     self:loadLocal()
     local default = self:isMoreRealisticActive() and self.DRAFT_MR or self.DRAFT_TERRALOGIC
@@ -313,6 +341,7 @@ function TerraLogicSettings:load()
     end
     local xml = loadXMLFile("osdSettings", path)
     if xml ~= nil and xml ~= 0 then
+        self:applyDebugEnabled(getXMLBool(xml, "settings#debugEnabled") == true)
         self:applyDraftModel(getXMLString(xml, "settings#draftModel") or default)
         self:applyMapUpdatePreset(getXMLString(xml, "settings#mapUpdatePreset"))
         -- Read no legacy toggle here: all existing savegames migrate to the
@@ -337,6 +366,7 @@ function TerraLogicSettings:save()
     if path == nil then return end
     local xml = createXMLFile("osdSettings", path, "settings")
     if xml ~= nil and xml ~= 0 then
+        setXMLBool(xml, "settings#debugEnabled", self:getDebugEnabled())
         setXMLString(xml, "settings#draftModel", self.draftModel)
         setXMLString(xml, "settings#mapUpdatePreset", self.mapUpdatePreset)
         -- Retain the key for older releases that may read this settings file.
@@ -451,6 +481,33 @@ function TerraLogicSettings:setMapUpdatePresetFromMenu(value)
     end
 end
 
+-- Debug follows this savegame and its administrator, including remote servers.
+-- Applying a received state never writes a client's unrelated local preferences.
+function TerraLogicSettings:setDebugEnabledFromMenu(value)
+    if not self:isLocalAdmin() then return false end
+    value = value == true
+    if g_server ~= nil then
+        self:applyDebugEnabled(value)
+        self:save()
+        g_server:broadcastEvent(TerraLogicSettingsEvent.new(
+            self.draftModel, true, self.visibleStoneDamageModel,
+            self.soilDevelopmentSpeed, self.moistureYieldEnabled,
+            self.mapUpdatePreset, value))
+        return true
+    elseif g_client ~= nil then
+        g_client:getServerConnection():sendEvent(TerraLogicSettingsEvent.new(
+            self.draftModel, true, self.visibleStoneDamageModel,
+            self.soilDevelopmentSpeed, self.moistureYieldEnabled,
+            self.mapUpdatePreset, value))
+        return true
+    end
+    return false
+end
+
+function TerraLogicSettingsMenuCallbacks:onDebugChanged(state)
+    TerraLogicSettings:setDebugEnabledFromMenu(state == 2)
+end
+
 function TerraLogicSettingsMenuCallbacks:onMapUpdateChanged(state)
     TerraLogicSettings:setMapUpdatePresetFromMenu(state == 2 and "fast" or "gentle")
 end
@@ -500,9 +557,13 @@ end
 
 function TerraLogicSettingsMenuCallbacks:onSpeedHudModeChanged(state)
     TerraLogicSettings.speedHudMode = ({
-        "dynamic", "always", "off"
+        "dynamic", "always", "warnings", "off"
     })[state] or "dynamic"
     TerraLogicSettings:saveLocal()
+end
+
+function TerraLogicSettingsMenuCallbacks:onTutorialPositionReset()
+    TerraLogicTutorialManager:resetPosition()
 end
 
 function TerraLogicSettingsMenuCallbacks:onWarningDisplaySecondsChanged(state)
@@ -705,12 +766,16 @@ function TerraLogicSettings:tryInstallMenu()
         "terraLogic_settingTutorialResetAction",
         "terraLogic_settingTutorialReset",
         "terraLogic_settingTutorialResetTooltip")
+    addButton("terraLogicTutorialPositionReset", "onTutorialPositionReset",
+        "terraLogic_tutorialPositionResetAction", "terraLogic_tutorialPositionResetTitle",
+        "terraLogic_tutorialPositionResetTooltip")
     local speedHudState = self.speedHudMode == "always" and 2
-        or (self.speedHudMode == "off" and 3 or 1)
+        or (self.speedHudMode == "warnings" and 3 or (self.speedHudMode == "off" and 4 or 1))
     self.speedHudModeOption = addOption(
         "terraLogicSpeedHudMode", "onSpeedHudModeChanged",
         {g_i18n:getText("terraLogic_settingHudDynamic"),
             g_i18n:getText("terraLogic_settingHudAlways"),
+            g_i18n:getText("terraLogic_settingHudWarnings"),
             g_i18n:getText("terraLogic_settingHudOff")},
         speedHudState,
         "terraLogic_settingHudModeTitle", "terraLogic_settingHudModeTooltip")
@@ -786,6 +851,14 @@ function TerraLogicSettings:tryInstallMenu()
         self.damageWarningsEnabled and 2 or 1,
         "terraLogic_settingDamageWarningsTitle",
         "terraLogic_settingDamageWarningsTooltip")
+    -- Keep diagnostics last, separate from normal gameplay/display choices.
+    self.debugOption = addOption(
+        "terraLogicDebug", "onDebugChanged",
+        {g_i18n:getText("terraLogic_settingOff"),
+            g_i18n:getText("terraLogic_settingOn")},
+        self:getDebugEnabled() and 2 or 1,
+        "terraLogic_settingDebugTitle", "terraLogic_settingDebugTooltip")
+    self.debugOption:setDisabled(not self:isLocalAdmin())
     page.gameSettingsLayout:invalidateLayout()
     self.menuInstalled = true
 
@@ -794,6 +867,11 @@ function TerraLogicSettings:tryInstallMenu()
         InGameMenuSettingsFrame.onFrameOpen = Utils.appendedFunction(
             InGameMenuSettingsFrame.onFrameOpen,
             function(frame)
+                local debugControl = TerraLogicSettings.debugOption
+                if debugControl ~= nil then
+                    debugControl:setState(TerraLogicSettings:getDebugEnabled() and 2 or 1)
+                    debugControl:setDisabled(not TerraLogicSettings:isLocalAdmin())
+                end
                 local mapControl = TerraLogicSettings.mapUpdateOption
                 if mapControl ~= nil then
                     mapControl:setState(TerraLogicSettings.mapUpdatePreset == "fast" and 2 or 1)
@@ -851,7 +929,7 @@ function TerraLogicSettings:tryInstallMenu()
                 if hudControl ~= nil then
                     local mode = TerraLogicSettings.speedHudMode
                     hudControl:setState(mode == "always" and 2
-                        or (mode == "off" and 3 or 1))
+                        or (mode == "warnings" and 3 or (mode == "off" and 4 or 1)))
                     hudControl:setDisabled(false)
                 end
                 local warningDurationControl =
@@ -905,8 +983,10 @@ end
 
 function TerraLogicSettingsEvent.new(
         draftModel, physicalDropoutsEnabled, visibleStoneDamageModel,
-        soilDevelopmentSpeed, moistureYieldEnabled, mapUpdatePreset)
+        soilDevelopmentSpeed, moistureYieldEnabled, mapUpdatePreset, debugEnabled)
     local self = TerraLogicSettingsEvent.emptyNew()
+    if debugEnabled == nil then debugEnabled = TerraLogicSettings:getDebugEnabled() end
+    self.debugEnabled = debugEnabled == true
     self.mapUpdatePreset = (mapUpdatePreset or TerraLogicSettings.mapUpdatePreset)
         == "fast" and "fast" or "gentle"
     self.draftModel = draftModel == "mr" and "mr" or "terraLogic"
@@ -933,6 +1013,7 @@ function TerraLogicSettingsEvent:readStream(streamId, connection)
             streamReadUIntN(streamId, 2) + 1)
     self.moistureYieldEnabled = streamReadBool(streamId)
     self.mapUpdatePreset = streamReadBool(streamId) and "fast" or "gentle"
+    self.debugEnabled = streamReadBool(streamId)
     self:run(connection)
 end
 
@@ -946,10 +1027,12 @@ function TerraLogicSettingsEvent:writeStream(streamId, connection)
             self.soilDevelopmentSpeed) - 1, 2)
     streamWriteBool(streamId, self.moistureYieldEnabled)
     streamWriteBool(streamId, self.mapUpdatePreset == "fast")
+    streamWriteBool(streamId, self.debugEnabled)
 end
 
 function TerraLogicSettingsEvent:run(connection)
     if connection:getIsServer() then
+        TerraLogicSettings:applyDebugEnabled(self.debugEnabled)
         TerraLogicSettings:applyMapUpdatePreset(self.mapUpdatePreset)
         TerraLogicSettings:applyDraftModel(self.draftModel)
         TerraLogicSettings:applyPhysicalDropoutsEnabled(
@@ -966,6 +1049,7 @@ function TerraLogicSettingsEvent:run(connection)
     local userId = userManager ~= nil and userManager:getUserIdByConnection(connection) or nil
     local user = userId ~= nil and userManager:getUserByUserId(userId) or nil
     if user == nil or not user:getIsMasterUser() then return end
+    TerraLogicSettings:applyDebugEnabled(self.debugEnabled)
     TerraLogicSettings:applyMapUpdatePreset(self.mapUpdatePreset)
     TerraLogicSettings:applyDraftModel(self.draftModel)
     TerraLogicSettings:applyPhysicalDropoutsEnabled(

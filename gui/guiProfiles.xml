@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="utf-8" standalone="no" ?>
+<?xml version='1.0' encoding='utf-8'?>
 <GUIProfiles>
-    <!-- Same proven ESC-menu root/layout pattern used by Yield Tracker. -->
     <Profile name="terraLogicAnalysisMainContainer" extends="fs25_menuContainer" with="anchorMiddleLeft">
         <position value="134px -0.03" />
     </Profile>
@@ -8,8 +7,6 @@
         <size value="50px 50px" />
         <imageSliceId value="noSlice" />
     </Profile>
-    <!-- Keep the selected caption tied to the game's configurable accent
-         preset instead of the Vanilla tab profile's fixed dark caption. -->
     <Profile name="terraLogicAnalysisSubCategoryTab" extends="fs25_subCategorySelectorTabbedTab">
         <textSelectedColor value="$preset_fs25_colorMainHighlight" />
     </Profile>
@@ -75,11 +72,306 @@
         <textSize value="14px" />
         <textColor value="$preset_colorWhite_50" />
     </Profile>
+    <Profile name="terraLogicAnalysisFieldScope" extends="terraLogicAnalysisNote">
+        <textMaxNumLines value="1" />
+        <textLayoutMode value="truncate" />
+    </Profile>
+    <Profile name="terraLogicAnalysisFieldSelection" extends="terraLogicAnalysisFieldScope">
+        <textAlignment value="center" />
+        <textVerticalAlignment value="middle" />
+        <textHighlightedColor value="$preset_fs25_colorMainHighlight" />
+        <textFocusedColor value="$preset_fs25_colorMainHighlight" />
+        <imageColor value="0 0 0 0" />
+        <handleFocus value="true" />
+    </Profile>
+    <Profile name="terraLogicAnalysisSelectionNote" extends="terraLogicAnalysisFieldScope">
+        <textVerticalAlignment value="middle" />
+    </Profile>
+    <Profile name="terraLogicAnalysisFieldListRow" extends="baseReference" with="anchorTopStretchingX alternating">
+        <height value="38px" />
+        <imageColor value="$preset_fs25_colorGrey" />
+        <imageSelectedColor value="$preset_fs25_colorMainHighlight" />
+        <alternateBackgroundColor value="$preset_fs25_colorGreyDark_50" />
+    </Profile>
+    <Profile name="terraLogicAnalysisFieldListText" extends="baseReference" with="anchorTopLeft pivotTopLeft">
+        <textSize value="16px" />
+        <textColor value="$preset_fs25_colorMainLight" />
+        <textSelectedColor value="$preset_fs25_colorMainDark" />
+        <textVerticalAlignment value="middle" />
+        <textMaxNumLines value="1" />
+        <textLayoutMode value="truncate" />
+    </Profile>
     <Profile name="terraLogicAnalysisHero" extends="fs25_textDefault" with="anchorTopLeft pivotTopLeft">
         <textSize value="34px" />
         <textBold value="true" />
         <textColor value="$preset_colorWhite" />
         <textAlignment value="right" />
         <textVerticalAlignment value="middle" />
+    </Profile>
+    <Profile name="terraLogicAnalysisCropValue" extends="terraLogicAnalysisValue">
+        <textSize value="17px" />
+        <textVerticalAlignment value="middle" />
+        <textMaxNumLines value="2" />
+        <textLayoutMode value="overflow" />
+    </Profile>
+    <Profile name="terraLogicAnalysisCoverage" extends="terraLogicAnalysisNote">
+        <textSize value="13px" />
+        <textColor value="0.65 0.65 0.65 1" />
+        <textMaxNumLines value="2" />
+    </Profile>
+    <Profile name="terraLogicAnalysisRating" extends="terraLogicAnalysisValue">
+        <textSize value="17px" />
+        <textAlignment value="right" />
+    </Profile>
+    <Profile name="terraLogicAnalysisPlainValue" extends="terraLogicAnalysisValue">
+        <textBold value="false" />
+    </Profile>
+    <Profile name="terraLogicAnalysisQuietHelp" extends="terraLogicAnalysisHelpButton">
+        <textColor value="0.65 0.65 0.65 1" />
+        <textBold value="false" />
+    </Profile>
+    <Profile name="terraLogicAnalysisPrimaryAction" extends="terraLogicAnalysisBody">
+        <textBold value="true" />
+    </Profile>
+    <Profile name="terraLogicAnalysisSecondaryAction" extends="terraLogicAnalysisBody">
+        <textColor value="0.75 0.75 0.75 1" />
+    </Profile>
+    <Profile name="terraLogicAnalysisDetailLink" extends="terraLogicAnalysisFieldSelection">
+        <textSize value="16px" />
+        <textAlignment value="left" />
+        <textColor value="$preset_fs25_colorMainHighlight" />
+    </Profile>
+    <Profile name="terraLogicAnalysisStripe" extends="baseReference" with="anchorTopLeft pivotTopLeft">
+        <imageSliceId value="noSlice" />
+    </Profile>
+    <Profile name="terraLogicAnalysisAdviceRow" extends="terraLogicAnalysisFieldListRow">
+        <height value="76px" />
+    </Profile>
+    <Profile name="terraLogicAnalysisTableLabel" extends="terraLogicAnalysisLabel">
+        <textSize value="16px" />
+        <textMaxNumLines value="2" />
+        <textLayoutMode value="overflow" />
+    </Profile>
+    <Profile name="terraLogicAnalysisFieldArrow" extends="terraLogicAnalysisHelpButton">
+        <textDisabledColor value="0.40 0.40 0.40 1" />
+    </Profile>
+    <Profile name="terraLogicAnalysisEmptyValue" extends="terraLogicAnalysisPlainValue">
+        <textColor value="0.65 0.65 0.65 1" />
+    </Profile>
+    <Profile name="terraLogicAnalysisFieldPicker" extends="terraLogicAnalysisFieldSelection">
+        <imageSliceId value="noSlice" />
+        <imageColor value="0.055 0.055 0.055 0.25" />
+        <imageFocusedColor value="0.12 0.12 0.12 0.60" />
+        <imageHighlightedColor value="0.12 0.12 0.12 0.60" />
+    </Profile>
+    <Profile name="terraLogicAnalysisAdviceSection" extends="terraLogicAnalysisFieldListRow">
+        <height value="180px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionText" extends="terraLogicAnalysisFieldListText">
+        <textSize value="16px" />
+        <textColor value="$preset_fs25_colorMainLight" />
+        <textSelectedColor value="$preset_fs25_colorMainLight" />
+        <textHighlightedColor value="$preset_fs25_colorMainLight" />
+        <textFocusedColor value="$preset_fs25_colorMainLight" />
+        <textVerticalAlignment value="top" />
+        <textAlignment value="left" />
+        <textMaxNumLines value="30" />
+        <textLayoutMode value="overflow" />
+    </Profile>
+    <Profile name="terraLogicActionTitle" extends="terraLogicActionText">
+        <textBold value="true" />
+    </Profile>
+    <Profile name="terraLogicActionRow42" extends="terraLogicAnalysisFieldListRow">
+        <height value="42px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow62" extends="terraLogicAnalysisFieldListRow">
+        <height value="62px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow82" extends="terraLogicAnalysisFieldListRow">
+        <height value="82px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow102" extends="terraLogicAnalysisFieldListRow">
+        <height value="102px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow122" extends="terraLogicAnalysisFieldListRow">
+        <height value="122px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow142" extends="terraLogicAnalysisFieldListRow">
+        <height value="142px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow162" extends="terraLogicAnalysisFieldListRow">
+        <height value="162px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow182" extends="terraLogicAnalysisFieldListRow">
+        <height value="182px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow202" extends="terraLogicAnalysisFieldListRow">
+        <height value="202px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow222" extends="terraLogicAnalysisFieldListRow">
+        <height value="222px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow242" extends="terraLogicAnalysisFieldListRow">
+        <height value="242px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow262" extends="terraLogicAnalysisFieldListRow">
+        <height value="262px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow282" extends="terraLogicAnalysisFieldListRow">
+        <height value="282px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow302" extends="terraLogicAnalysisFieldListRow">
+        <height value="302px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow322" extends="terraLogicAnalysisFieldListRow">
+        <height value="322px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow342" extends="terraLogicAnalysisFieldListRow">
+        <height value="342px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow362" extends="terraLogicAnalysisFieldListRow">
+        <height value="362px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow382" extends="terraLogicAnalysisFieldListRow">
+        <height value="382px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow402" extends="terraLogicAnalysisFieldListRow">
+        <height value="402px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow422" extends="terraLogicAnalysisFieldListRow">
+        <height value="422px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicActionRow442" extends="terraLogicAnalysisFieldListRow">
+        <height value="442px" />
+        <imageColor value="0 0 0 0" />
+        <imageSelectedColor value="0 0 0 0" />
+        <imageHighlightedColor value="0 0 0 0" />
+        <imageFocusedColor value="0 0 0 0" />
+        <alternateBackgroundColor value="0 0 0 0" />
+    </Profile>
+    <Profile name="terraLogicAnalysisTabArrowLeft" extends="baseReference" with="anchorMiddleLeft pivotMiddleLeft">
+        <size value="48px 48px" />
+        <imageSliceId value="noSlice" />
+        <imageColor value="$preset_fs25_colorMainHighlight" />
+        <imageFocusedColor value="$preset_fs25_colorMainHighlight" />
+        <imageHighlightedColor value="$preset_fs25_colorMainLight" />
+        <imagePressedColor value="$preset_fs25_colorMainHighlight" />
+        <imageDisabledColor value="$preset_fs25_colorGrey" />
+        <text value="" />
+    </Profile>
+    <Profile name="terraLogicAnalysisTabArrowRight" extends="baseReference" with="anchorMiddleRight pivotMiddleRight">
+        <size value="48px 48px" />
+        <imageSliceId value="noSlice" />
+        <imageColor value="$preset_fs25_colorMainHighlight" />
+        <imageFocusedColor value="$preset_fs25_colorMainHighlight" />
+        <imageHighlightedColor value="$preset_fs25_colorMainLight" />
+        <imagePressedColor value="$preset_fs25_colorMainHighlight" />
+        <imageDisabledColor value="$preset_fs25_colorGrey" />
+        <text value="" />
     </Profile>
 </GUIProfiles>
