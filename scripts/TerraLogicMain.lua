@@ -394,6 +394,7 @@ function TerraLogicMain:update(dt)
         TerraLogicAuditManager:update(dt, self)
     end
     self:updatePanelLogger(dt)
+    self:updateSoilDisplayBindings()
     TerraLogicSettings:tryInstallMenu()
 end
 
@@ -524,30 +525,84 @@ end
 
 function TerraLogicMain.registerVehicleSoilDisplayActionEvent(
         vehicle, isActiveForInput, isActiveForInputIgnoreSelection)
-    if vehicle == nil or vehicle.addActionEvent == nil
-        or vehicle.getIsEntered == nil or not vehicle:getIsEntered()
-        or vehicle.getIsActiveForInput == nil
-        or not vehicle:getIsActiveForInput(true, true) then return end
-    local spec = vehicle.spec_enterable
-    if spec == nil or spec.actionEvents == nil then return end
+    -- Enterable is still inside the engine's registration transaction here.
+    -- Queue our own bindings; do not nest a registration context or request
+    -- a full vehicle rebuild while a third-party HUD owns input.
+    local player = g_localPlayer
+    local controlled = player ~= nil and player.getCurrentVehicle ~= nil
+        and player:getCurrentVehicle() or nil
+    if vehicle == nil or vehicle ~= controlled then return end
+    TerraLogicMain.soilDisplayBindingsPending = true
+    TerraLogicLogging.debug(
+        "[FS25_TerraLogic] Soil bindings queued (active=%s ignoreSelection=%s)",
+        tostring(isActiveForInput), tostring(isActiveForInputIgnoreSelection))
+end
+
+function TerraLogicMain:clearVehicleSoilDisplayBindings()
+    if g_inputBinding ~= nil then
+        for _, eventId in ipairs(self.soilDisplayVehicleEventIds or {}) do
+            g_inputBinding:removeActionEvent(eventId)
+        end
+    end
+    self.soilDisplayVehicleEventIds = nil
+end
+
+function TerraLogicMain:updateSoilDisplayBindings()
+    if g_inputBinding == nil or InputAction == nil or Vehicle == nil then return end
+    local player = g_localPlayer
+    local controlled = player ~= nil and player.getCurrentVehicle ~= nil
+        and player:getCurrentVehicle() or nil
+    local context = g_inputBinding:getContextName()
+    local changedVehicle = controlled ~= self.soilDisplayBindingVehicle
+    local returnedToVehicle = context == Vehicle.INPUT_CONTEXT_NAME
+        and self.soilDisplayBindingContext ~= context
+    if changedVehicle then
+        self:clearVehicleSoilDisplayBindings()
+        self.soilDisplayBindingVehicle = controlled
+        self.soilDisplayBindingsPending = controlled ~= nil
+    end
+    if returnedToVehicle and controlled ~= nil then
+        self.soilDisplayBindingsPending = true
+    end
+    if changedVehicle or context ~= self.soilDisplayBindingContext then
+        TerraLogicLogging.debug(
+            "[FS25_TerraLogic] Soil binding context: %s vehicle=%s pending=%s",
+            tostring(context), tostring(controlled),
+            tostring(self.soilDisplayBindingsPending == true))
+    end
+    self.soilDisplayBindingContext = context
+    if controlled == nil or not self.soilDisplayBindingsPending
+        or context ~= Vehicle.INPUT_CONTEXT_NAME then return end
+    if controlled.getIsEntered == nil or not controlled:getIsEntered() then return end
+    if g_gui ~= nil and g_gui.getIsGuiVisible ~= nil
+        and g_gui:getIsGuiVisible() then return end
+
+    -- Only replace our seven bindings, once per rebuild/context return.
+    -- Never switch input contexts, remove foreign events or touch Enterable's
+    -- actionEvents table. No timer competes with QuickSelector's entry timer.
+    g_inputBinding:beginActionEventsModification(Vehicle.INPUT_CONTEXT_NAME)
+    self:clearVehicleSoilDisplayBindings()
+    self.soilDisplayVehicleEventIds = {}
     local registered = 0
     for _, definition in ipairs(SOIL_DISPLAY_ACTIONS) do
         local inputAction = InputAction[definition.name]
         if inputAction ~= nil then
-            local _, eventId = vehicle:addActionEvent(
-                spec.actionEvents, inputAction,
+            local _, eventId = g_inputBinding:registerActionEvent(
+                inputAction,
                 TerraLogicMain, definition.callback,
-                false, true, false, true, nil)
+                false, true, false, true, nil, true)
             if eventId ~= nil then
                 registered = registered + 1
+                table.insert(self.soilDisplayVehicleEventIds, eventId)
                 configureSoilDisplayActionEvent(eventId, definition)
             end
         end
     end
+    g_inputBinding:endActionEventsModification()
+    self.soilDisplayBindingsPending = false
     TerraLogicLogging.debug(
-        "[FS25_TerraLogic] Soil display actions registered in vehicle context: %d (active=%s ignoreSelection=%s)",
-        registered, tostring(isActiveForInput),
-        tostring(isActiveForInputIgnoreSelection))
+        "[FS25_TerraLogic] Soil bindings ready: %d/7 vehicle=%s context=%s",
+        registered, tostring(controlled), tostring(g_inputBinding:getContextName()))
 end
 
 local function getIsLocalControlledImplement(implement)
@@ -677,6 +732,10 @@ function TerraLogicMain:deleteMap()
         end
     end
     self.soilDisplayActionEventIds = nil
+    self:clearVehicleSoilDisplayBindings()
+    self.soilDisplayBindingVehicle = nil
+    self.soilDisplayBindingContext = nil
+    self.soilDisplayBindingsPending = nil
     self:deleteSpeedHudOverlays()
     self:clearQualityFieldInfoRows()
     if self.qualityInfoBox ~= nil and g_currentMission ~= nil
