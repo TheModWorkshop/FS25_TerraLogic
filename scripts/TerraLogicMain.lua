@@ -394,7 +394,6 @@ function TerraLogicMain:update(dt)
         TerraLogicAuditManager:update(dt, self)
     end
     self:updatePanelLogger(dt)
-    self:updateSoilDisplayActionContext()
     TerraLogicSettings:tryInstallMenu()
 end
 
@@ -413,32 +412,6 @@ local function getLocalControlledVehicle()
         end
     end
     return nil, "foot"
-end
-
--- TAB changes the controlled vehicle before every attached object has
--- finished rebuilding the vehicle input context. Request one deferred rebuild
--- from the settled root vehicle; subsequent attachment-driven rebuilds still
--- run through the ordinary Enterable hook below.
-function TerraLogicMain:updateSoilDisplayActionContext()
-    local controlledVehicle = select(1, getLocalControlledVehicle())
-    local now = g_currentMission ~= nil and g_currentMission.time or 0
-    if controlledVehicle ~= self.soilDisplayControlledVehicle then
-        self.soilDisplayControlledVehicle = controlledVehicle
-        self.soilDisplayActionRefreshVehicle = controlledVehicle
-        self.soilDisplayActionRefreshTime = now + 100
-    end
-    local refreshVehicle = self.soilDisplayActionRefreshVehicle
-    if refreshVehicle ~= nil
-        and now >= (self.soilDisplayActionRefreshTime or 0) then
-        self.soilDisplayActionRefreshVehicle = nil
-        if controlledVehicle == refreshVehicle
-            and refreshVehicle.requestActionEventUpdate ~= nil then
-            refreshVehicle:requestActionEventUpdate()
-            TerraLogicLogging.debug(
-                "[FS25_TerraLogic] Soil display input context refreshed after vehicle switch: %s",
-                tostring(refreshVehicle))
-        end
-    end
 end
 
 function TerraLogicMain:setSoilDisplayMode(mode)
@@ -704,9 +677,6 @@ function TerraLogicMain:deleteMap()
         end
     end
     self.soilDisplayActionEventIds = nil
-    self.soilDisplayControlledVehicle = nil
-    self.soilDisplayActionRefreshVehicle = nil
-    self.soilDisplayActionRefreshTime = nil
     self:deleteSpeedHudOverlays()
     self:clearQualityFieldInfoRows()
     if self.qualityInfoBox ~= nil and g_currentMission ~= nil
