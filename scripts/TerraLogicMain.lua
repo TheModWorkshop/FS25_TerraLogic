@@ -493,6 +493,11 @@ end
 
 function TerraLogicMain.registerSoilDisplayActionEvent()
     if g_inputBinding == nil or InputAction == nil then return end
+    -- Replace only our own player events; the engine may already have removed
+    -- them while rebuilding input after entering or leaving a vehicle.
+    for _, eventId in ipairs(TerraLogicMain.soilDisplayActionEventIds or {}) do
+        g_inputBinding:removeActionEvent(eventId)
+    end
     TerraLogicMain.soilDisplayActionEventIds = {}
     for _, definition in ipairs(SOIL_DISPLAY_ACTIONS) do
         local inputAction = InputAction[definition.name]
@@ -556,13 +561,21 @@ function TerraLogicMain:updateSoilDisplayBindings()
     local changedVehicle = controlled ~= self.soilDisplayBindingVehicle
     local returnedToVehicle = context == Vehicle.INPUT_CONTEXT_NAME
         and self.soilDisplayBindingContext ~= context
+    local playerContext = PlayerInputComponent ~= nil
+        and PlayerInputComponent.INPUT_CONTEXT_NAME or nil
+    local returnedToPlayer = playerContext ~= nil and context == playerContext
+        and self.soilDisplayBindingContext ~= context
     if changedVehicle then
         self:clearVehicleSoilDisplayBindings()
         self.soilDisplayBindingVehicle = controlled
         self.soilDisplayBindingsPending = controlled ~= nil
+        self.soilDisplayPlayerBindingsPending = controlled == nil
     end
     if returnedToVehicle and controlled ~= nil then
         self.soilDisplayBindingsPending = true
+    end
+    if returnedToPlayer and controlled == nil then
+        self.soilDisplayPlayerBindingsPending = true
     end
     if changedVehicle or context ~= self.soilDisplayBindingContext then
         TerraLogicLogging.debug(
@@ -571,6 +584,19 @@ function TerraLogicMain:updateSoilDisplayBindings()
             tostring(self.soilDisplayBindingsPending == true))
     end
     self.soilDisplayBindingContext = context
+    if controlled == nil then
+        -- Wait for normal on-foot input. In particular, do not register into
+        -- a QuickSelector/tutorial/menu context or force the player context.
+        if player == nil or playerContext == nil or context ~= playerContext
+            or not self.soilDisplayPlayerBindingsPending then return end
+        if g_gui ~= nil and g_gui.getIsGuiVisible ~= nil
+            and g_gui:getIsGuiVisible() then return end
+        g_inputBinding:beginActionEventsModification(playerContext)
+        self.registerSoilDisplayActionEvent()
+        g_inputBinding:endActionEventsModification()
+        self.soilDisplayPlayerBindingsPending = false
+        return
+    end
     if controlled == nil or not self.soilDisplayBindingsPending
         or context ~= Vehicle.INPUT_CONTEXT_NAME then return end
     if controlled.getIsEntered == nil or not controlled:getIsEntered() then return end
@@ -736,6 +762,7 @@ function TerraLogicMain:deleteMap()
     self.soilDisplayBindingVehicle = nil
     self.soilDisplayBindingContext = nil
     self.soilDisplayBindingsPending = nil
+    self.soilDisplayPlayerBindingsPending = nil
     self:deleteSpeedHudOverlays()
     self:clearQualityFieldInfoRows()
     if self.qualityInfoBox ~= nil and g_currentMission ~= nil
