@@ -1322,6 +1322,7 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
     local representativeSurfaceImpact, representativeDeepImpact = nil, nil
     local representativeSurfaceScore, representativeDeepScore = -1, -1
     local trafficWarningLevel = 0
+    local trafficStatus = TerraLogicTrafficWarnings:newStatus()
     for _, impact in pairs(impacts) do
         impact.workingImplementSurfaceSuppressed =
             workingImplementSurfaceSuppressed
@@ -1366,6 +1367,7 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
         local changed, detail = TerraLogicSoilManager:applyWheelCompactionCell(
             impact.ix, impact.iz, impact)
         if detail ~= nil then
+            TerraLogicTrafficWarnings:accumulate(trafficStatus, detail)
             if trafficWarningLevel < 3 then
                 trafficWarningLevel = math.max(trafficWarningLevel,
                     TerraLogicTrafficWarnings:getImpactLevel(detail))
@@ -1420,7 +1422,7 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
     end
     -- Do not reuse the diagnostic fallback to older representative impacts:
     -- warnings must describe this pass, including a fresh zero on leaving soil.
-    TerraLogicTrafficWarnings:record(vehicle, trafficWarningLevel, now)
+    TerraLogicTrafficWarnings:record(vehicle, trafficWarningLevel, now, trafficStatus)
     vehicleState.totalChangedCells = (vehicleState.totalChangedCells or 0)
         + changedCells
     vehicleState.totalImpactCells = (vehicleState.totalImpactCells or 0)

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="114">
     <author>The Mod Workshop</author>
-    <version>1.2.0.4</version>
+    <version>1.2.0.5</version>
 
     <iconFilename>icon_terraLogic.dds</iconFilename>
 
@@ -288,7 +288,9 @@ https://github.com/Saibotsu/FS25_TerraLogic
         <sourceFile filename="scripts\TerraLogicFieldCatalog.lua" />
         <sourceFile filename="scripts\TerraLogicPFHarvestTrace.lua" />
         <sourceFile filename="scripts\TerraLogicPFYieldBridge.lua" />
-        <sourceFile filename="scripts\TerraLogicWarningEpisodes.lua" />
+        <sourceFile filename="scripts\TerraLogicHudEpisodes.lua" />
+        <sourceFile filename="scripts\TerraLogicSoilHud.lua" />
+        <sourceFile filename="scripts\TerraLogicHudVisibility.lua" />
         <sourceFile filename="scripts\TerraLogicMain.lua" />
         <sourceFile filename="scripts\TerraLogicAuditManager.lua" />
     </extraSourceFiles>

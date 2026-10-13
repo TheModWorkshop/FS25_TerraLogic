@@ -1,8 +1,8 @@
 -- Read-only warning summaries from the existing authoritative wheel pass.
 -- No extra wheel-physics queries, soil probes or persistent savegame data.
 TerraLogicTrafficWarnings = {}
-TerraLogicTrafficWarnings.INTERVAL_MS = 1000
-TerraLogicTrafficWarnings.SAMPLE_MAX_AGE_MS = 900
+TerraLogicTrafficWarnings.INTERVAL_MS = 250
+TerraLogicTrafficWarnings.SAMPLE_MAX_AGE_MS = 1500
 TerraLogicTrafficWarnings.REPLY_MAX_AGE_MS = 2500
 
 local function timeNow()
@@ -21,47 +21,99 @@ function TerraLogicTrafficWarnings:load()
     self.requestTimes = setmetatable({}, {__mode="k"})
     self.vehicle, self.reply, self.pending = nil, nil, {}
     self.serial, self.appliedSerial, self.nextRequest = 0, 0, 0
+    self.display = setmetatable({}, {__mode="k"})
 end
 
 function TerraLogicTrafficWarnings:delete()
     self:load()
 end
 
--- A risk warning needs actual new compaction, not simply a heavy vehicle.
--- Evaluate each layer separately: pressure drives surface damage, axle load
--- drives deep damage. Sensitivities already include texture, moisture,
--- resilience and that layer's frost protection, exactly as used by the map.
-function TerraLogicTrafficWarnings:getImpactLevel(detail)
-    local delta = detail.delta or {}
-    local surfaceRisk = (delta.surfaceCompaction or 0) > 0.0000001
-        and math.min((detail.pressureKPa or 0) / 300, 1)
-            * (detail.surfaceTrafficSensitivity or 0) or 0
-    local deepRisk = (delta.deepCompaction or 0) > 0.0000001
-        and math.min(((detail.maxAxleLoadT or 0) / 11)^2, 1)
-            * (detail.deepTrafficSensitivity or 0) or 0
-    local wet = (surfaceRisk >= 0.35 and (detail.trafficSurfaceMultiplier or 1) >= 1.08)
-        or (deepRisk >= 0.35 and (detail.trafficDeepMultiplier or 1) >= 1.08)
-    if math.max(surfaceRisk, deepRisk) >= 0.75 then return wet and 3 or 2 end
-    if wet then return 1 end
-    return 0
+-- Read the resulting state of the contacted cells after the authoritative update.
+-- Sampling and warnings do not change the authoritative soil simulation.
+function TerraLogicTrafficWarnings:newStatus()
+    return {surface=0,deep=0,surfaceKnown=false,deepKnown=false,wet=false,pressure=false,axle=false}
 end
 
-function TerraLogicTrafficWarnings:record(vehicle, level, now)
+-- Post-pass compaction, not targets, deltas or probabilities. Boundaries are
+-- rounded from roughly 1/4/8% of the reference layer yield-loss curves.
+TerraLogicTrafficWarnings.COMPACTION_THRESHOLDS = {
+    surface={0.40,0.57,0.75}, deep={0.20,0.35,0.50}
+}
+function TerraLogicTrafficWarnings:getCompactionLevel(layer,value)
+    local t=self.COMPACTION_THRESHOLDS[layer]
+    return value>=t[3] and 4 or value>=t[2] and 3 or value>=t[1] and 2 or 1
+end
+function TerraLogicTrafficWarnings:accumulate(status, detail)
+    local sc,dc=detail.surfaceCoverage or 0,detail.deepCoverage or 0
+    -- SoilManager supplies after even when the pass does not increase compaction.
+    -- Never substitute a target or a zero for missing measurements.
+    local after=detail.after or {}
+    local sr=tonumber(after.surfaceCompaction)
+    local dr=tonumber(after.deepCompaction)
+    if sr==nil then sc=0 else sr=math.min(math.max(sr,0),1) end
+    if dr==nil then dc=0 else dr=math.min(math.max(dr,0),1) end
+    if (detail.surfaceAppliedStrength or 0)<=0 then sc=0 end
+    if (detail.deepAppliedStrength or 0)<=0 then dc=0 end
+    if sc>0 then status.surfaceKnown=true;status.surface=math.max(status.surface,sr) end
+    if dc>0 then status.deepKnown=true;status.deep=math.max(status.deep,dr) end
+    local highSurface=sc>0 and self:getCompactionLevel('surface',sr)>=3
+    local highDeep=dc>0 and self:getCompactionLevel('deep',dr)>=3
+    status.pressure=status.pressure or highSurface
+    status.axle=status.axle or highDeep
+    status.wet=status.wet or (highSurface and (detail.trafficSurfaceMultiplier or 1)>=1.08)
+        or (highDeep and (detail.trafficDeepMultiplier or 1)>=1.08)
+end
+function TerraLogicTrafficWarnings:getImpactLevel(detail)
+    local s=self:newStatus();self:accumulate(s,detail)
+    return (s.pressure or s.axle) and (s.wet and 3 or 2) or (s.wet and 1 or 0)
+end
+
+function TerraLogicTrafficWarnings:record(vehicle, level, now, status)
     if self.samples == nil then return end
     local sample = self.samples[vehicle] or {}
+    status=status or self:newStatus()
+    local previous=sample.status or self:newStatus()
+    -- Deep cells are sampled less often than surface contacts. Keep only a
+    -- short, timestamped sample between cell crossings; never retain it forever.
+    for _,layer in ipairs({'surface','deep'}) do
+        local stamp=layer..'Time'
+        if status[layer..'Known'] then sample[stamp]=now
+        elseif sample[stamp] and now-sample[stamp]<=self.SAMPLE_MAX_AGE_MS then
+            status[layer..'Known']=previous[layer..'Known'];status[layer]=previous[layer]
+        end
+    end
+    for _,cause in ipairs({'wet','pressure','axle'}) do
+        local stamp=cause..'Time'
+        if status[cause] then sample[stamp]=now
+        elseif sample[stamp] and now-sample[stamp]<=self.SAMPLE_MAX_AGE_MS then status[cause]=true end
+    end
+    level=(status.pressure or status.axle) and (status.wet and 3 or 2) or (status.wet and 1 or 0)
     sample.time, sample.level = now, level
+    sample.status=status
     self.samples[vehicle] = sample
 end
 
 function TerraLogicTrafficWarnings:getServerStatus(vehicle, now)
     local level, source, visited, count = 0, nil, {}, 0
+    local combined=self:newStatus()
     local function visit(object)
         if object == nil or visited[object] or count >= 64 then return end
         visited[object], count = true, count + 1
         local sample = (self.samples or {})[object]
-        if sample ~= nil and now - sample.time <= self.SAMPLE_MAX_AGE_MS
-            and sample.level > level then
-            level, source = sample.level, object
+        if sample ~= nil and now - sample.time <= self.SAMPLE_MAX_AGE_MS then
+            if sample.level>level then level,source=sample.level,object end
+            local s=sample.status or self:newStatus()
+            for _,layer in ipairs({'surface','deep'}) do
+                if s[layer..'Known'] then
+                    combined[layer..'Known']=true
+                    if combined[layer..'Source']==nil or s[layer]>combined[layer] then
+                        combined[layer]=s[layer];combined[layer..'Source']=object
+                    end
+                end
+            end
+            for _,cause in ipairs({'wet','pressure','axle'}) do
+                if s[cause] then combined[cause]=true;combined[cause..'Source']=object end
+            end
         end
         if object.getChildVehicles ~= nil then
             for _, child in pairs(object:getChildVehicles() or {}) do visit(child) end
@@ -72,7 +124,7 @@ function TerraLogicTrafficWarnings:getServerStatus(vehicle, now)
         end
     end
     visit(rootOf(vehicle))
-    return level, source
+    return level, source, combined
 end
 
 function TerraLogicTrafficWarnings:getLevel(vehicle, now)
@@ -86,14 +138,49 @@ function TerraLogicTrafficWarnings:getLevel(vehicle, now)
     return reply.level, true
 end
 
-function TerraLogicTrafficWarnings:receive(vehicle, source, serial, level)
+function TerraLogicTrafficWarnings:receive(vehicle, source, serial, level, status)
     local pending = (self.pending or {})[serial]
     if pending == nil or vehicle ~= self.vehicle or pending.vehicle ~= vehicle
         or serial <= self.appliedSerial
         or timeNow() - pending.time > self.REPLY_MAX_AGE_MS then return end
     self.appliedSerial = serial
-    self.reply = {level=math.min(math.max(level, 0), 3), source=source, time=pending.time}
+    self.reply = {level=math.min(math.max(level, 0), 3), source=source, time=pending.time,status=status}
     self.pending[serial] = nil
+end
+
+function TerraLogicTrafficWarnings:getStatus(vehicle,now)
+    local reply=self.reply
+    if vehicle==nil or self.vehicle~=vehicle or not reply or now-reply.time>self.REPLY_MAX_AGE_MS
+        or math.abs(vehicle:getLastSpeed(true) or 0)<0.25 then return self:newStatus() end
+    local s=reply.status or self:newStatus()
+    local result=self:newStatus()
+    for _,layer in ipairs({'surface','deep'}) do
+        if s[layer..'Known'] and s[layer..'Source'] and rootOf(s[layer..'Source'])==rootOf(vehicle) then
+            result[layer..'Known']=true;result[layer]=s[layer]
+        end
+    end
+    for _,cause in ipairs({'wet','pressure','axle'}) do
+        result[cause]=s[cause]==true and s[cause..'Source']~=nil
+            and rootOf(s[cause..'Source'])==rootOf(vehicle)
+    end
+    return result
+end
+
+-- Discrete labels with short rise/longer release smoothing, never green for no data.
+function TerraLogicTrafficWarnings:getDisplayLevels(vehicle,now)
+    local s=self:getStatus(vehicle,now)
+    if not vehicle then return 0,0 end
+    local state=self.display[vehicle] or {};self.display[vehicle]=state
+    for _,layer in ipairs({'surface','deep'}) do
+        local target=not s[layer..'Known'] and 0 or self:getCompactionLevel(layer,s[layer])
+        local old=state[layer] or {value=0};state[layer]=old
+        if target==0 then old.value=0;old.target=nil
+        elseif target~=old.value then
+            if old.target~=target then old.target=target;old.since=now end
+            if now-old.since>=(target>old.value and 500 or 2000) then old.value=target end
+        else old.target=nil end
+    end
+    return state.surface.value,state.deep.value
 end
 
 function TerraLogicTrafficWarnings:update(dt)
@@ -114,8 +201,8 @@ function TerraLogicTrafficWarnings:update(dt)
     if now < self.nextRequest then return end
     self.nextRequest = now + self.INTERVAL_MS
     if g_server ~= nil then
-        local level, source = self:getServerStatus(vehicle, now)
-        self.reply = {level=level, source=source, time=now}
+        local level, source, status = self:getServerStatus(vehicle, now)
+        self.reply = {level=level, source=source, time=now,status=status}
     elseif g_client ~= nil then
         for serial, pending in pairs(self.pending) do
             if now - pending.time > self.REPLY_MAX_AGE_MS then self.pending[serial] = nil end
@@ -152,22 +239,23 @@ function TerraLogicTrafficWarningRequestEvent:run(connection)
     if connection:getIsServer() or g_server == nil or self.vehicle == nil then return end
     local manager, now = TerraLogicTrafficWarnings, timeNow()
     local last = manager.requestTimes[connection] or -1000
-    if now - last < 500 then return end
+    if now - last < 200 then return end
     manager.requestTimes[connection] = now
-    local level, source = 0, nil
+    local level, source, status = 0, nil, manager:newStatus()
     if TerraLogicMain.enabled ~= false then
-        level, source = manager:getServerStatus(self.vehicle, now)
+        level, source, status = manager:getServerStatus(self.vehicle, now)
     end
-    connection:sendEvent(TerraLogicTrafficWarningReplyEvent.new(self.vehicle, source, self.serial, level))
+    connection:sendEvent(TerraLogicTrafficWarningReplyEvent.new(self.vehicle, source, self.serial, level,status))
 end
 
 TerraLogicTrafficWarningReplyEvent = {}
 local Reply_mt = Class(TerraLogicTrafficWarningReplyEvent, Event)
 InitEventClass(TerraLogicTrafficWarningReplyEvent, "TerraLogicTrafficWarningReplyEvent")
 function TerraLogicTrafficWarningReplyEvent.emptyNew() return Event.new(Reply_mt) end
-function TerraLogicTrafficWarningReplyEvent.new(vehicle, source, serial, level)
+function TerraLogicTrafficWarningReplyEvent.new(vehicle, source, serial, level,status)
     local self = TerraLogicTrafficWarningReplyEvent.emptyNew()
     self.vehicle, self.source, self.serial, self.level = vehicle, source, serial, level
+    self.status=status or TerraLogicTrafficWarnings:newStatus()
     return self
 end
 function TerraLogicTrafficWarningReplyEvent:writeStream(streamId, connection)
@@ -175,14 +263,33 @@ function TerraLogicTrafficWarningReplyEvent:writeStream(streamId, connection)
     NetworkUtil.writeNodeObject(streamId, self.source)
     streamWriteInt32(streamId, self.serial)
     streamWriteUInt8(streamId, self.level)
+    for _,layer in ipairs({'surface','deep'}) do
+        streamWriteBool(streamId,self.status[layer..'Known'])
+        streamWriteFloat32(streamId,self.status[layer])
+        NetworkUtil.writeNodeObject(streamId,self.status[layer..'Source'])
+    end
+    for _,cause in ipairs({'wet','pressure','axle'}) do
+        streamWriteBool(streamId,self.status[cause])
+        NetworkUtil.writeNodeObject(streamId,self.status[cause..'Source'])
+    end
 end
 function TerraLogicTrafficWarningReplyEvent:readStream(streamId, connection)
     self.vehicle = NetworkUtil.readNodeObject(streamId)
     self.source = NetworkUtil.readNodeObject(streamId)
     self.serial, self.level = streamReadInt32(streamId), streamReadUInt8(streamId)
+    self.status=TerraLogicTrafficWarnings:newStatus()
+    for _,layer in ipairs({'surface','deep'}) do
+        self.status[layer..'Known']=streamReadBool(streamId)
+        self.status[layer]=streamReadFloat32(streamId)
+        self.status[layer..'Source']=NetworkUtil.readNodeObject(streamId)
+    end
+    for _,cause in ipairs({'wet','pressure','axle'}) do
+        self.status[cause]=streamReadBool(streamId)
+        self.status[cause..'Source']=NetworkUtil.readNodeObject(streamId)
+    end
     self:run(connection)
 end
 function TerraLogicTrafficWarningReplyEvent:run(connection)
     if not connection:getIsServer() then return end
-    TerraLogicTrafficWarnings:receive(self.vehicle, self.source, self.serial, self.level)
+    TerraLogicTrafficWarnings:receive(self.vehicle, self.source, self.serial, self.level,self.status)
 end

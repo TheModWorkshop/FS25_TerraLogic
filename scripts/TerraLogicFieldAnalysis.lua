@@ -2270,11 +2270,11 @@ function TerraLogicFieldAnalysisFrame:updatePlannerContent()
     self:layoutPlannerNotes()
     local selectedImplement = attachedForClass or attached[1]
     local root = getControlledRootVehicle()
-    if self.planner_setupTable~=nil then self.planner_setupTable:setVisible(root~=nil and selectedImplement~=nil) end
-    if self.planner_setupEmptyHint~=nil then self.planner_setupEmptyHint:setVisible(root==nil or selectedImplement==nil) end
-    if root == nil or selectedImplement == nil then
+    if self.planner_setupTable~=nil then self.planner_setupTable:setVisible(root~=nil) end
+    if self.planner_setupEmptyHint~=nil then self.planner_setupEmptyHint:setVisible(root==nil) end
+    if root == nil then
         setText(self.planner_setupName, tr("terraLogic_fa_planner_ui_enterVehicle",
-            "Enter a vehicle and attach a supported implement for a setup analysis."))
+            "Enter a vehicle to view its weight, wheel loads and ground pressure."))
         for _, id in ipairs({"planner_tractorMass","planner_implementMass",
                 "planner_totalMass","planner_axleLoad","planner_groundPressure",
                 "planner_traffic"}) do setText(self[id], "-") end
@@ -2332,14 +2332,21 @@ function TerraLogicFieldAnalysisFrame:updatePlannerContent()
         or tr("terraLogic_fa_ui_riskHigh", "High")
     local attachmentCount = math.max(#train-1, 0)
     local setupName = objectName(root)
-    if selectedImplement ~= nil then
-        setupName = TerraLogicI18n.format("%s + %s", setupName,
-            objectName(selectedImplement))
+    local namedAttachment = selectedImplement
+    if namedAttachment == nil then
+        for _, object in ipairs(train) do
+            if object ~= root then namedAttachment = object; break end
+        end
     end
-    if attachmentCount > (selectedImplement ~= nil and 1 or 0) then
+    if namedAttachment ~= nil and namedAttachment ~= root then
+        setupName = TerraLogicI18n.format("%s + %s", setupName,
+            objectName(namedAttachment))
+    end
+    local namedCount = namedAttachment ~= nil and namedAttachment ~= root and 1 or 0
+    if attachmentCount > namedCount then
         setupName = setupName .. " " .. TerraLogicI18n.format(
             tr("terraLogic_fa_planner_ui_additionalAttachments", "(+%d more)"),
-            attachmentCount-(selectedImplement ~= nil and 1 or 0))
+            attachmentCount-namedCount)
     end
     if selectedImplement == nil then
         setupName = setupName .. "\n" .. tr(
@@ -2351,10 +2358,12 @@ function TerraLogicFieldAnalysisFrame:updatePlannerContent()
     setText(self.planner_tractorMass, TerraLogicI18n.format("%.1f t", rootPreview.massT or 0))
     setText(self.planner_implementMass, TerraLogicI18n.format("%.1f t", implementMass))
     setText(self.planner_totalMass, TerraLogicI18n.format("%.1f t", totalMass))
-    setText(self.planner_axleLoad, TerraLogicI18n.format("%.1f t", maxAxle),
-        1-axleRisk)
-    setText(self.planner_groundPressure, TerraLogicI18n.format("%.0f kPa", maxPressure),
-        1-pressureRisk)
+    -- Missing wheel measurements are not a measured zero or a low risk.
+    local axleText = maxAxle > 0 and TerraLogicI18n.format("%.1f t", maxAxle) or "-"
+    local pressureText = maxPressure > 0 and TerraLogicI18n.format("%.0f kPa", maxPressure) or "-"
+    local hasTraffic = hasSoil and maxAxle > 0 and maxPressure > 0
+    setText(self.planner_axleLoad, axleText, maxAxle > 0 and 1-axleRisk or nil)
+    setText(self.planner_groundPressure, pressureText, maxPressure > 0 and 1-pressureRisk or nil)
     local loadModel = selectedSpec.mechanicalLoadModel or "none"
     local warningLoadRatio = tonumber(selectedSpec.mechanicalWarningRatio)
         or math.huge
@@ -2362,14 +2371,14 @@ function TerraLogicFieldAnalysisFrame:updatePlannerContent()
     local predictedLoadRatio = loadModel ~= "none" and ratedSpeed > 0
         and math.max((selectedMechanic.draft or 1)
             * selectedSpeed/ratedSpeed, 0) or 0
-    setText(self.planner_traffic, trafficLabel, 1-trafficScore)
+    setText(self.planner_traffic, hasTraffic and trafficLabel or "-", hasTraffic and 1-trafficScore or nil)
     self.plannerSetupHelpValues = {
         vehicleMass=TerraLogicI18n.format("%.1f t", rootPreview.massT or 0),
         equipmentMass=TerraLogicI18n.format("%.1f t", implementMass),
         combinationMass=TerraLogicI18n.format("%.1f t", totalMass),
-        axleLoad=TerraLogicI18n.format("%.1f t", maxAxle),
-        groundPressure=TerraLogicI18n.format("%.0f kPa", maxPressure),
-        traffic=trafficLabel
+        axleLoad=axleText,
+        groundPressure=pressureText,
+        traffic=hasTraffic and trafficLabel or "-"
     }
     local advice = {}
     if not hasSoil then
@@ -2381,10 +2390,10 @@ function TerraLogicFieldAnalysisFrame:updatePlannerContent()
         advice[#advice+1] = tr("terraLogic_fa_planner_ui_mechanicalOverload",
             "The estimated mechanical load at the recommended speed is above the warning threshold. Reduce speed before the structural limit is exceeded.")
     end
-    if trafficScore >= 0.65 then
+    if hasTraffic and trafficScore >= 0.65 then
         advice[#advice+1] = tr("terraLogic_fa_planner_ui_trafficHigh",
             "Current axle load or ground contact pressure creates a high compaction risk. Reduce load, use suitable tires or wait for drier soil where practical.")
-    elseif trafficScore >= 0.30 then
+    elseif hasTraffic and trafficScore >= 0.30 then
         advice[#advice+1] = tr("terraLogic_fa_planner_ui_trafficElevated",
             "Traffic risk is elevated. Avoid overlap and unnecessary headland manoeuvres.")
     end
