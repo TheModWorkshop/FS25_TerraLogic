@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="114">
     <author>The Mod Workshop</author>
-    <version>1.2.0.5</version>
+    <version>1.2.1.0</version>
 
     <iconFilename>icon_terraLogic.dds</iconFilename>
 
@@ -18,7 +18,7 @@ Choose how you work
 
 Ploughs, cultivators, harrows, subsoilers, seeders and rollers have different effects on soil. Working depth and intensity determine how they loosen, crumble, level or consolidate the ground, and how strongly they disturb soil resilience and biological continuity. The resulting soil conditions influence the quality of subsequent operations, seed placement and crop yield. Choose your equipment and working sequence to suit the field’s condition.
 
-Compaction is calculated dynamically from vehicle and implement weight, changing loads, tire contact area and axle loads. Wide tires, duals and tracks distribute weight differently, giving your equipment configuration a practical role in protecting the soil. Tramlines have a physical role in TerraLogic’s soil simulation: concentrating repeated traffic on permanent lanes protects more of the surrounding soil from compaction and preserves better conditions for crop growth.
+Compaction is calculated dynamically from vehicle and implement weight, changing loads, tire contact area and axle loads. Wide tires, duals and tracks distribute weight differently, giving your equipment configuration a practical role in protecting the soil. The size of the loaded footprint also affects how much pressure reaches the subsoil: tracks can help spread the load, but heavy machinery still needs suitable ground conditions. Tramlines have a physical role in TerraLogic’s soil simulation: concentrating repeated traffic on permanent lanes protects more of the surrounding soil from compaction and preserves better conditions for crop growth.
 
 Direct drilling offers a different approach: save seedbed-preparation passes while preserving more biological continuity. Combined with varied crop rotations, cover crops and careful traffic management, it supports the gradual development of resilient soil. Its long-term performance depends on the balance between new compaction and natural recovery, making machinery choice and field management important parts of the transition.
 
@@ -26,7 +26,13 @@ Work with the conditions
 
 Soil moisture, temperature and frost affect how the ground responds to machinery, how much pulling power an operation requires and how effectively the soil recovers. Freeze–thaw cycles contribute to soil loosening, while moisture conditions during growth influence crop yield. Working conditions therefore matter both when choosing an operation and when deciding when to carry it out.
 
-Supported, manually driven implements are no longer restricted to their usual working-speed limit. Set your own pace and use the work HUD to monitor speed, work quality and mechanical load. Excessive speed can reduce soil-working effectiveness, leave missed areas and increase wear or damage. Stone impacts add further risk to soil-engaging equipment.
+Each field keeps its own water reserve in the topsoil and subsoil. Rain and melting snow supply water, which seeps down and drains away when there is a surplus. Soil type, the crop and its growth stage influence how quickly the field wets and dries. A growing crop shades the surface but also draws water through its roots; harvest and regrowth change that demand. Resilient soil lets excess water drain somewhat faster, while poor resilience slows it down. Soil water storage capacity stays unchanged.
+
+Both soil layers warm and cool continuously, with the deeper layer responding more slowly. Temperature changes and the loosening effect of freeze–thaw cycles take the selected number of days per month into account, so shorter seasons do not simply miss the winter and longer months do not provide unlimited frost recovery.
+
+Supported, manually driven implements are no longer restricted to their usual working-speed limit. Set your own pace and use the work HUD to monitor recommended speed and work quality. Two soil icons show how strongly the current vehicle combination can compact the topsoil and subsoil under the conditions beneath it. These remain available during transport and other tasks without a supported implement; unavailable work values are shown as a dash. Excessive speed can reduce soil-working effectiveness, leave missed areas and increase wear or damage. Stone impacts add further risk to soil-engaging equipment.
+
+Warnings draw attention to problems that need a response. Less severe ongoing warnings appear once until the problem has cleared for a while, while ongoing severe warnings stay visible until it is resolved. The HUD can appear dynamically, remain visible or show only warnings, and temporarily makes room for overlapping game messages such as attaching an implement.
 
 Good soil conditions and careful work can increase the yield calculated by the base game or Precision Farming by up to 10%. Compaction, poor growing conditions and low-quality fieldwork can reduce it. Your decisions have consequences both for the next harvest and for the soil’s development over successive seasons.
 
@@ -34,13 +40,19 @@ Understand your fields
 
 - Soil maps and local displays reveal the effects of machinery and management across each field.
 - Open the TerraLogic field analysis menu through the in-game ESC menu to view soil assessments, yield information, weather effects and recommendations. Question-mark buttons explain the displayed values and their practical meaning.
-- The equipment planner within this menu lets you compare operations and their expected effects before starting work.
+- The equipment planner within this menu lets you compare operations and their expected effects before starting work. Vehicle weight, axle loads and ground pressure are also available without a supported implement attached.
+- Moisture is shown in volume percent, with descriptions such as dry, normal, moist or wet. The question-mark tables explain the values for each soil type in the selected field area.
 - Contextual tutorials introduce the controls and mechanics as you play. Explore the tutorial library and in-game help for a deeper understanding of the simulation and how its systems work together.
 - Adjustable soil map refresh settings let you balance update speed against PC or server performance.
+- Grouped settings let you adjust compaction intensity and the amount of water supplied by precipitation to suit your preferred balance. Changing the precipitation effect does not change how often it rains.
 
 Compatibility
 
 TerraLogic supports singleplayer, multiplayer and player-created fields. Precision Farming is optional; when installed, its soil types influence the simulation. Integration is also provided for More Realistic.
+
+When Moisture System is installed, choose whether TerraLogic uses its own field water balance or follows Moisture System’s field moisture. In the latter mode, moisture is adapted to TerraLogic’s soil types and the subsoil continues to respond through seepage and drainage. Both modes respond to the weather produced by Moisture System’s selected weather profile and support its irrigation without adding the same water twice. TerraLogic’s precipitation setting applies only when its own water balance is selected. The host controls simulation settings in multiplayer.
+
+Moisture System keeps control of crop withering, grain moisture, quality grades, drying, hay, bales and storage. TerraLogic’s soil-moisture yield effect is off by default when Moisture System is detected to avoid overlapping water-related yield losses. You can enable it explicitly; your choice is saved. Compaction and fieldwork effects remain active. Without Moisture System, TerraLogic’s water balance works independently, including without Precision Farming.
 
 Combines and standard crop harvesters retain their usual working-speed and damage behaviour. TerraLogic’s soil, crop and yield effects apply to their harvest results.
 
@@ -68,7 +80,7 @@ Entscheide, wie du wirtschaftest
 
 Pflüge, Grubber, Eggen, Tiefenlockerer, Sämaschinen und Walzen wirken unterschiedlich auf den Boden. Arbeitstiefe und Intensität bestimmen, wie sie den Boden lockern, zerkleinern, einebnen oder rückverfestigen und wie stark sie die Bodenresilienz und biologische Kontinuität beeinträchtigen. Der daraus entstehende Bodenzustand beeinflusst die Qualität nachfolgender Arbeitsgänge, die Saatablage und den Ertrag. Wähle Geräte und Arbeitsfolge passend zum Zustand deines Feldes.
 
-Verdichtung wird dynamisch aus Fahrzeug- und Gerätegewicht, wechselnder Beladung, Reifenaufstandsfläche und Achslasten berechnet. Breitreifen, Zwillingsreifen und Bandlaufwerke verteilen das Gewicht unterschiedlich. Deine Fahrzeugkonfiguration trägt damit unmittelbar zum Bodenschutz bei. Fahrgassen haben in der Bodensimulation von TerraLogic eine physikalische Wirkung: Wiederholte Überfahrten auf festen Spuren schützen größere Teile des übrigen Feldes vor Verdichtung und erhalten bessere Wachstumsbedingungen.
+Verdichtung wird dynamisch aus Fahrzeug- und Gerätegewicht, wechselnder Beladung, Reifenaufstandsfläche und Achslasten berechnet. Breitreifen, Zwillingsreifen und Bandlaufwerke verteilen das Gewicht unterschiedlich. Deine Fahrzeugkonfiguration trägt damit unmittelbar zum Bodenschutz bei. Die Größe der belasteten Aufstandsfläche beeinflusst auch, wie viel Druck im Unterboden ankommt: Bandlaufwerke können die Last besser verteilen, schwere Maschinen brauchen aber weiterhin geeignete Bodenbedingungen. Fahrgassen haben in der Bodensimulation von TerraLogic eine physikalische Wirkung: Wiederholte Überfahrten auf festen Spuren schützen größere Teile des übrigen Feldes vor Verdichtung und erhalten bessere Wachstumsbedingungen.
 
 Direktsaat bietet einen anderen Ansatz: Du sparst Arbeitsgänge zur Saatbettbereitung und erhältst mehr biologische Kontinuität. Zusammen mit abwechslungsreicher Fruchtfolge, Zwischenfrüchten und gezielter Befahrung unterstützt sie den allmählichen Aufbau eines widerstandsfähigen Bodens. Ihr langfristiger Erfolg hängt vom Gleichgewicht zwischen neuer Verdichtung und natürlicher Erholung ab. Maschinenwahl und Bewirtschaftung sind deshalb wichtige Bestandteile der Umstellung.
 
@@ -76,7 +88,13 @@ Arbeite passend zu den Bedingungen
 
 Bodenfeuchtigkeit, Temperatur und Frost beeinflussen, wie der Boden auf Maschinen reagiert, wie viel Zugleistung ein Arbeitsgang benötigt und wie wirksam sich der Boden erholt. Frost-Tau-Wechsel tragen zur Lockerung bei, während die Feuchtebedingungen während des Wachstums den Ertrag beeinflussen. Die Arbeitsbedingungen sind deshalb sowohl für die Wahl des Geräts als auch für den passenden Einsatzzeitpunkt entscheidend.
 
-Bei unterstützten, selbst gefahrenen Geräten entfällt die übliche Arbeitsgeschwindigkeitsbegrenzung. Bestimme dein Tempo selbst und behalte Geschwindigkeit, Arbeitsqualität und mechanische Belastung im Arbeits-HUD im Blick. Zu hohe Geschwindigkeit kann die Bodenwirkung abschwächen, Fehlstellen hinterlassen und Verschleiß oder Schäden verstärken. Steinschläge stellen ein zusätzliches Risiko für bodengreifende Geräte dar.
+Jedes Feld hat einen eigenen Wasservorrat im Ober- und Unterboden. Regen und Schmelzwasser gelangen von oben hinein, sickern nach unten und fließen bei Überschuss ab. Bodenart, Kultur und Wachstumsstadium bestimmen, wie schnell das Feld feucht wird und abtrocknet. Ein wachsender Bestand beschattet die Oberfläche, entnimmt aber auch Wasser über seine Wurzeln; Ernte und Nachwachsen verändern diesen Bedarf. Hohe Bodenresilienz lässt überschüssiges Wasser etwas schneller abfließen, geringe Resilienz verlangsamt dies. Die Wasserspeicherkapazität des Bodens bleibt dabei gleich.
+
+Beide Bodenschichten erwärmen sich und kühlen laufend ab, wobei der Unterboden langsamer reagiert. Die Temperaturanpassung und die Lockerung durch Frost-Tau-Wechsel berücksichtigen die eingestellte Monatslänge. So wird der Winter bei kurzen Monaten nicht einfach übersprungen, während längere Monate keine unbegrenzte Erholung durch Frost ermöglichen.
+
+Bei unterstützten, selbst gefahrenen Geräten entfällt die übliche Arbeitsgeschwindigkeitsbegrenzung. Bestimme dein Tempo selbst und behalte empfohlenes Tempo und Arbeitsqualität im Arbeits-HUD im Blick. Zwei Bodensymbole zeigen, wie stark die aktuelle Fahrzeugkombination Ober- und Unterboden unter den gerade vorhandenen Bedingungen verdichten kann. Diese Anzeige steht auch bei Transportfahrten und anderen Aufgaben ohne unterstütztes Arbeitsgerät zur Verfügung; nicht verfügbare Arbeitswerte erscheinen als Strich. Zu hohe Geschwindigkeit kann die Bodenwirkung abschwächen, Fehlstellen hinterlassen und Verschleiß oder Schäden verstärken. Steinschläge stellen ein zusätzliches Risiko für bodengreifende Geräte dar.
+
+Warnungen machen auf Probleme aufmerksam, auf die du reagieren solltest. Leichtere, anhaltende Probleme werden einmalig gemeldet, bis ihre Ursache eine Weile verschwunden ist. Schwere, anhaltende Warnungen bleiben sichtbar, bis das Problem behoben ist. Das HUD lässt sich dynamisch, dauerhaft oder nur für Warnungen anzeigen und macht überlappenden Spielhinweisen wie dem Ankuppeln eines Geräts vorübergehend Platz.
 
 Gute Bodenbedingungen und sorgfältige Arbeit können den vom Basisspiel oder Precision Farming berechneten Ertrag um bis zu 10 % erhöhen. Verdichtung, ungünstige Wachstumsbedingungen und geringe Arbeitsqualität können ihn verringern. Deine Entscheidungen wirken sich sowohl auf die nächste Ernte als auch auf die Bodenentwicklung über mehrere Saisons aus.
 
@@ -84,13 +102,19 @@ Verstehe deine Felder
 
 - Bodenkarten und lokale Anzeigen machen die Auswirkungen deiner Maschinen und Bewirtschaftung auf dem Feld sichtbar.
 - Öffne die TerraLogic-Feldanalyse im ESC-Menü des Spiels. Dort findest du Bodenbewertungen, Ertragsinformationen, Wettereinflüsse und Empfehlungen. Die Fragezeichen erklären die angezeigten Werte und ihre Bedeutung für die Praxis.
-- Im Planer dieses Menüs kannst du Arbeitsgänge und ihre erwarteten Auswirkungen vergleichen, bevor du mit der Arbeit beginnst.
+- Im Planer dieses Menüs kannst du Arbeitsgänge und ihre erwarteten Auswirkungen vergleichen, bevor du mit der Arbeit beginnst. Fahrzeuggewicht, Achslasten und Bodenkontaktdruck sind auch ohne unterstütztes Arbeitsgerät verfügbar.
+- Feuchtigkeit wird in Volumenprozent und mit einer Einordnung wie trocken, normal, feucht oder nass angezeigt. Die Fragezeichentabellen erklären die Werte nach Bodenart für die gewählte Feldfläche.
 - Situationsbezogene Tutorials führen dich während des Spielens in Bedienung und Mechaniken ein. In der Tutorialbibliothek und der Hilfe im Spiel kannst du die Simulation und das Zusammenspiel ihrer Mechaniken genauer kennenlernen.
 - Die Aktualisierungsgeschwindigkeit der Bodenkarten lässt sich an die Leistung deines PCs oder Servers anpassen.
+- Gruppierte Einstellungen erlauben es, die Verdichtungsstärke und die Wasserzufuhr durch Niederschlag an die gewünschte Spielbalance anzupassen. Der Niederschlagseinfluss verändert nicht, wie oft es regnet.
 
 Kompatibilität
 
 TerraLogic unterstützt Einzelspieler, Multiplayer und selbst angelegte Felder. Precision Farming ist optional; wenn es installiert ist, beeinflussen seine Bodenarten die Simulation. Auch More Realistic wird unterstützt.
+
+Mit installiertem Moisture System kannst du wählen, ob TerraLogic seinen eigenen Wasserhaushalt verwendet oder der Feldfeuchte von Moisture System folgt. Dabei wird die Feuchte auf die Bodenarten von TerraLogic abgestimmt; der Unterboden reagiert weiterhin durch Versickerung und Drainage. Beide Varianten berücksichtigen das Wetter des gewählten Moisture-System-Wetterprofils und unterstützen dessen Bewässerung, ohne dasselbe Wasser doppelt zuzuführen. Die Niederschlagseinstellung von TerraLogic gilt nur beim eigenen Wasserhaushalt. Im Multiplayer bestimmt der Host die Simulationseinstellungen.
+
+Vertrocknung von Pflanzen, Kornfeuchte, Güteklassen, Trocknung, Heu, Ballen und Lagerung bleiben bei Moisture System. Damit sich wasserbedingte Ertragsverluste nicht überlagern, steht der Bodenfeuchte-Ertragseinfluss von TerraLogic bei erkanntem Moisture System zunächst auf Aus. Du kannst ihn ausdrücklich einschalten; deine Auswahl wird gespeichert. Verdichtung und die Folgen der Feldarbeit bleiben wirksam. Ohne Moisture System arbeitet der Wasserhaushalt von TerraLogic eigenständig, auch ohne Precision Farming.
 
 Mähdrescher und gewöhnliche Feldfrucht-Erntemaschinen behalten ihr übliches Arbeitsgeschwindigkeits- und Schadensverhalten. Die Boden-, Pflanzen- und Ertragseinflüsse von TerraLogic wirken sich auf ihre Ernteergebnisse aus.
 
@@ -223,6 +247,7 @@ https://github.com/Saibotsu/FS25_TerraLogic
                 <paragraph><title text="$l10n_terraLogic_help_weather_h2" /><text text="$l10n_terraLogic_help_weather_p2" /></paragraph>
                 <paragraph><title text="$l10n_terraLogic_help_weather_h3" /><text text="$l10n_terraLogic_help_weather_p3" /></paragraph>
                 <paragraph><title text="$l10n_terraLogic_help_weather_h4" /><text text="$l10n_terraLogic_help_weather_p4" /></paragraph>
+                <paragraph><title text="$l10n_terraLogic_msHelpTitle" /><text text="$l10n_terraLogic_msHelp" /></paragraph>
                 <paragraph><title text="$l10n_terraLogic_help_example" /><text text="$l10n_terraLogic_help_weather_example" /></paragraph>
             </page>
             <page id="terraLogicHelpRecovery" title="$l10n_terraLogic_help_recovery_title" iconFilename="icon_terraLogic.dds">
@@ -276,21 +301,30 @@ https://github.com/Saibotsu/FS25_TerraLogic
         <sourceFile filename="scripts\TerraLogicQualityManager.lua" />
         <sourceFile filename="scripts\TerraLogicGrassGapManager.lua" />
         <sourceFile filename="scripts\TerraLogicSoilTemperatureManager.lua" />
+        <sourceFile filename="scripts\TerraLogicCropWaterProfiles.lua" />
+        <sourceFile filename="scripts\TerraLogicWaterBalance.lua" />
+        <sourceFile filename="scripts\TerraLogicFieldDrainage.lua" />
+        <sourceFile filename="scripts\TerraLogicFieldWaterManager.lua" />
         <sourceFile filename="scripts\TerraLogicSoilMoistureManager.lua" />
+        <sourceFile filename="scripts\TerraLogicMoistureSystemAdapter.lua" />
         <sourceFile filename="scripts\TerraLogicSpecialImplements.lua" />
         <sourceFile filename="scripts\TerraLogicSoilManager.lua" />
         <sourceFile filename="scripts\TerraLogicMapMaintenance.lua" />
+        <sourceFile filename="scripts\TerraLogicDeepStress.lua" />
         <sourceFile filename="scripts\TerraLogicWheelCompactionManager.lua" />
         <sourceFile filename="scripts\TerraLogicTrafficWarnings.lua" />
         <sourceFile filename="scripts\TerraLogicTutorialLessons.lua" />
         <sourceFile filename="scripts\TerraLogicTutorialManager.lua" />
         <sourceFile filename="scripts\TerraLogicFieldAnalysis.lua" />
         <sourceFile filename="scripts\TerraLogicFieldCatalog.lua" />
+        <sourceFile filename="scripts\TerraLogicFieldCatalogDiagnostics.lua" />
         <sourceFile filename="scripts\TerraLogicPFHarvestTrace.lua" />
         <sourceFile filename="scripts\TerraLogicPFYieldBridge.lua" />
         <sourceFile filename="scripts\TerraLogicHudEpisodes.lua" />
         <sourceFile filename="scripts\TerraLogicSoilHud.lua" />
         <sourceFile filename="scripts\TerraLogicHudVisibility.lua" />
+        <sourceFile filename="scripts\TerraLogicMoistureSystemTelemetry.lua" />
+        <sourceFile filename="scripts\TerraLogicWeatherLogger.lua" />
         <sourceFile filename="scripts\TerraLogicMain.lua" />
         <sourceFile filename="scripts\TerraLogicAuditManager.lua" />
     </extraSourceFiles>

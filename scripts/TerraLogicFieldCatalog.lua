@@ -2,7 +2,8 @@
 -- compact entry lists, never a map-sized mask. Work is suspended between small
 -- probe batches. Registered fields appear first; later refreshes use creation
 -- seeds, with a periodic background sweep as a fallback for external changes.
-TerraLogicFieldCatalog = {PROBES_PER_SLICE=128, GEOMETRY_CELLS_PER_SLICE=8, CACHE_MS=1800000}
+TerraLogicFieldCatalog = {PROBES_PER_SLICE=128, GEOMETRY_CELLS_PER_SLICE=8, CACHE_MS=1800000,
+    MIN_ADDITIONAL_SECTION_HA=0.01}
 
 local function now() return g_currentMission ~= nil and g_currentMission.time or 0 end
 local function farmFor(connection)
@@ -50,11 +51,13 @@ function TerraLogicFieldCatalog:reset()
     self.cursor = 0
     self.watchers,self.dirty,self.customNames={},{},{}
     self.nextCustomId,self.nextMaintenance=1,0
+    if TerraLogicFieldCatalogDiagnostics then TerraLogicFieldCatalogDiagnostics:reset() end
 end
 
 -- Called only for successful create-field plough work. Coalesce nearby work
 -- into one seed; do not query terrain or scan field polygons in the callback.
 function TerraLogicFieldCatalog:markTopologyDirty(x,z)
+    if TerraLogicFieldWaterManager then TerraLogicFieldWaterManager:markDirty(x,z) end
     self.dirty=self.dirty or {}
     local key=tostring(math.floor(x/32))..":"..tostring(math.floor(z/32))
     self.dirty[key]={x=x,z=z}
@@ -70,15 +73,48 @@ function TerraLogicFieldCatalog:entryName(entry)
     return TerraLogicI18n.format(g_i18n:getText("terraLogic_fa_browserCustom"),entry.customId or 1)
 end
 
+-- Browser-only filter. Retain the raw geometry for diagnostics and never
+-- delete soil/water data or silently attach a fragment to another component.
+-- A lone small native field, a custom field and merged fields stay available.
+function TerraLogicFieldCatalog:getOfferedEntries(entries)
+    local largest, counts = {}, {}
+    for _,entry in ipairs(entries) do
+        local ids=entry.fieldIds or {}
+        if not entry.provisional and #ids==1 then
+            local id=ids[1]
+            counts[id]=(counts[id] or 0)+1
+            if largest[id]==nil or (entry.areaHa or 0)>(largest[id].areaHa or 0) then
+                largest[id]=entry
+            end
+        end
+    end
+    local offered, hidden = {}, {}
+    for _,entry in ipairs(entries) do
+        local ids=entry.fieldIds or {}
+        local area=tonumber(entry.areaHa) or 0
+        if not entry.provisional and #ids==1 and (counts[ids[1]] or 0)>1
+            and largest[ids[1]]~=entry and area>0
+            and area<self.MIN_ADDITIONAL_SECTION_HA then
+            hidden[entry]="additional_native_fragment_below_100_m2"
+        else offered[#offered+1]=entry end
+    end
+    return offered,hidden
+end
+
 function TerraLogicFieldCatalog:deliver(connection, generation, entries, complete, x, z, farmId)
+    local owned={}
+    for _,entry in ipairs(entries) do
+        if owns(entry.x,entry.z,farmId) then owned[#owned+1]=entry end
+        if complete then entry.sectionNumber=0 end
+    end
+    local offered=self:getOfferedEntries(owned)
     -- Spatial ordering is independent of discovery/player position. Only real
     -- components participate; a provisional native entry is not a section.
     -- Commit ranks only for a completed catalog; partial discoveries must not
     -- repeatedly renumber an already visible section.
     if complete then
     local groups={}
-    for _,entry in ipairs(entries) do
-        entry.sectionNumber=0
+    for _,entry in ipairs(offered) do
         if not entry.provisional and #(entry.fieldIds or {})==1 then
             local id=entry.fieldIds[1]
             groups[id]=groups[id] or {};table.insert(groups[id],entry)
@@ -96,7 +132,7 @@ function TerraLogicFieldCatalog:deliver(connection, generation, entries, complet
     end
     end
     local result = {}
-    for _, entry in ipairs(entries) do
+    for _, entry in ipairs(offered) do
         -- Ownership can change while the menu is open or a cache is alive.
         if owns(entry.x, entry.z, farmId) then
             result[#result+1] = {x=entry.x, z=entry.z, key=entry.key,
@@ -324,6 +360,7 @@ end
 
 function TerraLogicFieldCatalog:update()
     if g_currentMission == nil or not g_currentMission:getIsServer() then return end
+    if TerraLogicFieldCatalogDiagnostics then TerraLogicFieldCatalogDiagnostics:update() end
     self.jobs, self.pending = self.jobs or {}, self.pending or {}
     if now()>=(self.nextMaintenance or 0) then
         self.nextMaintenance=now()+5000

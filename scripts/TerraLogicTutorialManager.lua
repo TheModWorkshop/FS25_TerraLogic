@@ -232,7 +232,7 @@ local prerequisites={
  compaction="analysis", tires="compaction", payload="tires", tramlines="tires", pfLanes="tramlines",
  plow="analysis", seedbed="analysis", tilth="analysis", evenness="analysis", seeding="analysis",
  roller="seeding", draft="speedHud", moistureWork="analysis", wetTraffic="tires",
- frost="weather", thaw="recovery", waterGrowth="weather", rainApplication="speedHud",
+ frost="weather", thaw="recovery", waterGrowth="weather", rainApplication="speedHud", moistureSystem="weather",
  resilience="analysis", continuity="resilience", recovery="continuity", directDrill="recovery",
  rotation="recovery", cover="recovery", rotationPlan="rotation", systems="recovery",
  bonus="yield", yield="analysis", weather="analysis", pf="analysis", options="analysis"
@@ -292,6 +292,9 @@ function M:observeAnalysis(s)
     end
     -- User-requested history is a reading opportunity, not a new growth event.
     self:offer("analysis",30,nil)
+    if TerraLogicMoistureSystemAdapter and TerraLogicMoistureSystemAdapter:isAvailable()then
+        self:offer("moistureSystem",26,nil)
+    end
     if (s.growthSteps or 0)>0 then
         self:offer("yield",27,vehicle()); self:offer("waterGrowth",25,vehicle())
         self:offer("rotationPlan",24,vehicle())

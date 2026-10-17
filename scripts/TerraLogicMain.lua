@@ -286,6 +286,7 @@ end
 
 -- Initializes persistent quality data, settings and console commands per mission.
 function TerraLogicMain:loadMap(mapNode, mapFile)
+    TerraLogicWeatherLogger:stop()
     if self.panelLogger ~= nil and self.panelLogger.active == true then
         self:stopPanelLogger("map reload")
     end
@@ -295,7 +296,9 @@ function TerraLogicMain:loadMap(mapNode, mapFile)
     TerraLogicGrassGapManager:load()
     TerraLogicSoilTemperatureManager:load()
     TerraLogicSoilMoistureManager:load()
+    TerraLogicMoistureSystemAdapter:load()
     TerraLogicSoilManager:load()
+    TerraLogicFieldWaterManager:load()
     TerraLogicWheelCompactionManager:load()
     TerraLogicTrafficWarnings:load()
     TerraLogicTutorialManager:load()
@@ -337,6 +340,8 @@ function TerraLogicMain:loadMap(mapNode, mapFile)
         {"tlBalanceReset", "Reset temporary TerraLogic balance settings", "consoleCommandBalanceReset"},
         {"tlPrintBalance", "Print TerraLogic balance settings to log", "consoleCommandPrintBalance"},
         {"tlLog", "Verbose diagnostics: tlLog [on|off]", "consoleCommandLogging"},
+        {"tlWeatherLog", "Record weather: tlWeatherLog start [name] | stop | status", "consoleCommandWeatherLog"},
+        {"tlFieldDebug", "Export field geometry on host/server: tlFieldDebug <field number> | status | stop", "consoleCommandFieldDebug"},
         {"tlDraftModel", "Synchronized draft model: tlDraftModel [terralogic|mr]", "consoleCommandDraftModel"},
         {"tlTestStart", "Open and record one panel: tlTestStart <panel> <name>", "consoleCommandCaptureTestStart"},
         {"tlTestStop", "Write the final sample and stop the active test CSV", "consoleCommandCaptureTestStop"},
@@ -367,6 +372,7 @@ function TerraLogicMain.saveWorkQualityData()
     TerraLogicGrassGapManager:save()
     TerraLogicSoilTemperatureManager:save()
     TerraLogicSoilMoistureManager:save()
+    TerraLogicFieldWaterManager:save()
     TerraLogicSoilManager:save()
     TerraLogicSettings:save()
 end
@@ -386,7 +392,10 @@ function TerraLogicMain:update(dt)
     TerraLogicQualityManager:updatePlowGrowthRecovery(dt)
     TerraLogicGrassGapManager:update(dt)
     TerraLogicSoilTemperatureManager:update(dt)
+    TerraLogicMoistureSystemAdapter:update(dt)
     TerraLogicSoilMoistureManager:update(dt)
+    TerraLogicFieldWaterManager:update(dt)
+    TerraLogicWeatherLogger:update(dt)
     TerraLogicSoilManager:update(dt)
     TerraLogicWheelCompactionManager:update(dt)
     TerraLogicTrafficWarnings:update(dt)
@@ -727,6 +736,8 @@ end
 
 -- Flushes data and releases HUD resources when leaving a mission.
 function TerraLogicMain:deleteMap()
+    if TerraLogicFieldCatalogDiagnostics then TerraLogicFieldCatalogDiagnostics:reset() end
+    TerraLogicWeatherLogger:stop()
     if TerraLogicPFYieldBridge ~= nil then TerraLogicPFYieldBridge:delete() end
     if TerraLogicWarningEpisodes ~= nil then TerraLogicWarningEpisodes.vehicles = nil end
     if TerraLogicPFHarvestTrace ~= nil and TerraLogicPFHarvestTrace.active ~= nil then
@@ -748,7 +759,9 @@ function TerraLogicMain:deleteMap()
         TerraLogicAuditManager:delete(self)
     end
     TerraLogicSoilTemperatureManager:delete(false)
+    TerraLogicMoistureSystemAdapter:delete()
     TerraLogicSoilMoistureManager:delete(false)
+    TerraLogicFieldWaterManager:delete()
     TerraLogicWheelCompactionManager:delete()
     TerraLogicTrafficWarnings:delete()
     TerraLogicTutorialManager:delete()
@@ -789,9 +802,9 @@ function TerraLogicMain:deleteMap()
             "tlDebug", "tlView", "tlViews", "tlDebugClose", "tlSetDamage", "tlDamageAnalysis",
             "tlPF", "tlPFInspect", "tlEnable", "tlWearPolicy", "tlAbrasion",
             "tlResistance", "tlDraft", "tlImpacts", "tlStones", "tlMowerQuality", "tlMultiplier",
-            "tlBalanceReset", "tlPrintBalance", "tlLog", "tlDraftModel",
+            "tlBalanceReset", "tlPrintBalance", "tlLog", "tlDraftModel", "tlWeatherLog",
             "tlTestStart", "tlTestStop", "tlTestStatus", "tlTestPanels",
-            "tlSoilTrace", "tlSoil",
+            "tlSoilTrace", "tlSoil", "tlFieldDebug",
             "tlSimulatePass", "tlTrafficPreset", "tlTestSoilType",
             "tlTestSectionPreset", "tlTestEnvironment",
             "tlRepairFieldPreset", "tlReinitializeFieldPresets", "tlWheel",
@@ -803,6 +816,14 @@ end
 
 function TerraLogicMain:consoleCommandTutorialStatus()
     return TerraLogicTutorialManager:consoleStatus()
+end
+
+function TerraLogicMain:consoleCommandWeatherLog(action, label)
+    return TerraLogicWeatherLogger:command(action, label)
+end
+
+function TerraLogicMain:consoleCommandFieldDebug(argument)
+    return TerraLogicFieldCatalogDiagnostics:command(argument)
 end
 
 function TerraLogicMain:consoleCommandTutorialReset()
@@ -1166,7 +1187,7 @@ function TerraLogicMain:consoleCommandSoil()
         getPFSoilTypeAtWorldPosition(x, z)
     local moistureYield = TerraLogicSoilMoistureManager:
         getCropYieldResponse(soilTypeIndex, fruitTypeIndex,
-            math.max(growthStage, 1))
+            math.max(growthStage, 1), x, z)
     local position = {ix=qualityIx, iz=qualityIz}
     local storedRoot, storedSteps = TerraLogicQualityManager:
         getGrowthRootYieldFactor(position, false, true)
@@ -5435,7 +5456,7 @@ function TerraLogicMain:drawSoilDebug()
     local depth = implementSpec ~= nil
         and tonumber(implementSpec.workDepthCm) or 0
     local mechanics = TerraLogicSoilMoistureManager:getMechanicalResponse(
-        moisture.profileIndex, classKey, depth)
+        moisture.profileIndex, classKey, depth, x, z)
     local ix = math.floor(x / TerraLogicQualityManager.CELL_SIZE)
     local iz = math.floor(z / TerraLogicQualityManager.CELL_SIZE)
     local fruitTypeIndex, growthState = TerraLogicQualityManager:
@@ -5444,7 +5465,7 @@ function TerraLogicMain:drawSoilDebug()
         fruitTypeIndex, growthState, nil)
     local moistureYield = TerraLogicSoilMoistureManager:
         getCropYieldResponse(moisture.profileIndex, fruitTypeIndex,
-            math.max(growthStage, 1))
+            math.max(growthStage, 1), x, z)
     local projectedMoisture, moistureSteps = TerraLogicQualityManager:
         getGrowthMoistureYieldFactor({ix=ix, iz=iz}, false, true)
     local lines = {

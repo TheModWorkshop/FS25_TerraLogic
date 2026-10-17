@@ -156,6 +156,11 @@ local function formatPercent(value)
         tonumber(value) or 0, 0, 1.10) * 100)
 end
 
+local function formatMoisture(value)
+    return TerraLogicI18n.format(tr('terraLogic_fa_ui_volumePercent','%.1f vol.%%'),
+        math.clamp(tonumber(value) or 0,0,1)*100)
+end
+
 local function formatLossPercent(value)
     local loss = math.max(tonumber(value) or 0, 0)
     if loss < 0.0005 then return TerraLogicI18n.format("%.1f%%", 0) end
@@ -383,10 +388,13 @@ end
 
 local function createDynamicFieldJob(x, z, options)
     options = options or {}
+    -- Allocated only by the explicit host/server diagnostic command.
+    local trace=options.diagnostics
     local surfaceCache = {}
     local function visible(px, pz)
         local key = string.format("%.2f:%.2f", px, pz)
         if surfaceCache[key] == nil then
+            if trace then trace.probes=(trace.probes or 0)+1 end
             surfaceCache[key] = isVisibleSoilSurface(px, pz)
                 and (options.allowed == nil or options.allowed(px, pz))
         end
@@ -395,7 +403,8 @@ local function createDynamicFieldJob(x, z, options)
     local function clearSegment(ax, az, bx, bz)
         local count = math.max(1, math.ceil(math.max(math.abs(bx-ax), math.abs(bz-az))))
         for i=1,count do
-            if not visible(ax+(bx-ax)*i/count, az+(bz-az)*i/count) then return false end
+            local px,pz=ax+(bx-ax)*i/count,az+(bz-az)*i/count
+            if not visible(px,pz) then return false,px,pz end
         end
         return true
     end
@@ -453,7 +462,12 @@ local function createDynamicFieldJob(x, z, options)
             local key = tostring(ix) .. ":" .. tostring(iz)
             if visited[key] == nil then
                 local nx, nz = (ix+0.5)*cellSize, (iz+0.5)*cellSize
-                local connected = visible(nx, nz) and clearSegment(cx, cz, nx, nz)
+                local connected,blockedX,blockedZ=false,nx,nz
+                if visible(nx,nz) then
+                    connected,blockedX,blockedZ=clearSegment(cx,cz,nx,nz)
+                end
+                local coarseConnected=connected
+                local coarseX,coarseZ=nx,nz
                 -- Only failed coarse edges receive narrow-connection probes.
                 -- Each detour must be continuously cultivatable; never jump
                 -- roads merely because soil exists on both sides.
@@ -467,6 +481,19 @@ local function createDynamicFieldJob(x, z, options)
                             nx, nz, connected = bx, bz, true
                             break
                         end
+                    end
+                end
+                if trace then
+                    local counter=coarseConnected and "coarseConnections"
+                        or connected and "detourConnections" or "blockedConnections"
+                    trace[counter]=(trace[counter] or 0)+1
+                    if not coarseConnected then
+                        trace.edges=trace.edges or {}
+                        if #trace.edges<(trace.maxEdges or 2048) then
+                            trace.edges[#trace.edges+1]={fromX=cx,fromZ=cz,
+                                toX=coarseX,toZ=coarseZ,blockedX=blockedX,blockedZ=blockedZ,
+                                connected=connected==true,resolvedX=nx,resolvedZ=nz}
+                        else trace.omittedEdges=(trace.omittedEdges or 0)+1 end
                     end
                 end
                 if connected then
@@ -726,6 +753,8 @@ function TerraLogicFieldAnalysis:buildSnapshot(x, z, serial, options)
     local growthCropSamples, growthHistorySamples = 0, 0
     local activeWeight, cropCounts, cropStates = 0, {}, {}
     local surfaceMoistureSum, subsoilMoistureSum, profileCounts = 0, 0, {}
+    local msMoistureSamples=0
+    local moistureProfiles = {}
     local soilDeductionSum, waterDeductionSum, workDeductionSum = 0, 0, 0
     local surfaceLossSum, deepLossSum, trafficSurfaceSum, trafficDeepSum = 0, 0, 0, 0
     local rollerRescueSum = 0
@@ -792,7 +821,7 @@ function TerraLogicFieldAnalysis:buildSnapshot(x, z, serial, options)
         local trafficSurface, trafficDeep = 1, 1
         if TerraLogicSoilMoistureManager ~= nil then
             trafficSurface, trafficDeep =
-                TerraLogicSoilMoistureManager:getTrafficMultipliers(soilType)
+                TerraLogicSoilMoistureManager:getTrafficMultipliers(soilType, point.x, point.z)
         end
         -- Resilience is the soil's resistance to traffic damage.  At 50%
         -- resilience it is neutral; this is the same factor used by wheel passes.
@@ -806,7 +835,7 @@ function TerraLogicFieldAnalysis:buildSnapshot(x, z, serial, options)
         local rawGround = TerraLogicSoilManager:getGroundTypeAtWorldPosition(point.x, point.z)
         for _, definition in ipairs(self.MECHANIC_CLASSES) do
             local result = TerraLogicSoilManager:getSuitabilityAtState(
-                state, soilType, definition.key, definition.depth, rawGround)
+                state, soilType, definition.key, definition.depth, rawGround, point.x, point.z)
             local sumsForClass = mechanicSums[definition.key]
             sumsForClass.quality = sumsForClass.quality + result.qualityFactor
             sumsForClass.dropout = sumsForClass.dropout + result.dropoutFraction
@@ -829,7 +858,7 @@ function TerraLogicFieldAnalysis:buildSnapshot(x, z, serial, options)
                 TerraLogic ~= nil and TerraLogic.FROST_ENVIRONMENT_DRAFT_MAX or 1.95)
             if TerraLogicSoilManager.previewOperationFromState ~= nil then
                 local projected = TerraLogicSoilManager:previewOperationFromState(
-                    state, soilType, definition.key, definition.depth)
+                    state, soilType, definition.key, definition.depth, nil, nil, nil, nil, point.x, point.z)
                 for _, key in ipairs(self.SOIL_KEYS) do
                     sumsForClass.projected[key] = sumsForClass.projected[key]
                         + (tonumber(projected[key]) or tonumber(state[key]) or 0)
@@ -843,10 +872,15 @@ function TerraLogicFieldAnalysis:buildSnapshot(x, z, serial, options)
         end
         if TerraLogicSoilMoistureManager ~= nil then
             local pointMoisture = TerraLogicSoilMoistureManager:getStateAtWorldPosition(point.x, point.z)
+            if pointMoisture.moistureSource==1 then msMoistureSamples=msMoistureSamples+1 end
             surfaceMoistureSum = surfaceMoistureSum + clamp01(pointMoisture.surface)
             subsoilMoistureSum = subsoilMoistureSum + clamp01(pointMoisture.subsoil)
             local pointProfile = tonumber(pointMoisture.profileIndex) or 0
             profileCounts[pointProfile] = (profileCounts[pointProfile] or 0) + 1
+            local row = moistureProfiles[pointProfile] or {surface=0, subsoil=0}
+            row.surface = row.surface + clamp01(pointMoisture.surface)
+            row.subsoil = row.subsoil + clamp01(pointMoisture.subsoil)
+            moistureProfiles[pointProfile] = row
         end
         local cell = TerraLogicQualityManager:getPackedCell(position.ix, position.iz)
         local entries = cell ~= nil and TerraLogicQualityManager:getGroupedEntriesFromCell(cell) or {}
@@ -881,7 +915,7 @@ function TerraLogicFieldAnalysis:buildSnapshot(x, z, serial, options)
                 getGrowthMoistureYieldFactor(position, false, true, fruitIndex)
             local semantic = TerraLogicQualityManager:getSemanticPlowGrowthStage(fruitIndex, group.state, nil)
             if moistureProjected == nil and TerraLogicSoilMoistureManager ~= nil then
-                local response = TerraLogicSoilMoistureManager:getCropYieldResponse(soilType, fruitIndex, semantic)
+                local response = TerraLogicSoilMoistureManager:getCropYieldResponse(soilType, fruitIndex, semantic, point.x, point.z)
                 moistureProjected = response ~= nil and response.factor or 1
             end
             rootProjected = clamp01(rootProjected or rootCurrent or 1)
@@ -1007,8 +1041,19 @@ function TerraLogicFieldAnalysis:buildSnapshot(x, z, serial, options)
         if count > dominantCount then snapshot.profileIndex, dominantCount = profileIndex, count end
     end
     snapshot.profileMixed = profileTypeCount > 1
+    -- Keep the sampled types separate: a field mean cannot be classified
+    -- against a single texture's water-retention thresholds.
+    snapshot.moistureProfiles = {}
+    for index=0,4 do
+        local count, row = profileCounts[index], moistureProfiles[index]
+        if count ~= nil and count > 0 and row ~= nil then
+            table.insert(snapshot.moistureProfiles, {index=index,
+                surface=row.surface/count, subsoil=row.subsoil/count})
+        end
+    end
     snapshot.surfaceMoisture = surfaceMoistureSum / #points
     snapshot.subsoilMoisture = subsoilMoistureSum / #points
+    snapshot.moistureSource=msMoistureSamples==0 and 0 or msMoistureSamples==#points and 1 or 2
     local temperature = TerraLogicSoilTemperatureManager ~= nil
         and TerraLogicSoilTemperatureManager:getState() or {}
     local moisture = TerraLogicSoilMoistureManager ~= nil
@@ -1214,6 +1259,113 @@ local function bindAnalysisControls(controller, element)
     for _, child in ipairs(element.elements or {}) do
         bindAnalysisControls(controller, child)
     end
+end
+
+-- Display guidance only. These bands do not change traffic or yield physics.
+-- Normal spans the upper half of plant-available water up to field capacity;
+-- wet means the upper quarter of the interval from field capacity to saturation.
+function TerraLogicFieldAnalysis:getMoistureBand(value, profileIndex)
+    local h = TerraLogicSoilMoistureManager.HYDRAULICS[profileIndex]
+        or TerraLogicSoilMoistureManager.HYDRAULICS[0]
+    local lower = h.wilt + 0.5*(h.fieldCapacity-h.wilt)
+    local wet = h.fieldCapacity + 0.75*(h.saturation-h.fieldCapacity)
+    -- Float32 snapshots must give the same boundary labels as the server.
+    if value < lower-0.0000001 then return "Dry", lower, h.fieldCapacity end
+    if value <= h.fieldCapacity+0.0000001 then return "Normal", lower, h.fieldCapacity end
+    if value < wet-0.0000001 then return "Moist", lower, h.fieldCapacity end
+    return "Wet", lower, h.fieldCapacity
+end
+
+function TerraLogicFieldAnalysis:getMoistureRows(snapshot)
+    return snapshot.moistureProfiles or {}
+end
+
+function TerraLogicFieldAnalysis:getMoistureAssessment(snapshot, layer)
+    local result
+    for _, row in ipairs(self:getMoistureRows(snapshot)) do
+        local band = self:getMoistureBand(row[layer], row.index)
+        if result ~= nil and result ~= band then return "Mixed" end
+        result = band
+    end
+    return result
+end
+
+local function moistureBandText(band)
+    if band == nil then return "-" end
+    return tr("terraLogic_fa_moisture"..band, band)
+end
+
+local function moistureSoilName(index)
+    local names = {[0]={"standardSoilShort", "Standard soil (without PF)"},
+        [1]={"loamySand", "Loamy sand"}, [2]={"sandyLoam", "Sandy loam"},
+        [3]={"loam", "Loam"}, [4]={"siltyClay", "Silty clay"}}
+    local name = names[index] or names[0]
+    return tr("terraLogic_fa_ui_"..name[1], name[2])
+end
+
+TerraLogicMoistureDialog = {}
+local TerraLogicMoistureDialog_mt = Class(TerraLogicMoistureDialog, DialogElement)
+
+function TerraLogicMoistureDialog.new(target, custom_mt)
+    return DialogElement.new(target, custom_mt or TerraLogicMoistureDialog_mt)
+end
+
+function TerraLogicMoistureDialog:onOpen()
+    TerraLogicMoistureDialog:superClass().onOpen(self)
+    bindAnalysisControls(self, self)
+    -- baseReference otherwise inherits the GUI atlas. Tinting that atlas
+    -- exposes miniature interface fragments instead of solid table stripes.
+    -- Use the same neutral texture as the other Field Analysis tables.
+    for _, stripe in ipairs(self.moistureStripes or {}) do
+        stripe:setImageFilename(TerraLogicFieldAnalysis.MOD_DIR.."gui/tableRow.dds")
+    end
+    local s, layer = self.snapshot, self.layer
+    self.moistureTitle:setText(layer == "surface"
+        and tr("terraLogic_fa_ui_surfaceMoisture", "Topsoil moisture")
+        or tr("terraLogic_fa_ui_subsoilMoisture", "Subsoil moisture"))
+    self.moistureSummary:setText(formatMoisture(layer == "surface" and s.surfaceMoisture
+        or s.subsoilMoisture).." | "..moistureBandText(
+            TerraLogicFieldAnalysis:getMoistureAssessment(s, layer))
+        ..((s.moistureSource or 0)>0 and " | MS" or ""))
+    self.moistureIntro:setText((s.moistureSource or 0)>0
+        and tr("terraLogic_msMoistureIntro","") or tr("terraLogic_fa_moistureIntro",""))
+    local rows = TerraLogicFieldAnalysis:getMoistureRows(s)
+    -- Do not reserve five empty rows when PF is inactive or a field only
+    -- contains one texture. Keep the footer and button close to the table.
+    local scale = self.moistureRows[1].size[2]/40
+    local savedHeight = (5-math.max(1, #rows))*42*scale
+    self.moisturePanelFullHeight = self.moisturePanelFullHeight or self.moisturePanel.size[2]
+    self.moisturePanel:setSize(self.moisturePanel.size[1], self.moisturePanelFullHeight-savedHeight)
+    self.moistureGuide:setPosition(self.moistureGuide.position[1], -384*scale+savedHeight)
+    for index=1,5 do
+        local row = rows[index]
+        self.moistureRows[index]:setVisible(row ~= nil)
+        if row ~= nil then
+            local band, lower, upper = TerraLogicFieldAnalysis:getMoistureBand(row[layer], row.index)
+            self.moistureSoils[index]:setText(moistureSoilName(row.index))
+            self.moistureValues[index]:setText(formatMoisture(row[layer]))
+            self.moistureRanges[index]:setText(TerraLogicI18n.format(
+                tr("terraLogic_fa_moistureRange", "%.1f–%.1f vol.%%"), lower*100, upper*100))
+            self.moistureBands[index]:setText(moistureBandText(band))
+        end
+    end
+end
+
+function TerraLogicMoistureDialog:onClickOk()
+    self:close()
+end
+
+function TerraLogicFieldAnalysisFrame:showMoistureHelp(layer)
+    if TerraLogicFieldAnalysis.moistureDialog == nil then
+        local dialog = TerraLogicMoistureDialog.new()
+        g_gui:loadGui(TerraLogicFieldAnalysis.MOD_DIR.."gui/TerraLogicMoistureDialog.xml",
+            "TerraLogicMoistureDialog", dialog)
+        TerraLogicFieldAnalysis.moistureDialog = dialog
+    end
+    local dialog = TerraLogicFieldAnalysis.moistureDialog
+    dialog.snapshot, dialog.layer = self.snapshot, layer
+    -- Let the native modal stack handle cursor, focus and input restoration.
+    g_gui:showDialog("TerraLogicMoistureDialog")
 end
 
 function TerraLogicFieldAnalysisFrame:initialize()
@@ -2678,6 +2830,11 @@ function TerraLogicFieldAnalysisFrame:showMetricHelp(metric)
         return
     end
 
+    if metric == "surfaceMoisture" or metric == "rootMoisture" then
+        self:showMoistureHelp(metric == "surfaceMoisture" and "surface" or "subsoil")
+        return
+    end
+
     local titleKey, titleFallback, textKey, currentValue
     local profile = TerraLogicSoilMoistureManager ~= nil
         and (TerraLogicSoilMoistureManager.PROFILES[s.profileIndex]
@@ -2685,7 +2842,10 @@ function TerraLogicFieldAnalysisFrame:showMetricHelp(metric)
     local wetOnset = tonumber(profile.wetOnset) or 0.70
     local surfaceCapacity = tonumber(profile.fieldCapacitySurface) or 0.62
     local fieldCapacity = tonumber(profile.fieldCapacitySubsoil) or 0.68
-    local rootWetOnset = math.min(wetOnset + 0.05, 0.84)
+    local h = TerraLogicSoilMoistureManager.HYDRAULICS[s.profileIndex]
+        or TerraLogicSoilMoistureManager.HYDRAULICS[0]
+    local rootWetOnset = h.saturation-.10
+    local dryOnset = h.wilt+.50*(h.fieldCapacity-h.wilt)
 
     if metric == "soilOverall" then
         titleKey, titleFallback = "terraLogic_fa_ui_soilCondition", "Soil condition"
@@ -2754,16 +2914,16 @@ function TerraLogicFieldAnalysisFrame:showMetricHelp(metric)
         textKey = "terraLogic_fa_help_rootGood"
     elseif metric == "surfaceMoisture" then
         titleKey, titleFallback = "terraLogic_fa_ui_surfaceMoisture", "Topsoil moisture"
-        currentValue = formatPercent(s.surfaceMoisture)
-        textKey = s.surfaceMoisture < 0.32
+        currentValue = formatMoisture(s.surfaceMoisture)
+        textKey = s.surfaceMoisture < dryOnset
             and "terraLogic_fa_help_surfaceMoistureDry"
             or s.surfaceMoisture >= wetOnset
                 and "terraLogic_fa_help_surfaceMoistureWet"
                 or "terraLogic_fa_help_surfaceMoistureGood"
     elseif metric == "rootMoisture" then
         titleKey, titleFallback = "terraLogic_fa_ui_rootMoisture", "Root-zone moisture"
-        currentValue = formatPercent(s.subsoilMoisture)
-        textKey = s.subsoilMoisture < fieldCapacity * 0.70
+        currentValue = formatMoisture(s.subsoilMoisture)
+        textKey = s.subsoilMoisture < dryOnset
             and "terraLogic_fa_help_rootMoistureDry"
             or s.subsoilMoisture >= rootWetOnset
                 and "terraLogic_fa_help_rootMoistureWet"
@@ -2840,10 +3000,10 @@ function TerraLogicFieldAnalysisFrame:showMetricHelp(metric)
         textKey = "terraLogic_fa_help_soilSensitivity"
     elseif metric == "tillage" then
         titleKey, titleFallback = "terraLogic_fa_ui_tillageWindow", "Tillage"
-        currentValue = formatPercent(s.surfaceMoisture)
+        currentValue = formatMoisture(s.surfaceMoisture)
         textKey = (s.surfaceFrozen or s.surfaceMoisture >= wetOnset)
             and "terraLogic_fa_help_tillagePoor"
-            or s.surfaceMoisture <= 0.14
+            or s.surfaceMoisture <= h.wilt
                 and "terraLogic_fa_help_tillageWatch"
                 or "terraLogic_fa_help_tillageGood"
     else
@@ -2853,7 +3013,7 @@ function TerraLogicFieldAnalysisFrame:showMetricHelp(metric)
         currentValue = formatPercent(seedbed)
         local tillageQuality = s.surfaceFrozen and 0.10
             or s.surfaceMoisture >= wetOnset and 0.35
-            or s.surfaceMoisture <= 0.14 and 0.62 or 0.92
+            or s.surfaceMoisture <= h.wilt and 0.62 or 0.92
         seedbed = math.min(seedbed, tillageQuality)
         textKey = seedbed >= 0.80
             and "terraLogic_fa_help_seedingGood"
@@ -2901,6 +3061,9 @@ function TerraLogicFieldAnalysisFrame:showMetricHelp(metric)
         TerraLogicI18n.format(tr(valueLabel[1], valueLabel[2]),
             currentValue), tr(textKey, textKey))
     local activeYield = TerraLogicFieldAnalysis.hasActiveYieldCrop(s)
+    if metric == 'surfaceMoisture' or metric == 'rootMoisture' or metric == 'tillage' then
+        body = body .. '\n\n' .. tr('terraLogic_fa_help_volumeMoisture','')
+    end
     if not activeYield and (metric == "yield" or metric == "root"
             or metric == "moisture" or metric == "ledger") then
         body = tr(titleKey, titleFallback) .. "\n\n" .. tr(textKey, textKey)
@@ -2912,6 +3075,9 @@ function TerraLogicFieldAnalysisFrame:showMetricHelp(metric)
                 and "terraLogic_fa_help_yieldMore" or "terraLogic_fa_help_yieldLess", "%.1f%%"), math.abs(delta))
         body = TerraLogicI18n.format(tr(valueLabel[1], valueLabel[2]), currentValue)
             .. "\n\n" .. explanation .. "\n\n" .. tr(textKey, textKey)
+    end
+    if metric == "surfaceTemperature" or metric == "deepTemperature" then
+        body = body .. "\n\n" .. tr("terraLogic_fa_help_temperatureCalendar", "")
     end
     if activeYield and (metric == "yield" or metric == "root"
             or (metric == "moisture" and s.moistureYieldActive)) then
@@ -3525,8 +3691,12 @@ function TerraLogicFieldAnalysisFrame:updateContent()
     end
     setText(self.weather_current, TerraLogicI18n.format("%s  |  %s",
         TerraLogicI18n.formatTemperature(airTemperature), precipitationText))
-    setText(self.weather_surfaceMoisture, formatPercent(s.surfaceMoisture))
-    setText(self.weather_subsoilMoisture, formatPercent(s.subsoilMoisture))
+    setText(self.weather_surfaceMoisture, formatMoisture(s.surfaceMoisture).." | "..
+        moistureBandText(TerraLogicFieldAnalysis:getMoistureAssessment(s, "surface"))
+        ..((s.moistureSource or 0)>0 and " | MS" or ""))
+    setText(self.weather_subsoilMoisture, formatMoisture(s.subsoilMoisture).." | "..
+        moistureBandText(TerraLogicFieldAnalysis:getMoistureAssessment(s, "subsoil"))
+        ..((s.moistureSource or 0)>0 and " | MS" or ""))
     setText(self.weather_surfaceTemperature, TerraLogicI18n.format("%s%s",
         TerraLogicI18n.formatTemperature(s.surfaceTemperatureC), s.surfaceFrozen
             and " - " .. tr("terraLogic_fa_ui_frozen", "frozen") or ""))
@@ -3534,6 +3704,12 @@ function TerraLogicFieldAnalysisFrame:updateContent()
         TerraLogicI18n.formatTemperature(s.subsoilTemperatureC), s.subsoilFrozen
             and " - " .. tr("terraLogic_fa_ui_frozen", "frozen") or ""))
     local initializationHints = {}
+    if (s.moistureSource or 0)>0 then
+        initializationHints[#initializationHints+1]=tr(s.moistureSource==2
+            and "terraLogic_msSourceMixed" or "terraLogic_msSourceNote","")
+    elseif TerraLogicSettings.moistureSource=="moistureSystem" then
+        initializationHints[#initializationHints+1]=tr("terraLogic_msSourceFallback","")
+    end
     if s.temperatureInitializing then
         initializationHints[#initializationHints + 1] = tr(
             "terraLogic_fa_ui_temperatureInitializing",
@@ -3700,9 +3876,18 @@ function TerraLogicFieldAnalysisSyncEvent:writeStream(streamId, connection)
     streamWriteUInt8(streamId, s.growthStage); streamWriteUInt8(streamId, s.profileIndex)
     streamWriteBool(streamId, s.profileMixed)
     streamWriteUInt8(streamId, math.min(tonumber(s.profileMask) or 0, 255))
+    local moistureRows = s.moistureProfiles or {}
+    streamWriteUInt8(streamId, math.min(#moistureRows, 5))
+    for index=1,math.min(#moistureRows, 5) do
+        local row = moistureRows[index]
+        streamWriteUInt8(streamId, row.index)
+        streamWriteFloat32(streamId, row.surface)
+        streamWriteFloat32(streamId, row.subsoil)
+    end
     for _, key in ipairs(TerraLogicFieldAnalysis.SOIL_KEYS) do streamWriteFloat32(streamId, s.soil[key] or 0) end
     for _, key in ipairs(TerraLogicFieldAnalysis.SOIL_KEYS) do streamWriteFloat32(streamId, s.critical[key] or 0) end
     streamWriteFloat32(streamId, s.surfaceMoisture); streamWriteFloat32(streamId, s.subsoilMoisture)
+    streamWriteUIntN(streamId,s.moistureSource or 0,2)
     streamWriteFloat32(streamId, s.surfaceTemperatureC); streamWriteFloat32(streamId, s.subsoilTemperatureC)
     streamWriteBool(streamId, s.surfaceFrozen); streamWriteBool(streamId, s.subsoilFrozen)
     streamWriteBool(streamId, s.temperatureInitializing == true)
@@ -3776,9 +3961,16 @@ function TerraLogicFieldAnalysisSyncEvent:readStream(streamId, connection)
     s.growthStage=streamReadUInt8(streamId); s.profileIndex=streamReadUInt8(streamId)
     s.profileMixed=streamReadBool(streamId)
     s.profileMask=streamReadUInt8(streamId)
+    s.moistureProfiles={}
+    for index=1,streamReadUInt8(streamId) do
+        local row = {index=streamReadUInt8(streamId),
+            surface=streamReadFloat32(streamId), subsoil=streamReadFloat32(streamId)}
+        if index <= 5 then table.insert(s.moistureProfiles, row) end
+    end
     for _, key in ipairs(TerraLogicFieldAnalysis.SOIL_KEYS) do s.soil[key]=streamReadFloat32(streamId) end
     for _, key in ipairs(TerraLogicFieldAnalysis.SOIL_KEYS) do s.critical[key]=streamReadFloat32(streamId) end
     s.surfaceMoisture=streamReadFloat32(streamId); s.subsoilMoisture=streamReadFloat32(streamId)
+    s.moistureSource=streamReadUIntN(streamId,2)
     s.surfaceTemperatureC=streamReadFloat32(streamId); s.subsoilTemperatureC=streamReadFloat32(streamId)
     s.surfaceFrozen=streamReadBool(streamId); s.subsoilFrozen=streamReadBool(streamId)
     s.temperatureInitializing=streamReadBool(streamId)

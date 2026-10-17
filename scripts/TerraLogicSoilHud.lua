@@ -4,8 +4,9 @@ function TerraLogicSoilHud:draw(x,y,alpha,top,deep,scale,textSize,rect)
     local function text(key,fallback)
         return g_i18n and g_i18n:hasText(key) and g_i18n:getText(key) or fallback
     end
-    local labels={text('terraLogic_hudSoilLow','Low'),text('terraLogic_hudSoilModerate','Moderate'),text('terraLogic_hudSoilHigh','High'),text('terraLogic_hudSoilSevere','Severe')}
-    local colors={{0.65,0.88,0.60},{1,0.85,0.30},{1,0.57,0.12},{1,0.28,0.13}}
+    local labels={text('terraLogic_hudSoilLow','Low'),text('terraLogic_hudSoilModerate','Regular'),text('terraLogic_hudSoilHigh','High'),text('terraLogic_hudSoilSevere','Severe')}
+    local c=TerraLogicDisplay.COLORS
+    local colors={c.green,c.yellow,c.orange,c.red}
     local function icon(cx,level,isDeep)
         local c=colors[level] or {0.65,0.68,0.70}
         local function box(px,py,w,h)

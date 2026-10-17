@@ -1664,11 +1664,11 @@ function TerraLogicQualityManager:processCropGrowthCell(
                 response = TerraLogicSoilMoistureManager:
                     getCropYieldResponseForPeriodRange(
                         startPeriod, currentPeriod, soilTypeIndex,
-                        fruitTypeIndex, sampleStage)
+                        fruitTypeIndex, sampleStage, x, z)
             else
                 response = TerraLogicSoilMoistureManager:
                     getCropYieldResponse(
-                        soilTypeIndex, fruitTypeIndex, sampleStage)
+                        soilTypeIndex, fruitTypeIndex, sampleStage, x, z)
             end
             local weight = math.max(tonumber(response.stageWeight) or 0, 0)
             if sampleStage <= completedSteps then
@@ -1789,7 +1789,7 @@ function TerraLogicQualityManager:getGrowthMoistureYieldFactor(
         local completedWeight, totalWeight, weighted = 0, 0, 0
         for stage = 1, self.PLOW_GROWTH_STAGES do
             local response = TerraLogicSoilMoistureManager:
-                getCropYieldResponse(soilTypeIndex, fruitTypeIndex, stage)
+                getCropYieldResponse(soilTypeIndex, fruitTypeIndex, stage, x, z)
             local weight = math.max(tonumber(response.stageWeight) or 0, 0)
             totalWeight = totalWeight + weight
             if stage <= steps then
@@ -3122,7 +3122,7 @@ function TerraLogicQualityManager:getPreviewMoistureFactor(ix, iz, cell)
     if steps > 0 and cell.moistureYieldAverage ~= nil then
         local completed, total, future = 0, 0, 0
         for stage=1,self.PLOW_GROWTH_STAGES do
-            local response = TerraLogicSoilMoistureManager:getCropYieldResponse(soil, fruit, stage)
+            local response = TerraLogicSoilMoistureManager:getCropYieldResponse(soil, fruit, stage, x, z)
             local weight = math.max(tonumber(response.stageWeight) or 0, 0)
             total = total + weight
             if stage <= steps then completed = completed + weight
@@ -3132,7 +3132,7 @@ function TerraLogicQualityManager:getPreviewMoistureFactor(ix, iz, cell)
             or cell.moistureYieldAverage
     end
     local stage = self:getSemanticPlowGrowthStage(fruit, growth, nil)
-    local response = TerraLogicSoilMoistureManager:getCropYieldResponse(soil, fruit, stage)
+    local response = TerraLogicSoilMoistureManager:getCropYieldResponse(soil, fruit, stage, x, z)
     return response ~= nil and response.factor or 1
 end
 

@@ -18,8 +18,8 @@ TerraLogicWheelCompactionManager = {
     -- The deep layer represents the worked subsoil around 35 cm.  A simple
     -- 2:1 load-spread approximation expands the loaded tyre width by roughly
     -- one reference depth at that horizon.  This width is used only for the
-    -- fraction of a two-metre storage cell that was stressed; axle load still
-    -- owns the target and strength of the local compaction response.
+    -- fraction of a two-metre storage cell that was stressed. Target/strength
+    -- come from TerraLogicDeepStress using the complete loaded footprint.
     DEEP_REFERENCE_DEPTH_M = 0.35,
     DEEP_WIDTH_SPREAD_PER_DEPTH = 1.00,
     SLIP_REPEAT_MS = 1400,
@@ -448,25 +448,6 @@ local function getSurfaceImpact(pressureKPa, slip)
         lowPressureResponse
 end
 
-local function getDeepImpact(axleLoadT)
-    -- Subsoil stress has no physical step at 5 t. Wheel/axle load studies use
-    -- that region as a risk limit, not as a zero-effect boundary. A quadratic
-    -- load term keeps compact tractors useful while allowing repeated light
-    -- passes to accumulate very slowly. The target describes the eventual
-    -- equilibrium under repeated traffic; strength is deliberately much
-    -- lower because every physical axle of a vehicle train crosses the same
-    -- soil. The old 0.42 peak strength was calibrated while left/right wheels
-    -- were accidentally treated as separate axles. With correctly combined
-    -- axle loads it could remove roughly 10-18 quality points in one ordinary
-    -- drilling pass.
-    local loadRatio = clamp((tonumber(axleLoadT) or 0) / 12, 0, 1.25)
-    if loadRatio <= 0 then return nil, nil end
-    local target = 0.25 + 0.16 * loadRatio
-        + 0.55 * loadRatio ^ 1.70
-    local strength = 0.008 + 0.15 * loadRatio ^ 1.50
-    return clamp01(target), clamp01(strength)
-end
-
 local function getCell(x, z, size)
     size = tonumber(size) or TerraLogicSoilManager.WHEEL_CELL_SIZE or 1
     local ix = math.floor(x / size)
@@ -831,7 +812,7 @@ function TerraLogicWheelCompactionManager:getLoadPreview(vehicle)
         if result.massT > 100 then result.massT = result.massT / 1000 end
     end
     if wheels == nil or rootNode == nil then return result end
-    local axleSamples, footprintSamples = {}, {}
+    local footprintSamples = {}
     for wheelIndex, wheel in pairs(wheels) do
         local loadT = getTireLoad(wheel)
         if loadT >= self.MIN_WHEEL_LOAD_T then
@@ -854,7 +835,6 @@ function TerraLogicWheelCompactionManager:getLoadPreview(vehicle)
                 contactLength=contactLength, tireCount=tireCount,
                 diameter=diameter
             }
-            axleSamples[#axleSamples + 1] = sample
             footprintSamples[#footprintSamples + 1] = sample
             result.supportedLoadT = result.supportedLoadT + loadT
             result.wheelCount = result.wheelCount + 1
@@ -877,7 +857,7 @@ function TerraLogicWheelCompactionManager:getLoadPreview(vehicle)
             tonumber(footprint.pressure) or 0)
         pressureSum = pressureSum + (tonumber(footprint.pressure) or 0)
     end
-    for _, axle in ipairs(buildAxleGroups(axleSamples)) do
+    for _, axle in ipairs(buildAxleGroups(effectiveFootprints)) do
         result.axleCount = result.axleCount + 1
         result.maxAxleLoadT = math.max(
             result.maxAxleLoadT, axle.loadT or 0)
@@ -900,13 +880,14 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
     if vehicleState == nil then
         vehicleState = {
             wheels=setmetatable({}, {__mode="k"}),
-            deepWheels=setmetatable({}, {__mode="k"}),
+            deepWheels=setmetatable({}, {__mode="k"}), deepModules={},
             trackModules={}, axles={}
         }
         self.vehicleStates[vehicle] = vehicleState
     end
     vehicleState.deepWheels = vehicleState.deepWheels
         or setmetatable({}, {__mode="k"})
+    vehicleState.deepModules = vehicleState.deepModules or {}
     vehicleState.trackModules = vehicleState.trackModules or {}
 
     -- A soil-working implement profile already describes the net result left
@@ -1026,6 +1007,8 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
             module.structureCellKey = getCell(
                 module.x, module.z, self.STRUCTURE_CELL_SIZE_M)
         module.deepStressWidth = getDeepStressWidth(module.width)
+        module.deepIx, module.deepIz, module.deepCellKey = getCell(
+            module.x, module.z, self.DEEP_CELL_SIZE_M)
         surfaceObservations[#surfaceObservations + 1] = module
     end
     local unmatchedCrawlerCount = 0
@@ -1047,7 +1030,7 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
     -- Build physical axles only after all stable wheel-carrier positions are
     -- known.  This prevents steered contact patches from turning one front
     -- axle into two artificial half-axles during tight turns.
-    axles = buildAxleGroups(observations)
+    axles = buildAxleGroups(surfaceObservations)
 
     -- Resolve physical axle load once before processing the independent wheel
     -- tracks. This preserves the correct subsoil load while preventing one
@@ -1055,7 +1038,9 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
     local axleLoads, axleLocalPositions, axlePositionSpreads = {}, {}, {}
     for axleIndex, axle in ipairs(axles) do
         axleCount = axleCount + 1
-        axle.deepTarget, axle.deepStrength = getDeepImpact(axle.loadT)
+        axle.deepTarget, axle.deepStrength, axle.deepStressKPa,
+            axle.deepEquivalentAxleT = TerraLogicDeepStress:getGroupImpact(
+                axleIndex, surfaceObservations, getFootprint)
         maxAxleLoad = math.max(maxAxleLoad, axle.loadT)
         maxDeepTarget = math.max(maxDeepTarget, axle.deepTarget or 0)
         maxDeepStrength = math.max(maxDeepStrength, axle.deepStrength or 0)
@@ -1245,16 +1230,18 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
         wheelState.sampleTime = now
     end
 
-    -- Deep stress deliberately keeps GIANTS' individual crawler load points.
-    -- A belt spreads topsoil pressure over its complete footprint, but its
-    -- guide wheels still transfer load into the subsoil at distinct positions.
-    -- Combining the whole belt into one artificial axle would overstate deep
-    -- compaction on two-track tractors and combines.
-    for _, observation in ipairs(observations) do
-        local deepState = vehicleState.deepWheels[observation.wheel]
+    -- Use the same physical belts as surface pressure, but their subsoil
+    -- stress profile retains support peaks in TerraLogicDeepStress. One belt
+    -- crossing must not generate two independent compacting axle passages.
+    for _, observation in ipairs(surfaceObservations) do
+        local states = observation.members ~= nil and vehicleState.deepModules
+            or vehicleState.deepWheels
+        local stateKey = observation.members ~= nil and observation.key
+            or observation.wheel
+        local deepState = states[stateKey]
         if deepState == nil then
             deepState = {deepCellKey=nil, sampleTime=nil, x=nil, z=nil}
-            vehicleState.deepWheels[observation.wheel] = deepState
+            states[stateKey] = deepState
         end
         resetDiscontinuousWheelSample(deepState,
             observation.x, observation.z, now, speed)
@@ -1274,6 +1261,9 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
                     "deepAxle" .. tostring(observation.axleKey))
                 impact.deepTarget = axle.deepTarget
                 impact.deepStrength = axle.deepStrength
+                impact.deepStressModel = true
+                impact.deepStressKPa = axle.deepStressKPa
+                impact.deepEquivalentAxleT = axle.deepEquivalentAxleT
                 impact.deepCoverage = clamp01(
                     (tonumber(impact.deepCoverage) or 0) + coverage)
                 impact.deepCoveredWidthM = math.max(
@@ -1367,11 +1357,7 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
         local changed, detail = TerraLogicSoilManager:applyWheelCompactionCell(
             impact.ix, impact.iz, impact)
         if detail ~= nil then
-            TerraLogicTrafficWarnings:accumulate(trafficStatus, detail)
-            if trafficWarningLevel < 3 then
-                trafficWarningLevel = math.max(trafficWarningLevel,
-                    TerraLogicTrafficWarnings:getImpactLevel(detail))
-            end
+            TerraLogicTrafficWarnings:accumulateReference(trafficStatus, detail, vehicle, now)
             if lastImpact == nil
                 or detail.workingImplementSurfaceSuppressed == true
                 or detail.structurePass == true
@@ -1643,7 +1629,7 @@ function TerraLogicWheelCompactionManager:getDiagnosticText(vehicle)
         local moisture = TerraLogicSoilMoistureManager:getStateAtWorldPosition(
             diagnostic.firstX or 0, diagnostic.firstZ or 0)
         local surfaceMultiplier, deepMultiplier =
-            TerraLogicSoilMoistureManager:getTrafficMultipliers(soilType)
+            TerraLogicSoilMoistureManager:getTrafficMultipliers(soilType, diagnostic.firstX, diagnostic.firstZ)
         moistureText = string.format("%s %.1f/%.1f %% -> traffic x%.3f/x%.3f",
             moisture.profileName, moisture.surface * 100,
             moisture.subsoil * 100, surfaceMultiplier, deepMultiplier)

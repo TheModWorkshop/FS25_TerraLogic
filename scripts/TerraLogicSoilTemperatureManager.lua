@@ -7,23 +7,22 @@
     thaw pulses; merely remaining frozen never repeats the benefit.
 
     The upper value represents the thermally active seedbed near 10 cm.  Its
-    eight-hour first-order response reproduces the approximate daily damping
+    eight-hour reference response reproduces the approximate daily damping
     expected from the one-dimensional heat equation at a representative soil
     diffusivity of 0.5e-6 m2/s (daily damping depth about 11.7 cm).
 
     The lower value represents the 15-60 cm working/root zone near 35 cm.
-    Daily oscillation there is small, so it follows a game-day mean boundary.
-    A four-day response combined with the daily/climate filters produces about
-    8.8 days of annual phase lag and 0.856 amplitude at that depth, closely
-    matching conductive theory.  Slow seasonal transport is scaled by calendar
-    compression; the upper daily response is not, preserving a realistic
-    day/night cycle.
+    It follows a continuous filtered boundary rather than waiting for midnight.
+    Both layers use a thermal clock scaled by 28 / days per month. This is a
+    deliberate compressed-calendar approximation, not a full heat equation.
+    Frozen hours use the same clock, while completed loosening impulses are
+    divided by days per month. Hysteresis remains; there is no cycle-count cap.
 ]]
 
 TerraLogicSoilTemperatureManager = {
     SOURCE_FINGERPRINT = 1.200223,
     SAVE_FILE = "terraLogicSoilTemperature.xml",
-    SAVE_VERSION = 2,
+    SAVE_VERSION = 3,
 
     SURFACE_DEPTH_CM = 10,
     SUBSOIL_DEPTH_CM = 35,
@@ -32,20 +31,18 @@ TerraLogicSoilTemperatureManager = {
     SUBSOIL_TAU_CLIMATE_DAYS = 4,
     CLIMATE_MEAN_TAU_DAYS = 120,
     SUBSOIL_SEASONAL_AMPLITUDE = 0.82,
-    NOMINAL_DAYS_PER_PERIOD = 30,
+    NOMINAL_DAYS_PER_PERIOD = 28,
+    MAX_THERMAL_STEP_HOURS = 0.25,
     SPINUP_CLIMATE_DAYS = 30,
 
     SURFACE_FREEZE_ENTER_C = -0.50,
     SURFACE_THAW_EXIT_C = 0.75,
-    SURFACE_MIN_FROZEN_HOURS = 6,
     SURFACE_REFERENCE_FROZEN_HOURS = 36,
     SURFACE_REFERENCE_COLD_C = 5.5,
     SUBSOIL_FREEZE_ENTER_C = -0.25,
     SUBSOIL_THAW_EXIT_C = 0.50,
-    SUBSOIL_MIN_FROZEN_HOURS = 18,
     SUBSOIL_REFERENCE_FROZEN_HOURS = 120,
     SUBSOIL_REFERENCE_COLD_C = 3.75,
-    MAX_PENDING_THAW_PULSE = 2,
 
     MIN_TEMPERATURE_C = -50,
     MAX_TEMPERATURE_C = 60,
@@ -232,12 +229,19 @@ function TerraLogicSoilTemperatureManager:load()
                         root .. "#surfaceFreezeMinimumC"), self.surfaceTemperatureC)
                     self.subsoilFreezeMinimumC = clampTemperature(getXMLFloat(xml,
                         root .. "#subsoilFreezeMinimumC"), self.subsoilTemperatureC)
-                    self.pendingSurfaceThawPulse = math.max(0, math.min(
-                        tonumber(getXMLFloat(xml, root .. "#pendingSurfaceThawPulse")) or 0,
-                        self.MAX_PENDING_THAW_PULSE))
-                    self.pendingDeepThawPulse = math.max(0, math.min(
-                        tonumber(getXMLFloat(xml, root .. "#pendingDeepThawPulse")) or 0,
-                        self.MAX_PENDING_THAW_PULSE))
+                    self.pendingSurfaceThawPulse = math.max(0,
+                        tonumber(getXMLFloat(xml, root .. "#pendingSurfaceThawPulse")) or 0)
+                    self.pendingDeepThawPulse = math.max(0,
+                        tonumber(getXMLFloat(xml, root .. "#pendingDeepThawPulse")) or 0)
+                    if version < 3 then
+                        -- v2 stored actual game hours and unweighted pulses.
+                        local days = math.max(self:getDaysPerPeriod(), 1)
+                        local scale = math.max(1, self.NOMINAL_DAYS_PER_PERIOD/days)
+                        self.surfaceFrozenHours = self.surfaceFrozenHours*scale
+                        self.subsoilFrozenHours = self.subsoilFrozenHours*scale
+                        self.pendingSurfaceThawPulse = self.pendingSurfaceThawPulse/days
+                        self.pendingDeepThawPulse = self.pendingDeepThawPulse/days
+                    end
                     self.surfaceFreezeThawCycles = math.max(0, math.floor(
                         tonumber(getXMLFloat(xml, root .. "#surfaceFreezeThawCycles")) or 0))
                     self.deepFreezeThawCycles = math.max(0, math.floor(
@@ -320,7 +324,7 @@ function TerraLogicSoilTemperatureManager:save()
 end
 
 local function updateFreezeLayer(manager, prefix, temperatureC, elapsedHours,
-        freezeEnterC, thawExitC, minimumHours, referenceHours,
+        freezeEnterC, thawExitC, referenceHours,
         referenceColdC, pendingKey, cycleKey)
     local frozenKey = prefix .. "Frozen"
     local hoursKey = prefix .. "FrozenHours"
@@ -339,23 +343,26 @@ local function updateFreezeLayer(manager, prefix, temperatureC, elapsedHours,
         return
     end
 
-    manager[hoursKey] = math.max(tonumber(manager[hoursKey]) or 0, 0)
-        + elapsedHours
+    -- The thawing slice is not counted as an extra frozen interval.
+    if temperatureC < thawExitC then
+        manager[hoursKey] = math.max(tonumber(manager[hoursKey]) or 0, 0)
+            + elapsedHours
+    end
     manager[minimumKey] = math.min(
         tonumber(manager[minimumKey]) or temperatureC, temperatureC)
     if temperatureC < thawExitC then return end
 
     local frozenHours = manager[hoursKey]
     local minimumC = manager[minimumKey]
-    local durationStrength = smoothStep01(
-        (frozenHours - minimumHours)
-            / math.max(referenceHours - minimumHours, 0.001))
+    local durationStrength = 1-math.exp(-frozenHours/math.max(referenceHours, 0.001))
     local coldStrength = smoothStep01(
         (freezeEnterC - minimumC) / math.max(referenceColdC, 0.001))
-    local pulse = durationStrength * coldStrength
-    manager[pendingKey] = math.min(
-        (tonumber(manager[pendingKey]) or 0) + pulse,
-        manager.MAX_PENDING_THAW_PULSE)
+    local rawPulse = durationStrength * coldStrength
+    local pulse = rawPulse
+        / math.max(tonumber(manager.daysPerPeriod) or manager.NOMINAL_DAYS_PER_PERIOD, 1)
+    manager[pendingKey] = (tonumber(manager[pendingKey]) or 0) + pulse
+    local logger=TerraLogicWeatherLogger
+    if logger ~= nil and logger.active then logger:recordThawGenerated(prefix,rawPulse,pulse) end
     manager[cycleKey] = (tonumber(manager[cycleKey]) or 0) + 1
     manager[frozenKey] = false
     manager[hoursKey] = 0
@@ -363,16 +370,14 @@ local function updateFreezeLayer(manager, prefix, temperatureC, elapsedHours,
     manager.frostRevision = (manager.frostRevision or 0) + 1
 end
 
-function TerraLogicSoilTemperatureManager:updateFreezeThaw(gameHours)
-    updateFreezeLayer(self, "surface", self.surfaceTemperatureC, gameHours,
+function TerraLogicSoilTemperatureManager:updateFreezeThaw(thermalHours)
+    updateFreezeLayer(self, "surface", self.surfaceTemperatureC, thermalHours,
         self.SURFACE_FREEZE_ENTER_C, self.SURFACE_THAW_EXIT_C,
-        self.SURFACE_MIN_FROZEN_HOURS,
         self.SURFACE_REFERENCE_FROZEN_HOURS,
         self.SURFACE_REFERENCE_COLD_C,
         "pendingSurfaceThawPulse", "surfaceFreezeThawCycles")
-    updateFreezeLayer(self, "subsoil", self.subsoilTemperatureC, gameHours,
+    updateFreezeLayer(self, "subsoil", self.subsoilTemperatureC, thermalHours,
         self.SUBSOIL_FREEZE_ENTER_C, self.SUBSOIL_THAW_EXIT_C,
-        self.SUBSOIL_MIN_FROZEN_HOURS,
         self.SUBSOIL_REFERENCE_FROZEN_HOURS,
         self.SUBSOIL_REFERENCE_COLD_C,
         "pendingDeepThawPulse", "deepFreezeThawCycles")
@@ -384,6 +389,8 @@ function TerraLogicSoilTemperatureManager:consumeFreezeThawPulses()
     local surface = math.max(tonumber(self.pendingSurfaceThawPulse) or 0, 0)
     local deep = math.max(tonumber(self.pendingDeepThawPulse) or 0, 0)
     if surface > 0 or deep > 0 then
+        local logger=TerraLogicWeatherLogger
+        if logger ~= nil and logger.active then logger:recordThawConsumed(surface,deep) end
         self.pendingSurfaceThawPulse = 0
         self.pendingDeepThawPulse = 0
         self.frostRevision = (self.frostRevision or 0) + 1
@@ -427,10 +434,8 @@ function TerraLogicSoilTemperatureManager:applyNetworkState(
         surfaceFreezeMinimumC, self.surfaceTemperatureC)
     self.subsoilFreezeMinimumC = clampTemperature(
         subsoilFreezeMinimumC, self.subsoilTemperatureC)
-    self.pendingSurfaceThawPulse = math.max(0, math.min(
-        tonumber(pendingSurfaceThawPulse) or 0, self.MAX_PENDING_THAW_PULSE))
-    self.pendingDeepThawPulse = math.max(0, math.min(
-        tonumber(pendingDeepThawPulse) or 0, self.MAX_PENDING_THAW_PULSE))
+    self.pendingSurfaceThawPulse = math.max(0, tonumber(pendingSurfaceThawPulse) or 0)
+    self.pendingDeepThawPulse = math.max(0, tonumber(pendingDeepThawPulse) or 0)
     self.surfaceFreezeThawCycles = math.max(0,
         tonumber(surfaceFreezeThawCycles) or 0)
     self.deepFreezeThawCycles = math.max(0,
@@ -502,62 +507,32 @@ function TerraLogicSoilTemperatureManager:update(dt)
         self.calendarScale = math.max(
             1, math.min(self.calendarScale, 30))
 
-        self.surfaceTemperatureC = clampTemperature(
-            approachExponential(
-                self.surfaceTemperatureC,
-                airTemperature,
-                gameHours,
-                self.SURFACE_TAU_HOURS),
-            airTemperature)
-
-        -- Average the actual air boundary over one complete game day.  Slow
-        -- conduction is advanced only with that mean, so a short FS calendar
-        -- does not turn the day/night wave into a fictitious monthly heat wave.
-        local remainingHours = gameHours
-        while remainingHours > 0.000001 do
-            local availableHours = self.DAILY_WINDOW_HOURS
-                - self.dailyTemperatureHours
-            local sliceHours = math.min(remainingHours, availableHours)
-            self.dailyTemperatureWeightedSum =
-                self.dailyTemperatureWeightedSum
-                    + airTemperature * sliceHours
-            self.dailyTemperatureHours = self.dailyTemperatureHours
-                + sliceHours
-            remainingHours = remainingHours - sliceHours
-            if self.dailyTemperatureHours
-                >= self.DAILY_WINDOW_HOURS - 0.000001 then
-                self.dailyMeanTemperatureC = clampTemperature(
-                    self.dailyTemperatureWeightedSum
-                        / math.max(self.dailyTemperatureHours, 0.0001),
-                    airTemperature)
-                local climateHours = self.DAILY_WINDOW_HOURS
-                    * self.calendarScale
-                self.climateMeanTemperatureC = clampTemperature(
-                    approachExponential(
-                        self.climateMeanTemperatureC,
-                        self.dailyMeanTemperatureC,
-                        climateHours,
-                        self.CLIMATE_MEAN_TAU_DAYS * 24),
-                    self.dailyMeanTemperatureC)
-                local subsoilTarget = self.climateMeanTemperatureC
-                    + self.SUBSOIL_SEASONAL_AMPLITUDE
-                    * (self.dailyMeanTemperatureC
-                        - self.climateMeanTemperatureC)
-                self.subsoilTemperatureC = clampTemperature(
-                    approachExponential(
-                        self.subsoilTemperatureC,
-                        subsoilTarget,
-                        climateHours,
-                        self.SUBSOIL_TAU_CLIMATE_DAYS * 24),
-                    subsoilTarget)
-                self.spinupClimateDays = self.spinupClimateDays
-                    + climateHours / 24
-                self.dailyTemperatureWeightedSum = 0
-                self.dailyTemperatureHours = 0
-            end
+        -- One shared thermal clock: 28-day months run at the reference pace;
+        -- a one-day month advances thermal time 28 times faster. Continuous
+        -- filters replace the old midnight batch. Substeps keep high time
+        -- scales and normal play consistent, including frost transitions.
+        local remainingHours = gameHours*self.calendarScale
+        while remainingHours > 0.0000001 do
+            local hours = math.min(remainingHours, self.MAX_THERMAL_STEP_HOURS)
+            remainingHours = remainingHours-hours
+            self.surfaceTemperatureC = approachExponential(self.surfaceTemperatureC,
+                airTemperature, hours, self.SURFACE_TAU_HOURS)
+            self.dailyMeanTemperatureC = approachExponential(self.dailyMeanTemperatureC,
+                airTemperature, hours, self.DAILY_WINDOW_HOURS)
+            self.climateMeanTemperatureC = approachExponential(self.climateMeanTemperatureC,
+                self.dailyMeanTemperatureC, hours, self.CLIMATE_MEAN_TAU_DAYS*24)
+            local subsoilTarget = self.climateMeanTemperatureC
+                + self.SUBSOIL_SEASONAL_AMPLITUDE
+                * (self.dailyMeanTemperatureC-self.climateMeanTemperatureC)
+            self.subsoilTemperatureC = approachExponential(self.subsoilTemperatureC,
+                subsoilTarget, hours, self.SUBSOIL_TAU_CLIMATE_DAYS*24)
+            self:updateFreezeThaw(hours)
+            local logger=TerraLogicWeatherLogger
+            if logger ~= nil and logger.active then logger:recordThermalStep(hours,self) end
         end
+        self.spinupClimateDays = self.spinupClimateDays+gameHours*self.calendarScale/24
+        self.dailyTemperatureWeightedSum, self.dailyTemperatureHours = 0, 0
         self.simulatedGameHours = self.simulatedGameHours + gameHours
-        self:updateFreezeThaw(gameHours)
     end
 
     self.syncTimerMs = (tonumber(self.syncTimerMs) or 0) - realDtMs

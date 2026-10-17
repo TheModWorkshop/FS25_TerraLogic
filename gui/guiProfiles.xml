@@ -1,5 +1,9 @@
 <?xml version='1.0' encoding='utf-8'?>
 <GUIProfiles>
+    <Profile name="terraLogicMoistureStripe" extends="baseReference" with="anchorTopLeft pivotTopLeft">
+        <imageSliceId value="noSlice" />
+        <imageColor value="0.075 0.075 0.075 1" />
+    </Profile>
     <Profile name="terraLogicAnalysisMainContainer" extends="fs25_menuContainer" with="anchorMiddleLeft">
         <position value="134px -0.03" />
     </Profile>

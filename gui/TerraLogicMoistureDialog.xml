@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<GUI onOpen="onOpen" onClose="onClose">
+    <GuiElement profile="newLayer" />
+    <Bitmap profile="dialogFullscreenBg" />
+    <GuiElement profile="leaseDialogBg" width="1000px" height="560px" id="moisturePanel">
+        <ThreePartBitmap profile="fs25_dialogBgMiddle" />
+        <ThreePartBitmap profile="fs25_dialogBgTop" />
+        <ThreePartBitmap profile="fs25_dialogBgBottom" />
+        <GuiElement profile="terraLogicAnalysisCard" position="40px -28px" size="920px 460px">
+            <Text profile="terraLogicAnalysisCardHeader" position="0px 0px" size="920px 30px" id="moistureTitle" />
+            <Text profile="terraLogicAnalysisLabel" position="0px -38px" size="920px 28px" id="moistureSummary" />
+            <Text profile="terraLogicAnalysisNote" position="0px -76px" size="920px 38px" text="$l10n_terraLogic_fa_moistureIntro" id="moistureIntro" />
+            <Text profile="terraLogicAnalysisLabel" position="10px -120px" size="300px 30px" text="$l10n_terraLogic_fa_moistureSoil" />
+            <Text profile="terraLogicAnalysisLabel" position="320px -120px" size="170px 30px" text="$l10n_terraLogic_fa_moistureCurrent" />
+            <Text profile="terraLogicAnalysisLabel" position="500px -120px" size="240px 30px" text="$l10n_terraLogic_fa_moistureNormalRange" />
+            <Text profile="terraLogicAnalysisLabel" position="750px -120px" size="160px 30px" text="$l10n_terraLogic_fa_moistureAssessment" />
+            <GuiElement profile="terraLogicAnalysisCard" position="0px -156px" size="920px 40px" id="moistureRows[1]">
+                <Bitmap profile="terraLogicMoistureStripe" size="920px 40px" id="moistureStripes[1]" />
+                <Text profile="terraLogicAnalysisLabel" position="10px 0px" size="300px 40px" id="moistureSoils[1]" />
+                <Text profile="terraLogicAnalysisLabel" position="320px 0px" size="170px 40px" id="moistureValues[1]" />
+                <Text profile="terraLogicAnalysisLabel" position="500px 0px" size="240px 40px" id="moistureRanges[1]" />
+                <Text profile="terraLogicAnalysisLabel" position="750px 0px" size="160px 40px" id="moistureBands[1]" />
+            </GuiElement>
+            <GuiElement profile="terraLogicAnalysisCard" position="0px -198px" size="920px 40px" id="moistureRows[2]">
+                <Bitmap profile="terraLogicMoistureStripe" size="920px 40px" imageColor="0.05 0.05 0.05 1" id="moistureStripes[2]" />
+                <Text profile="terraLogicAnalysisLabel" position="10px 0px" size="300px 40px" id="moistureSoils[2]" />
+                <Text profile="terraLogicAnalysisLabel" position="320px 0px" size="170px 40px" id="moistureValues[2]" />
+                <Text profile="terraLogicAnalysisLabel" position="500px 0px" size="240px 40px" id="moistureRanges[2]" />
+                <Text profile="terraLogicAnalysisLabel" position="750px 0px" size="160px 40px" id="moistureBands[2]" />
+            </GuiElement>
+            <GuiElement profile="terraLogicAnalysisCard" position="0px -240px" size="920px 40px" id="moistureRows[3]">
+                <Bitmap profile="terraLogicMoistureStripe" size="920px 40px" id="moistureStripes[3]" />
+                <Text profile="terraLogicAnalysisLabel" position="10px 0px" size="300px 40px" id="moistureSoils[3]" />
+                <Text profile="terraLogicAnalysisLabel" position="320px 0px" size="170px 40px" id="moistureValues[3]" />
+                <Text profile="terraLogicAnalysisLabel" position="500px 0px" size="240px 40px" id="moistureRanges[3]" />
+                <Text profile="terraLogicAnalysisLabel" position="750px 0px" size="160px 40px" id="moistureBands[3]" />
+            </GuiElement>
+            <GuiElement profile="terraLogicAnalysisCard" position="0px -282px" size="920px 40px" id="moistureRows[4]">
+                <Bitmap profile="terraLogicMoistureStripe" size="920px 40px" imageColor="0.05 0.05 0.05 1" id="moistureStripes[4]" />
+                <Text profile="terraLogicAnalysisLabel" position="10px 0px" size="300px 40px" id="moistureSoils[4]" />
+                <Text profile="terraLogicAnalysisLabel" position="320px 0px" size="170px 40px" id="moistureValues[4]" />
+                <Text profile="terraLogicAnalysisLabel" position="500px 0px" size="240px 40px" id="moistureRanges[4]" />
+                <Text profile="terraLogicAnalysisLabel" position="750px 0px" size="160px 40px" id="moistureBands[4]" />
+            </GuiElement>
+            <GuiElement profile="terraLogicAnalysisCard" position="0px -324px" size="920px 40px" id="moistureRows[5]">
+                <Bitmap profile="terraLogicMoistureStripe" size="920px 40px" id="moistureStripes[5]" />
+                <Text profile="terraLogicAnalysisLabel" position="10px 0px" size="300px 40px" id="moistureSoils[5]" />
+                <Text profile="terraLogicAnalysisLabel" position="320px 0px" size="170px 40px" id="moistureValues[5]" />
+                <Text profile="terraLogicAnalysisLabel" position="500px 0px" size="240px 40px" id="moistureRanges[5]" />
+                <Text profile="terraLogicAnalysisLabel" position="750px 0px" size="160px 40px" id="moistureBands[5]" />
+            </GuiElement>
+            <Text profile="terraLogicAnalysisNote" position="0px -384px" size="920px 74px" text="$l10n_terraLogic_fa_moistureGuide" id="moistureGuide" />
+        </GuiElement>
+        <BoxLayout profile="fs25_dialogButtonBox">
+            <Button profile="buttonYes" text="$l10n_button_ok" onClick="onClickOk" />
+        </BoxLayout>
+    </GuiElement>
+</GUI>
