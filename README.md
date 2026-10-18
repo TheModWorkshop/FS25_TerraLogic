@@ -6,6 +6,10 @@ Machinery and soil influence one another. Implement type, working depth, speed, 
 
 The aim is to make different equipment and farming systems useful in different situations. Conventional tillage, reduced tillage and direct drilling each have advantages and trade-offs. Good soil conditions and careful work can produce **up to 10% more yield** than the same field would deliver under otherwise identical conditions without TerraLogic.
 
+## Acknowledgements
+
+Thanks to **astro80** for providing Italian translations!
+
 ## At a glance
 
 - Five persistent soil maps: surface compaction, deep compaction, tilth, evenness and resilience.

@@ -1,7 +1,7 @@
 -- Local nonmodal learning cards. No input-context replacement or density scans.
 TerraLogicTutorialManager = {SOURCE_FINGERPRINT=1.200276, SAVE_VERSION=4}
 local M=TerraLogicTutorialManager
-local function tr(de,en) return g_languageShort=="de" and de or en end
+local function tr(key) return g_i18n:getText(key) end
 local function vehicle()
     return g_localPlayer and g_localPlayer.getCurrentVehicle and g_localPlayer:getCurrentVehicle() or nil
 end
@@ -453,13 +453,13 @@ function M:bindingText(action)
             if #keys>0 then return table.concat(keys," + ") end
         end
     end
-    return tr("siehe Steuerungshilfe / Belegung","see input help / bindings")
+    return tr("tutorial.ui.01")
 end
 function M:buildLayout()
     if not self.current then return end
     local scale=tostring(g_screenWidth)..":"..tostring(g_screenHeight)..":"..tostring(g_languageShort)
     if self.layout and self.layout.scale==scale then return end
-    local content=self.current[g_languageShort=="de" and "de" or "en"]
+    local content=TerraLogicTutorialLessons.getContent(self.current)
     local size=.015
     local lineHeight=.020
     local maxLines=12
@@ -565,12 +565,11 @@ function M:draw()
     self:drawBackground(x,y,w,h)
     self.buttons={}
     setTextAlignment(RenderText.ALIGN_LEFT); setTextBold(false); setTextColor(.78,.78,.78,1)
-    local groups=g_languageShort=="de" and {"GRUNDLAGEN","FELDARBEIT","WETTER","BODENLEBEN","ERTRAG UND HILFE"}
-        or {"BASICS","FIELDWORK","WEATHER","SOIL LIFE","YIELD AND HELP"}
+    local groups={tr("tutorial.group.1"),tr("tutorial.group.2"),tr("tutorial.group.3"),tr("tutorial.group.4"),tr("tutorial.group.5")}
     if self.libraryIndex then
-        renderText(x+.015,y+h-.03,.014,tr("TERRALOGIC · THEMEN","TERRALOGIC · TOPICS"))
+        renderText(x+.015,y+h-.03,.014,tr("tutorial.ui.02"))
         setTextColor(1,1,1,1); setTextBold(true)
-        renderText(x+.015,y+h-.062,.02,tr("Was möchtest du nachlesen?","What would you like to learn?"))
+        renderText(x+.015,y+h-.062,.02,tr("tutorial.ui.03"))
         setTextBold(false)
         -- Two-column index: groups on the left, directly selectable topics on the right.
         for i,name in ipairs(groups) do
@@ -591,22 +590,21 @@ function M:draw()
         local pages=math.max(1,math.ceil(#items/8))
         self.libraryPage=math.min(self.libraryPage or 1,pages)
         setTextColor(.8,.8,.8,1)
-        renderText(x+.12,y+h-.099,.012,string.format(tr("%d von %d gelesen","%d of %d read"),read,#items))
+        renderText(x+.12,y+h-.099,.012,string.format(tr("tutorial.ui.04"),read,#items))
         for row=1,8 do
             local item=items[(self.libraryPage-1)*8+row]
             if item then
-                local content=item[g_languageShort=="de" and "de" or "en"]
-                self:drawButton(content.title,x+.12,y+h-.137-(row-1)*.033,.213,.030,
-                    "selectLesson",item.id,true,self.seen[item.id] and tr("Gelesen","Read") or "")
+                local title=tr(item.titleKey)
+                self:drawButton(title,x+.12,y+h-.137-(row-1)*.033,.213,.030,
+                    "selectLesson",item.id,true,self.seen[item.id] and tr("tutorial.ui.05") or "")
             end
         end
-        if self.libraryPage>1 then self:drawButton(tr("Zurück","Back"),x+.12,y+.042,.065,.027,"changeLibraryPage",-1) end
-        if self.libraryPage<pages then self:drawButton(tr("Weiter","Next"),x+.268,y+.042,.065,.027,"changeLibraryPage",1) end
+        if self.libraryPage>1 then self:drawButton(tr("tutorial.ui.06"),x+.12,y+.042,.065,.027,"changeLibraryPage",-1) end
+        if self.libraryPage<pages then self:drawButton(tr("tutorial.ui.07"),x+.268,y+.042,.065,.027,"changeLibraryPage",1) end
         setTextColor(.8,.8,.8,1)
         renderText(x+.213,y+.050,.012,string.format("%d / %d",self.libraryPage,pages))
         setTextColor(.8,.8,.8,1)
-        renderText(x+.015,y+.015,.012,tr("Rechtsklick: Maus ein/aus | X: Schließen",
-            "Right-click: cursor on/off | X: close"))
+        renderText(x+.015,y+.015,.012,tr("tutorial.ui.08"))
     else
         self:buildLayout()
         renderText(x+.015,y+h-.03,.014,groups[self.current.group])
@@ -620,18 +618,18 @@ function M:draw()
         for i,line in ipairs(self.layout.bindings) do
             renderText(x+.015,y+.106-(i-1)*.016,math.min(.013,.013*.315/math.max(getTextWidth(.013,line),.315)),line)
         end
-        renderText(x+.015,y+.068,.013,string.format(tr("Seite %d/%d | Rechtsklick: Maus ein/aus","Page %d/%d | Right-click: cursor on/off"),page,#self.layout.pages))
+        renderText(x+.015,y+.068,.013,string.format(tr("tutorial.ui.09"),page,#self.layout.pages))
         drawFilledRect(x+.01,y+.055,w-.02,.001,1,1,1,.22)
         if self.current.id=="welcome" and page==1 and self:enabled() then
-            self:drawButton(tr("Tutorials deaktivieren","Disable tutorials"),x+.012,y+.018,.145,.03,"disable")
-            self:drawButton(page<#self.layout.pages and tr("Weiter","Next") or tr("Verstanden","Got it"),
+            self:drawButton(tr("tutorial.ui.10"),x+.012,y+.018,.145,.03,"disable")
+            self:drawButton(page<#self.layout.pages and tr("tutorial.ui.11") or tr("tutorial.ui.12"),
                 x+.164,y+.018,.078,.03,"next")
-            self:drawButton(tr("Themen","Topics"),x+.249,y+.018,.083,.03,"openLibrary")
+            self:drawButton(tr("tutorial.ui.13"),x+.249,y+.018,.083,.03,"openLibrary")
         else
-            if page>1 then self:drawButton(tr("Zurück","Back"),x+.012,y+.018,.077,.03,"previous") end
-            self:drawButton(page<#self.layout.pages and tr("Weiter","Next") or tr("Verstanden","Got it"),
+            if page>1 then self:drawButton(tr("tutorial.ui.14"),x+.012,y+.018,.077,.03,"previous") end
+            self:drawButton(page<#self.layout.pages and tr("tutorial.ui.15") or tr("tutorial.ui.16"),
                 x+.096,y+.018,.105,.03,"next")
-            self:drawButton(tr("Themen","Topics"),x+.209,y+.018,.123,.03,"openLibrary")
+            self:drawButton(tr("tutorial.ui.17"),x+.209,y+.018,.123,.03,"openLibrary")
         end
     end
     self:drawButton("X",x+w-.032,y+h-.042,.023,.032,"close")

@@ -1081,5 +1081,211 @@
         <e k="terraLogic_precipNormal" v="Normal (100%)" />
         <e k="terraLogic_precipMoist" v="Moist (130%)" />
         <e k="terraLogic_precipHelp" v="Changes the amount of water that rain and snow add to the soil, not how often it rains. Normal uses the standard balance. Dry provides less water; Moist provides more. Existing water is not changed when you switch. This setting also affects soil response to machinery. It does not apply when Moisture System supplies soil moisture." />
+        <e k="tutorial.welcome.title" v="Your soil has a history" />
+        <e k="tutorial.welcome.page1.paragraph1" v="Welcome to TerraLogic!" />
+        <e k="tutorial.welcome.page1.paragraph2" v="A short right-click turns the cursor on or off while a tutorial is visible. Closing the tutorial releases it again." />
+        <e k="tutorial.welcome.page1.paragraph3" v="Your field is now part of a comprehensive soil simulation. It responds differently to implement types, tillage, tires, plant cover and weather." />
+        <e k="tutorial.welcome.page1.paragraph4" v="Start by learning to read the soil, then choose the right operation. Under very good conditions, yields can be up to 10% higher than under the same conditions without TerraLogic." />
+        <e k="tutorial.firstMap.title" v="A first look below the surface" />
+        <e k="tutorial.firstMap.page1.paragraph1" v="Open a soil map using the action shown below. The minimap needs to be visible. Many fields look uniform at first. That is normal: tillage, traffic and weather create differences over time. Your management changes the soil and affects conditions for crop growth and yield." />
+        <e k="tutorial.firstMap.page1.paragraph2" v="The soil maps show simulated conditions, not just the visible ground texture. On foot, you can also read local soil values at your position while the TerraLogic field display is active." />
+        <e k="tutorial.firstMap.page1.paragraph3" v="Use the action shown below to cycle through the maps until the display switches off again. The next topic explains what the five soil values mean and how to open each map directly." />
+        <e k="tutorial.mapControls.title" v="Understanding the five soil maps" />
+        <e k="tutorial.mapControls.page1.paragraph1" v="The five soil maps show different properties of your field. Together, they help you decide whether the soil needs another operation and which implement would suit the job." />
+        <e k="tutorial.mapControls.page2.paragraph1" v="Surface compaction – CTRL + ALT + 1" />
+        <e k="tutorial.mapControls.page2.paragraph2" v="Compaction means that soil is pressed together. This reduces the spaces through which roots can grow. Tires and heavy machinery can compact the upper soil layer enough to restrict rooting and reduce yield." />
+        <e k="tutorial.mapControls.page2.paragraph3" v="Lower values mean less compaction. Suitable tires and a low vehicle load help prevent new damage. Where necessary, appropriate tillage implements can loosen the upper layer again." />
+        <e k="tutorial.mapControls.page3.paragraph1" v="Deep compaction – CTRL + ALT + 2" />
+        <e k="tutorial.mapControls.page3.paragraph2" v="Soil can also be compressed below the usual working depth. High axle loads in particular can affect these deeper layers. The surface may look loose while a compacted layer underneath restricts root growth." />
+        <e k="tutorial.mapControls.page3.paragraph3" v="Lower values are better. A shallow-working implement cannot reach this compaction. Severe deep compaction may require targeted subsoiling; natural recovery takes considerably longer here." />
+        <e k="tutorial.mapControls.page4.paragraph1" v="Tilth – CTRL + ALT + 3" />
+        <e k="tutorial.mapControls.page4.paragraph2" v="Tilth describes how coarse or fine the soil has become. Large clods make it harder for a seeder to place seeds evenly. Excessively pulverized soil is not an ideal seedbed either." />
+        <e k="tutorial.mapControls.page4.paragraph3" v="The target is around 50%: a balanced structure rather than large clods or almost powdered soil. What matters is the right implement, suitable soil conditions and an appropriate working speed, not as many passes as possible." />
+        <e k="tutorial.mapControls.page5.paragraph1" v="Evenness – CTRL + ALT + 4" />
+        <e k="tutorial.mapControls.page5.paragraph2" v="Evenness describes how level the worked soil surface is. Sensitive implements may struggle on rough ground with pronounced furrows. During sowing, placement quality can fall; under unfavorable conditions, some patches may receive no seed at all." />
+        <e k="tutorial.mapControls.page5.paragraph3" v="Higher values mean a more even surface. Seedbed preparation implements can improve it. However, a smooth field is not automatically loose: evenness and compaction are separate properties." />
+        <e k="tutorial.mapControls.page6.paragraph1" v="Soil resilience – CTRL + ALT + 5" />
+        <e k="tutorial.mapControls.page6.paragraph2" v="Soil resilience describes how well the established soil structure withstands new loads. Roots and soil life help build this structure over time. Under comparable traffic, resilient soil accumulates less additional compaction than vulnerable soil." />
+        <e k="tutorial.mapControls.page6.paragraph3" v="Higher values are better. Varied crop rotations, plant cover and less intensive tillage can support its development. High resilience does not remove existing compaction or increase yield directly." />
+        <e k="tutorial.mapControls.page7.paragraph1" v="Using the maps" />
+        <e k="tutorial.mapControls.page7.paragraph2" v="The shortcuts listed above are the default bindings. Press the shortcut for the active map again to switch it off. Use ALT + T to cycle forward through the maps and CTRL + ALT + T to cycle backward. All bindings can be changed in the control settings." />
+        <e k="tutorial.speedHud.title" v="Your fieldwork companion" />
+        <e k="tutorial.speedHud.page1.paragraph1" v="The work HUD helps you choose an appropriate speed for your implement. The speed bar on the left shows your speed relative to the recommended working range. Work Quality on the right describes the result. The bar does not represent quality. The recommended speed range is guidance, not a guarantee of safe load. Warnings report problems such as high load or damaging overload." />
+        <e k="tutorial.speedHud.page1.paragraph2" v="Difficult soil conditions can put considerable stress on an implement even below its usual working speed. Slowing down can reduce load and speed-related quality losses. It does not automatically make excessively wet, frozen or unsuitable soil workable." />
+        <e k="tutorial.speedHud.page1.paragraph3" v="A dash means there is no applicable value at present. With implement combinations, the display highlights the limiting part. In Dynamic mode, it fades during uneventful work and returns when conditions change. You can adjust this behavior in TerraLogic options." />
+        <e k="tutorial.speedHud.page2.paragraph1" v="The soil icons estimate the current pass on reference soil starting at 20% compaction: wheel for topsoil, axle for subsoil. Actual contact targets and strengths are reused, including current soil conditions. Existing compaction is excluded. Contacts on the same reference cell accumulate while the vehicle combination crosses it. Each layer shows the highest recent reference reading, not the actual field value. This experimental preview is not a prediction of the final value before all axles have passed. Both layers use the Field Analysis bands: Low up to 30%, Regular above 30% to 50%, High above 50% to 70%, Severe above 70%. The map uses a continuous colour gradient. A dash means no current applicable measurement. Yellow compaction messages start at High in the reference calculation, not because of existing compaction. They appear once per episode and can return after 30 seconds of confirmed driving below the warning threshold. Stopping or changing vehicles does not reset them. Other severe red warnings remain while active; stone hits are brief event messages." />
+        <e k="tutorial.speedHud.page3.paragraph1" v="The HUD keeps its full size during field traffic. When no work implement is ready, recommended speed and Work Quality show dashes and the speed bar is grey without a marker. Soil icons remain active. In Dynamic mode, field traffic needs one second of measurements before the card appears; brief stops are bridged for two seconds before fading. Native interaction prompts such as attaching or filling temporarily hide the values card. Yellow warnings wait without losing reading time; active red warnings are placed above the prompt. After the prompt closes, the card can return after half a second. Warnings only hides the values card; Off hides all TerraLogic HUD messages. Always visible keeps the full HUD on screen while you are in a vehicle, even without a work implement or soil measurements. Unavailable values show dashes. Native interaction prompts still take priority." />
+        <e k="tutorial.cruise.title" v="You choose the working speed" />
+        <e k="tutorial.cruise.page1.paragraph1" v="Supported implements no longer have a fixed working-speed limit. Set cruise control deliberately: start within the recommended speed range and watch Work Quality and warnings. The messages point out potential problems. Use the actions shown below to adjust and activate cruise control." />
+        <e k="tutorial.cruise.page1.paragraph2" v="A more powerful tractor allows higher speeds, but that often comes at a cost. Depending on the implement, excessive speed can reduce soil work, application quality or durability and leave missed areas." />
+        <e k="tutorial.cruise.page1.paragraph3" v="Small fluctuations from cruise control are not automatically a cause for concern. Pay particular attention to sustained load and noticeable quality losses." />
+        <e k="tutorial.changedSoil.title" v="What your work leaves behind" />
+        <e k="tutorial.changedSoil.page1.paragraph1" v="After an operation, take a look at the relevant soil map. Compare worked and unworked areas. A plow loosens the upper soil layers strongly, but usually leaves a coarser, rougher surface. Conditions and working speed also affect the result." />
+        <e k="tutorial.changedSoil.page1.paragraph2" v="The next implement responds to that result. Many seeders struggle on coarse, plowed ground. Depending on tilth and evenness, a disc harrow, shallow cultivator or power harrow may therefore help. A roller can provide additional leveling and reconsolidation, but cannot replace every type of seedbed preparation." />
+        <e k="tutorial.changedSoil.page1.paragraph3" v="With TerraLogic, what matters is not just which operation you completed, but the soil conditions you leave for the next one." />
+        <e k="tutorial.traffic.title" v="Tires change the soil too" />
+        <e k="tutorial.traffic.page1.paragraph1" v="Tools are not the only things loading the soil during fieldwork. Vehicle weight, payload and attached equipment change wheel load. The contact area helps determine how strongly that load affects the ground." />
+        <e k="tutorial.traffic.page1.paragraph2" v="Soil type, moisture and frost also influence how vulnerable the soil is. A light tractor alone therefore does not guarantee a gentle pass." />
+        <e k="tutorial.traffic.page1.paragraph3" v="Wide and twin tires spread the load over a larger contact area and can reduce surface compaction. TerraLogic considers tire and track dimensions as well as the load they carry. Tracks can therefore offer a noticeable advantage too." />
+        <e k="tutorial.analysis.title" v="Plan instead of guessing" />
+        <e k="tutorial.analysis.page1.paragraph1" v="Stand on a field, open the ESC menu and select the TerraLogic icon. TerraLogic Field Analysis provides a combined assessment of the connected field area you are on." />
+        <e k="tutorial.analysis.page1.paragraph2" v="Overview summarizes soil conditions and recommends suitable actions. Work and Yield explains stored work quality and its consequences for the harvest. Weather and Effects shows moisture, temperatures in different soil layers and their effects on fieldwork." />
+        <e k="tutorial.analysis.page1.paragraph3" v="The Planner lets you estimate how different implements would change the current soil. In a vehicle, you can also see weight, axle load and ground contact pressure." />
+        <e k="tutorial.analysis.page1.paragraph4" v="Use the field dropdown at the top to switch between available fields and sections. Recommendations pairs each action with its explanation: immediate risks first, then preparatory work and longer-term soil care. This is not a mandatory work sequence; follow the stated conditions and protect existing crops." />
+        <e k="tutorial.analysis.page1.paragraph5" v="The question marks explain the values. For work quality, they also show how much of the area has a record for that operation." />
+        <e k="tutorial.compaction.title" v="Firm on top is not firm underneath" />
+        <e k="tutorial.compaction.page1.paragraph1" v="Surface compaction affects the upper soil layer. Deep compaction lies underneath and is harder to relieve. Both can restrict rooting and reduce yield. A field that looks good on the surface is therefore not automatically loose at depth." />
+        <e k="tutorial.compaction.page1.paragraph2" v="Choose your implement for the actual problem. A subsoiler is designed for deep compaction, but it also strongly disturbs the established soil structure. Roots and soil life then need time to rebuild it." />
+        <e k="tutorial.compaction.page1.paragraph3" v="The more carefully you drive on the field, the less often you need extra tillage to repair this damage." />
+        <e k="tutorial.tires.title" v="Tire choice now has a purpose" />
+        <e k="tutorial.tires.page1.paragraph1" v="Wider tires spread vehicle load over a larger area. Wide tires, twin tires and tracks can therefore reduce surface compaction. Narrow crop-care tires can prevent traffic damage to suitable crops, but put more pressure on the soil under the same load." />
+        <e k="tutorial.tires.page1.paragraph2" v="Vehicle and trailer payload matters too. A full trailer presses harder on the ground than an empty one." />
+        <e k="tutorial.tires.page1.paragraph3" v="Deeper layers respond more strongly to axle load and the combined loads of neighboring axles. Wide tires therefore do not automatically make a heavy combination harmless to the subsoil. Check ground contact pressure and axle load for your combination in the Field Analysis Planner." />
+        <e k="tutorial.payload.title" v="Payload changes the load on the soil" />
+        <e k="tutorial.payload.page1.paragraph1" v="A full tank or trailer does more than make the vehicle harder to pull: its extra weight also loads the soil. The same applies as a combine's grain tank fills." />
+        <e k="tutorial.payload.page1.paragraph2" v="Where possible, plan transport and unloading routes along firm roads or existing traffic lanes, and avoid unnecessary trips with heavy loads." />
+        <e k="tutorial.payload.page1.paragraph3" v="Soil can be much more vulnerable after rain. What matters is not just whether it is raining now, but how wet the soil still is." />
+        <e k="tutorial.tramlines.title" v="Reuse a lane rather than driving everywhere" />
+        <e k="tutorial.tramlines.page1.paragraph1" v="The first pass over loose soil often causes the largest step in compaction. Five tracks in different places therefore affect more crop area than five trips along the same track. Further passes are still not harmless, especially to the subsoil." />
+        <e k="tutorial.tramlines.page1.paragraph2" v="Where possible, use the same lanes for fertilizing and crop protection. This concentrates traffic and leaves more of the soil undisturbed." />
+        <e k="tutorial.tramlines.page1.paragraph3" v="If you deliberately leave tramlines unsown, the heaviest traffic also stays on ground where no crop is growing anyway." />
+        <e k="tutorial.pfLanes.title" v="Tramlines and crop area" />
+        <e k="tutorial.pfLanes.page1.paragraph1" v="Precision Farming lets you create tramlines that remain unsown. Using them for crop-care passes concentrates compaction in those areas and keeps additional traffic off more of the growing crop." />
+        <e k="tutorial.pfLanes.page1.paragraph2" v="Tramlines reduce the planted area, but can protect the remaining soil. The size of the benefit depends on factors such as vehicle load, tires, soil moisture and the number of crop-care passes." />
+        <e k="tutorial.tilth.title" v="Fine enough, not as fine as possible" />
+        <e k="tutorial.tilth.page1.paragraph1" v="Tilth describes how coarse or fine the soil has become. Large clods make clean seed placement harder. Excessively pulverized soil is not an ideal target either. For the best results, aim for a value around 50%." />
+        <e k="tutorial.tilth.page1.paragraph2" v="Moisture, soil type, implement type and working speed affect the result. More tillage therefore does not automatically mean a better seedbed." />
+        <e k="tutorial.evenness.title" v="Evenness helps seed placement" />
+        <e k="tutorial.evenness.page1.paragraph1" v="Sowing equipment may struggle on an uneven seedbed. Work quality can fall and, under unfavorable conditions, some areas may remain unsown. Both can reduce the eventual yield." />
+        <e k="tutorial.evenness.page1.paragraph2" v="Not all implements are equally sensitive. Precision planters generally demand a more even surface than appropriately designed direct-drilling equipment." />
+        <e k="tutorial.evenness.page1.paragraph3" v="Over time, you will learn which soil conditions your implements need and when extra seedbed preparation is worthwhile." />
+        <e k="tutorial.plow.title" v="Plowing is a start, not a finished seedbed" />
+        <e k="tutorial.plow.page1.paragraph1" v="A plow turns and loosens the soil strongly. It usually leaves coarse, uneven ground and interrupts established root channels and soil structures." />
+        <e k="tutorial.plow.page1.paragraph2" v="You can still sow directly after plowing. However, many seeders need a lower speed on this ground to achieve acceptable placement quality. With pronounced unevenness or large clods, additional seedbed preparation may be the better choice." />
+        <e k="tutorial.seedbed.title" v="Choosing a seedbed implement" />
+        <e k="tutorial.seedbed.page1.paragraph1" v="Cultivators, shallow cultivators, disc harrows and power harrows serve different purposes. They loosen, mix, break up and level the soil to different degrees and depths." />
+        <e k="tutorial.seedbed.page1.paragraph2" v="If the soil is already loose enough and mainly needs seedbed preparation after plowing, a shallower pass with a shallow cultivator or disc harrow may be sufficient." />
+        <e k="tutorial.seedbed.page1.paragraph3" v="The current soil values are what matter. Use the Field Analysis Planner to compare which implement is likely to provide the improvement you need." />
+        <e k="tutorial.directDrill.title" v="Direct drilling reduces disturbance" />
+        <e k="tutorial.directDrill.page1.paragraph1" v="Direct drilling skips separate seedbed preparation, saving working time, fuel and additional passes. It preserves more established soil structure than plowing. However, it does not remove existing deep compaction." />
+        <e k="tutorial.directDrill.page1.paragraph2" v="Pay particular attention to vehicle weight, fill level and tires: avoid unnecessary ballast and use suitable wide tires. Keep crop-care passes on permanent traffic lanes or tramlines where possible. This protects more cropped ground from additional wheel loads. The direct drill itself also adds weight to the soil." />
+        <e k="tutorial.directDrill.page2.paragraph1" v="Avoiding intensive disturbance can preserve biological continuity and allow natural recovery to work more effectively. A varied crop rotation and living roots support soil resilience. Resilient soil is less susceptible to compaction from traffic." />
+        <e k="tutorial.directDrill.page2.paragraph2" v="After switching to direct drilling, compaction may initially increase and yields may fall. If new loading and recovery reach a balance, yields can stabilize or recover somewhat. They may still remain below those of a well-loosened and prepared field. Monitor the trend in Field Analysis; severely compacted subsoil may still need targeted loosening." />
+        <e k="tutorial.directDrill.page2.paragraph3" v="With Precision Farming active, a good environmental score can further improve profitability. Together with the operations saved, this can offset lower harvested volumes. It does not guarantee compensation for every compaction loss." />
+        <e k="tutorial.seeding.title" v="Sowing quality and real gaps" />
+        <e k="tutorial.seeding.page1.paragraph1" v="Stored sowing quality describes how well sowing was carried out in the current crop cycle. Soil conditions, weather, working speed and the seeder's condition can affect the result. Work and Yield in Field Analysis shows the consequences for yield potential." />
+        <e k="tutorial.seeding.page1.paragraph2" v="Distinguish between poorer seed placement and actual missed areas. Poorly placed seed can still produce plants. An unsown patch, however, contains no crop to harvest later." />
+        <e k="tutorial.roller.title" v="Rolling with a purpose" />
+        <e k="tutorial.roller.page1.paragraph1" v="Arable rollers can also be used before sowing. They level and reconsolidate the topsoil, which can improve conditions for seed placement." />
+        <e k="tutorial.roller.page1.paragraph2" v="After sowing, rolling can recover part of the sowing quality lost to an unsuitable seedbed. It cannot retrospectively fix losses caused by excessive sowing speed or implement wear. The game's regular 2.5% rolling bonus remains available when its requirements are met." />
+        <e k="tutorial.roller.page1.paragraph3" v="A roller cannot repair unsown gaps. Excessive working speed also reduces its benefit." />
+        <e k="tutorial.overspeed.title" v="Weigh speed against results" />
+        <e k="tutorial.overspeed.page1.paragraph1" v="Implements respond differently to excessive working speed. Depending on the tool, material may be left behind, soil work may become less effective or mechanical load may rise. Overloading can cause additional damage." />
+        <e k="tutorial.overspeed.page1.paragraph2" v="Watch whether work quality improves and load warnings clear when you slow down. The consequences differ between implement types. Over time, you will learn what speed makes sense under the current conditions." />
+        <e k="tutorial.draft.title" v="Draft demand is not engine load" />
+        <e k="tutorial.draft.page1.paragraph1" v="An implement that is hard to pull places greater demands on the tractor. The pulling force needed also depends on compaction, moisture, frost and soil type." />
+        <e k="tutorial.draft.page1.paragraph2" v="Mechanical Load describes stress on the implement. A large tractor does not damage a small implement simply because it has more engine power. However, it may keep pulling against high resistance or reach a speed at which the forces actually transmitted become excessive." />
+        <e k="tutorial.draft.page1.paragraph3" v="For soil-engaging implements, ground contact matters. Even a lowered seeder that is switched off can create draft resistance and wear. Raise the implement for fast travel to avoid unnecessary stress and repair costs." />
+        <e k="tutorial.condition.title" v="Wear can limit the result" />
+        <e k="tutorial.condition.page1.paragraph1" v="Heavily worn implements can work less reliably. Slowing down helps with additional speed-related effects, but is not a lasting substitute for repairs." />
+        <e k="tutorial.condition.page1.paragraph2" v="If implement condition significantly reduces work quality, a warning points this out. An appropriate driving style protects the implement and helps delay these limitations." />
+        <e k="tutorial.stones.title" v="A stone impact is a separate event" />
+        <e k="tutorial.stones.page1.paragraph1" v="Visible field stones can cause additional damage to affected implements. TerraLogic also simulates underground stone impacts for soil-engaging tools. Working depth, implement type and speed influence the consequences." />
+        <e k="tutorial.stones.page1.paragraph2" v="A mower may hit stones on the surface, for example, while a deep-working implement is also exposed to stones below ground. Not every implement responds to the same stones in the same way." />
+        <e k="tutorial.stones.page1.paragraph3" v="Which stone effects are active depends on the game and TerraLogic settings." />
+        <e k="tutorial.weather.title" v="Soil responds to weather with a delay" />
+        <e k="tutorial.weather.page1.paragraph1" v="Air temperature and soil temperature are not the same. Soil heats up and cools down more slowly than the air. Deeper layers respond later still. The surface can therefore be frozen while the ground underneath remains unfrozen." />
+        <e k="tutorial.weather.page1.paragraph2" v="Water supply changes with the weather too. Rain and drying affect soil moisture and thus the conditions for crop growth." />
+        <e k="tutorial.weather.page1.paragraph3" v="Weather and Effects in Field Analysis shows current environmental conditions and their consequences for your work." />
+        <e k="tutorial.wetTraffic.title" v="Wet soil and heavy loads" />
+        <e k="tutorial.wetTraffic.page1.paragraph1" v="Wet, unfrozen soil is more vulnerable to traffic. If a pass can wait, let the ground dry out a little first. If you still need to work, keep the load as low as practical and use an adequate tire contact area." />
+        <e k="tutorial.wetTraffic.page1.paragraph2" v="Frozen soil can be less susceptible to compaction. However, soil layers can have different temperatures. A frozen surface does not mean the subsoil is protected too." />
+        <e k="tutorial.moistureWork.title" v="The right timing saves work" />
+        <e k="tutorial.moistureWork.page1.paragraph1" v="Very dry soil does not always break up well. Wet soil, on the other hand, can smear and clump." />
+        <e k="tutorial.moistureWork.page1.paragraph2" v="If soil work is less effective, a second fast pass will not necessarily solve the problem. Where your schedule allows, waiting for better conditions often makes more sense than working the soil repeatedly." />
+        <e k="tutorial.waterGrowth.title" v="Water matters throughout growth" />
+        <e k="tutorial.waterGrowth.page1.paragraph1" v="Yield depends on water supply during the growing period. Rainfall and the water stored in this field determine how well its plants are supplied. Crop type and growth stage affect demand. Unfamiliar crops from mod maps use a general plant profile." />
+        <e k="tutorial.waterGrowth.page1.paragraph2" v="A shower shortly before harvest does not simply make up for a long dry spell. Conversely, a well-supplied crop is not retrospectively penalized just because harvest weather is dry." />
+        <e k="tutorial.waterGrowth.page1.paragraph3" v="Weather depends on the map you play. If its weather patterns cause larger yield losses than suit your playstyle, you can disable Soil moisture affects yield in TerraLogic options. Moisture will still affect trafficability and soil work." />
+        <e k="tutorial.frost.title" v="Frozen soil is harder to work" />
+        <e k="tutorial.frost.page1.paragraph1" v="Did the soil feel unusually hard to work? Tools may struggle to penetrate frozen ground and need more pulling force. What matters is the temperature of the layer being worked, not just the displayed air temperature." />
+        <e k="tutorial.frost.page1.paragraph2" v="Where possible, wait until that layer has thawed." />
+        <e k="tutorial.frost.page1.paragraph3" v="With shorter months, soil temperature adjusts faster to the weather. This helps the ground catch up before a short winter has already passed." />
+        <e k="tutorial.thaw.title" v="Frost can also loosen soil slightly" />
+        <e k="tutorial.thaw.page1.paragraph1" v="When moist ground freezes and then thaws, it can loosen a little. How much it helps depends on how cold the soil became and how long it stayed frozen. Remaining frozen does not keep adding more loosening." />
+        <e k="tutorial.thaw.page1.paragraph2" v="With longer months, each cycle contributes less. This natural help does not replace careful traffic or necessary targeted loosening. It takes effect during the monthly soil recovery update." />
+        <e k="tutorial.thaw.page1.paragraph3" v="Biological recovery still slows down at low temperatures." />
+        <e k="tutorial.rainApplication.title" v="Wet plants and application quality" />
+        <e k="tutorial.rainApplication.page1.paragraph1" v="For rain-sensitive applications, rain or wet plants can reduce application quality. Products may adhere less well or be partly washed off. The effects differ between application methods." />
+        <e k="tutorial.rainApplication.page1.paragraph2" v="If the work HUD shows a corresponding warning, wait for drier conditions where possible to achieve better results." />
+        <e k="tutorial.resilience.title" v="Resilient is not the same as loose" />
+        <e k="tutorial.resilience.page1.paragraph1" v="Soil resilience describes the strength of the established soil structure. Resilient soil withstands loads better and is less vulnerable to new compaction. That does not mean it is automatically loose." />
+        <e k="tutorial.resilience.page1.paragraph2" v="Living roots, a varied crop rotation and cover crops can improve this resilience over time. Intensive tillage with a plow or subsoiler, however, weakens the established structure. What matters most is how deeply and intensively an implement disturbs the soil, not just its weight." />
+        <e k="tutorial.resilience.page1.paragraph3" v="Suitable tires and lower loads help prevent new damage. This reduces the need for intensive loosening and gives the soil more opportunity to build a resilient structure." />
+        <e k="tutorial.continuity.title" v="Give soil biology time" />
+        <e k="tutorial.continuity.page1.paragraph1" v="Roots and soil life gradually build established structures. Biological continuity describes how undisturbed this development has recently been." />
+        <e k="tutorial.continuity.page1.paragraph2" v="Intensive tillage interrupts it. Biological recovery then needs time to regain momentum. Under comparable conditions, soil left with little disturbance for a longer period can therefore recover more effectively than soil that is regularly worked deeply." />
+        <e k="tutorial.continuity.page1.paragraph3" v="These terms are related, but do not mean the same thing: soil resilience protects against new loads. Natural recovery can gradually reduce existing compaction. Biological continuity influences how undisturbed the biological contribution can be." />
+        <e k="tutorial.recovery.title" v="Recovery happens between operations" />
+        <e k="tutorial.recovery.page1.paragraph1" v="Plant cover, roots, temperature and water all influence the soil's natural development. Living roots and longer periods without intensive tillage support it. Cold and unfavorable moisture slow it down." />
+        <e k="tutorial.recovery.page1.paragraph2" v="Not every value improves overnight. Deep compaction is particularly persistent. Compare the same area over a longer period and avoid extra tillage just because of small, short-term fluctuations." />
+        <e k="tutorial.recovery.page1.paragraph3" v="Resilience also helps after rain: excess water drains somewhat faster with high resilience and more slowly with low resilience. Existing compaction limits the benefit. Water storage capacity stays the same; dry soil does not lose extra water because of this." />
+        <e k="tutorial.rotationPlan.title" v="Start planning the next crop" />
+        <e k="tutorial.rotationPlan.page1.paragraph1" v="After harvest, planning begins for the next crop. Change crops over the years on the same area, rather than repeatedly growing the same crop there. Different plants and rooting depths support natural soil development." />
+        <e k="tutorial.rotationPlan.page1.paragraph2" v="Cover crops can also make use of the break between main crops and contribute nutrients when appropriately incorporated. Incorporate them as gently as possible, for example with suitable direct-drilling equipment or shallow tillage." />
+        <e k="tutorial.rotationPlan.page1.paragraph3" v="Unnecessarily deep tillage reduces part of the benefit by disturbing the soil structure that has just developed." />
+        <e k="tutorial.rotation.title" v="Crop rotation works through the soil" />
+        <e k="tutorial.rotation.page1.paragraph1" v="A varied crop rotation supports soil resilience and natural development. It does not provide an immediate flat yield bonus." />
+        <e k="tutorial.rotation.page1.paragraph2" v="The benefit develops over time: a more resilient structure limits new compaction, while favorable conditions support natural recovery. This helps the soil maintain conditions in which crops can grow well." />
+        <e k="tutorial.cover.title" v="Cover crops use the growing break" />
+        <e k="tutorial.cover.page1.paragraph1" v="Use suitable periods between harvest and the next sowing for cover crops. Their roots support natural soil development and can help stabilize soil conditions over time. Active, living cover generally contributes more than crop residues alone." />
+        <e k="tutorial.cover.page1.paragraph2" v="However, the extra sowing operation also means another pass. Pay attention to vehicle load and tires, especially on wet soil." />
+        <e k="tutorial.cover.page1.paragraph3" v="Choose a suitable, gentle operation for incorporation. An appropriate direct drill can combine this with sowing the next crop. A shallow cultivator or disc harrow can be an alternative when a separate pass is needed." />
+        <e k="tutorial.systems.title" v="Several routes to healthy soil" />
+        <e k="tutorial.systems.page1.paragraph1" v="Regular plowing mainly loosens the upper soil layers. However, it can require additional seedbed preparation and interrupts the established biological structure." />
+        <e k="tutorial.systems.page1.paragraph2" v="Direct drilling causes less disturbance and leaves natural soil development more time undisturbed. It does not remove severe deep compaction. Recovery still depends on plant cover, temperature, moisture and new loads." />
+        <e k="tutorial.systems.page1.paragraph3" v="Both approaches can make sense when vehicle weight, tires and driving style suit the soil. TerraLogic is not intended to make one management method mandatory, but to represent their different consequences clearly." />
+        <e k="tutorial.yield.title" v="Yield has a history" />
+        <e k="tutorial.yield.page1.paragraph1" v="At harvest, stored work quality and conditions during growth act together. Good sowing cannot fully compensate for poor water supply or a severely compacted root zone." />
+        <e k="tutorial.yield.page1.paragraph2" v="Work and Yield in Field Analysis shows this yield estimate. The overview describes the assessed field area. Local values at your position can therefore differ from the displayed field average." />
+        <e k="tutorial.bonus.title" v="Up to ten percent more" />
+        <e k="tutorial.bonus.page1.paragraph1" v="Under very good conditions, TerraLogic can allow up to 110% of the yield that the same area would produce under otherwise identical conditions without TerraLogic. Precision Farming and its mechanics remain accounted for." />
+        <e k="tutorial.bonus.page1.paragraph2" v="This is achievable potential, not a guarantee for every management method or weather situation. Soil resilience and crop rotation act through soil conditions, not as an additional direct yield bonus." />
+        <e k="tutorial.bonus.page1.paragraph3" v="The calculation starts at 110%. Soil, water and fieldwork deductions give final yield potential. 100% means unchanged yield, while 110% means 10% extra. Individual quality displays reach 100%; Work and Yield shows the deductions calculated from them." />
+        <e k="tutorial.pf.title" v="TerraLogic and Precision Farming" />
+        <e k="tutorial.pf.page1.paragraph1" v="Precision Farming still handles its own requirements, such as pH and nutrient supply. TerraLogic adds soil development and the consequences of your fieldwork." />
+        <e k="tutorial.pf.page1.paragraph2" v="Good TerraLogic soil therefore does not replace appropriate fertilization or necessary crop protection. If yield differs from expectations, check both systems rather than attributing every change to compaction alone." />
+        <e k="tutorial.moistureSystem.title" v="Using Moisture System with TerraLogic" />
+        <e k="tutorial.moistureSystem.page1.paragraph1" v="If you use Moisture System, choose Soil moisture source in the TL settings. TerraLogic keeps our own field water balance. With Moisture System selected, the topsoil follows its local field moisture; water then seeps into our subsoil. MS in Field Analysis marks converted TL soil values, not raw MS percentages." />
+        <e k="tutorial.moistureSystem.page1.paragraph2" v="Both settings support MS irrigation. It takes effect when the contractor actually delivers water, not when you book the job. Soil type and plant cover still affect water movement and the soil's response to machinery." />
+        <e k="tutorial.moistureSystem.page1.paragraph3" v="To avoid overlapping water-related yield losses, TL defaults Soil moisture affects yield to Off when MS is detected. You can switch it back on. Your choice stays saved, even if you later add or remove MS. Compaction and fieldwork effects remain active. Crop withering, grain moisture and quality grades stay with Moisture System." />
+        <e k="tutorial.options.title" v="You choose how much help you want" />
+        <e k="tutorial.options.page1.paragraph1" v="TerraLogic options let you choose between a guided introduction with contextual tips, contextual tips only, or no automatic tutorials." />
+        <e k="tutorial.options.page1.paragraph2" v="All topics remain available in the library. Reset tutorial re-enables the introduction and starts your reading progress afresh." />
+        <e k="tutorial.options.page1.paragraph3" v="The game's Help section also includes a dedicated TerraLogic guide explaining the mechanics in more detail." />
+        <e k="tutorial.options.page1.paragraph4" v="Enjoy playing with TerraLogic!" />
+        <e k="tutorial.options.page1.paragraph5" v="— The Mod Workshop —" />
+        <e k="tutorial.ui.01" v="see input help / bindings" />
+        <e k="tutorial.ui.02" v="TERRALOGIC · TOPICS" />
+        <e k="tutorial.ui.03" v="What would you like to learn?" />
+        <e k="tutorial.ui.04" v="%d of %d read" />
+        <e k="tutorial.ui.05" v="Read" />
+        <e k="tutorial.ui.06" v="Back" />
+        <e k="tutorial.ui.07" v="Next" />
+        <e k="tutorial.ui.08" v="Right-click: cursor on/off | X: close" />
+        <e k="tutorial.ui.09" v="Page %d/%d | Right-click: cursor on/off" />
+        <e k="tutorial.ui.10" v="Disable tutorials" />
+        <e k="tutorial.ui.11" v="Next" />
+        <e k="tutorial.ui.12" v="Got it" />
+        <e k="tutorial.ui.13" v="Topics" />
+        <e k="tutorial.ui.14" v="Back" />
+        <e k="tutorial.ui.15" v="Next" />
+        <e k="tutorial.ui.16" v="Got it" />
+        <e k="tutorial.ui.17" v="Topics" />
+        <e k="tutorial.group.1" v="BASICS" />
+        <e k="tutorial.group.2" v="FIELDWORK" />
+        <e k="tutorial.group.3" v="WEATHER" />
+        <e k="tutorial.group.4" v="SOIL LIFE" />
+        <e k="tutorial.group.5" v="YIELD AND HELP" />
     </elements>
 </l10n>

@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
 <modDesc descVersion="114">
     <author>The Mod Workshop</author>
-    <version>1.2.1.0</version>
+    <version>1.2.1.1</version>
 
     <iconFilename>icon_terraLogic.dds</iconFilename>
 
     <title>
         <en>TerraLogic BETA</en>
+    
+        <it><![CDATA[TerraLogic BETA]]></it>
     </title>
 
     <description>
@@ -134,6 +136,69 @@ Drücke dieselbe Tastenkombination zur Direktauswahl erneut, um die Bodenkarte a
 Fehler melden, Feedback geben oder Ideen vorschlagen:
 https://github.com/Saibotsu/FS25_TerraLogic
 ]]></de>
+    
+        <it><![CDATA[TerraLogic dà vita al tuo terreno in Farming Simulator 25, con campi che si evolvono man mano che li lavori. I tuoi campi reagiscono ai macchinari, alla velocità di lavoro, agli pneumatici, al carico, al meteo e alla rotazione delle colture. Le tracce delle ruote e le aree lavorate in modo diverso possono svilupparsi in modo differente, per questo una gestione attenta del traffico e un'adeguata preparazione del letto di semina sono importanti.
+
+Cinque mappe del suolo mostrano la compattazione superficiale, la compattazione profonda, la struttura (affinamento), l'uniformità e la resilienza. La compattazione ostacola la crescita delle radici. La struttura descrive quanto è grossolano o fine il letto di semina, mentre l'uniformità ne descrive la superficie. La resilienza aiuta il terreno a resistere a un'ulteriore compattazione. Radici vive, colture di copertura e rotazioni variegate supportano il recupero naturale; la lavorazione intensiva può interromperlo.
+
+Scegli come lavorare
+
+Aratri, coltivatori, erpici, ripuntatori, seminatrici e rulli hanno effetti diversi sul suolo. La profondità e l'intensità di lavoro determinano come allentano, sbriciolano, livellano o compattano il terreno e quanto fortemente disturbano la resilienza del suolo e la continuità biologica. Le condizioni del suolo risultanti influenzano la qualità delle operazioni successive, il posizionamento dei semi e la resa del raccolto. Scegli le tue attrezzature e la sequenza di lavoro per adattarle alle condizioni del campo.
+
+La compattazione è calcolata dal peso di veicolo e attrezzo, dai carichi variabili, dall'area di contatto degli pneumatici e dai carichi per asse. Pneumatici larghi, ruote gemellate e cingoli distribuiscono il peso diversamente: la configurazione aiuta quindi a proteggere il suolo. L'impronta caricata influenza anche la pressione che raggiunge il sottosuolo: i cingoli distribuiscono il carico, ma le macchine pesanti richiedono comunque condizioni adatte. Le corsie permanenti hanno un ruolo fisico nella simulazione TerraLogic: concentrare i passaggi su di esse protegge il resto del terreno e conserva condizioni migliori per le colture.
+
+La semina su sodo offre un approccio diverso: risparmia i passaggi di preparazione del letto di semina preservando allo stesso tempo una maggiore continuità biologica. In combinazione con varie rotazioni delle colture, colture di copertura e una gestione attenta del traffico, supporta lo sviluppo graduale di un suolo resiliente. Le sue prestazioni a lungo termine dipendono dall'equilibrio tra nuova compattazione e recupero naturale, rendendo la scelta dei macchinari e la gestione del campo parti importanti della transizione.
+
+Lavora con le condizioni
+
+L'umidità del suolo, la temperatura e il gelo influenzano il modo in cui il terreno risponde ai macchinari, quanta forza di trazione richiede un'operazione e quanto efficacemente il suolo si riprende. I cicli di gelo e disgelo contribuiscono all'allentamento del suolo, mentre le condizioni di umidità durante la crescita influenzano la resa del raccolto. Le condizioni di lavoro sono quindi importanti sia quando si sceglie un'operazione sia quando si decide quando eseguirla.
+
+Ogni campo conserva una riserva d'acqua superficiale e profonda. Pioggia e neve sciolta forniscono acqua, che filtra verso il basso e drena quando è in eccesso. Tipo di suolo, coltura e fase di crescita determinano quanto rapidamente il campo si bagna e si asciuga. Le piante ombreggiano la superficie ma assorbono acqua dalle radici; raccolto e ricrescita cambiano il fabbisogno. Un suolo resiliente drena l'eccesso un po' più rapidamente; una bassa resilienza rallenta il drenaggio. La capacità idrica resta invariata.
+
+Entrambi gli strati si riscaldano e si raffreddano continuamente; quello profondo reagisce più lentamente. Temperatura e allentamento da gelo e disgelo tengono conto dei giorni al mese, così le stagioni brevi non saltano l'inverno e i mesi lunghi non offrono un recupero illimitato dal gelo.
+
+Gli attrezzi supportati e guidati manualmente non hanno più il consueto limite di velocità di lavoro. Scegli il ritmo e osserva velocità consigliata e qualità nell'HUD. Due icone mostrano quanto il convoglio attuale può compattare superficie e sottosuolo nelle condizioni presenti. Funzionano anche durante il trasporto e senza attrezzo supportato; i valori di lavoro non disponibili mostrano un trattino. Velocità eccessiva può ridurre l'efficacia della lavorazione, lasciare zone saltate e aumentare usura o danni. Le pietre aggiungono rischi agli attrezzi che lavorano il suolo.
+
+Gli avvisi segnalano problemi su cui intervenire. Quelli meno gravi appaiono una volta, finché la causa non è scomparsa per un po'; quelli gravi restano visibili finché il problema persiste. L'HUD può apparire dinamicamente, restare visibile o mostrare solo avvisi e lascia temporaneamente spazio ai messaggi del gioco, come l'aggancio di un attrezzo.
+
+Buone condizioni del suolo e un lavoro attento possono aumentare la resa calcolata dal gioco base o dal Precision Farming fino al 10%. Compattazione, scarse condizioni di crescita e un lavoro sul campo di bassa qualità possono ridurla. Le tue decisioni hanno conseguenze sia per il raccolto successivo sia per lo sviluppo del suolo nel corso delle stagioni successive.
+
+Comprendi i tuoi campi
+
+- Le mappe e i valori locali mostrano gli effetti di macchinari e gestione sul campo.
+- Apri l'Analisi del campo TerraLogic dal menu ESC per valutare suolo, resa, meteo e raccomandazioni. I punti interrogativi spiegano valori e significato pratico.
+- Il Pianificatore confronta operazioni ed effetti prima del lavoro. Peso, carichi per asse e pressione al suolo sono disponibili anche senza attrezzo supportato.
+- L'umidità è espressa in percentuale di volume e descritta come secca, normale, umida o bagnata. Le tabelle di aiuto spiegano i valori per ogni tipo di suolo nell'area selezionata.
+- I tutorial contestuali presentano controlli e meccaniche mentre giochi. Libreria e guida approfondiscono la simulazione e le interazioni tra sistemi.
+- Le impostazioni di aggiornamento delle mappe permettono di bilanciare rapidità e prestazioni di PC o server.
+- Le impostazioni raggruppate consentono di regolare intensità di compattazione e acqua fornita dalle precipitazioni. L'effetto delle precipitazioni non cambia quanto spesso piove.
+
+Compatibilità
+
+TerraLogic supporta i campi in giocatore singolo, multigiocatore e creati dai giocatori. Precision Farming è opzionale; quando installato, i suoi tipi di suolo influenzano la simulazione. È inoltre prevista l'integrazione per More Realistic.
+
+Con Moisture System installato, scegli se TerraLogic usa il proprio bilancio idrico o l'umidità del campo MS. Nel secondo caso, i valori sono adattati ai tipi di suolo TL e il sottosuolo continua a reagire tramite infiltrazione e drenaggio. Entrambe le opzioni rispondono al meteo del profilo MS selezionato e supportano la sua irrigazione senza contare l'acqua due volte. L'impostazione delle precipitazioni TL si applica solo al bilancio idrico proprio. In multiplayer, l'host controlla le impostazioni di simulazione.
+
+Moisture System mantiene il controllo su appassimento, umidità dei cereali, classi di qualità, essiccazione, fieno, balle e stoccaggio. Quando rileva MS, TerraLogic disattiva per impostazione predefinita l'effetto dell'umidità sulla resa per evitare perdite idriche sovrapposte. Puoi riattivarlo esplicitamente; la scelta viene salvata. Compattazione e conseguenze del lavoro restano attive. Senza MS, il bilancio idrico TerraLogic funziona autonomamente, anche senza Precision Farming.
+
+Le mietitrebbie e le raccoglitrici per colture standard mantengono la loro consueta velocità di lavoro e il comportamento dei danni. Gli effetti sul suolo, sulle colture e sulla resa di TerraLogic si applicano ai risultati del loro raccolto.
+
+Controlli predefiniti
+
+- Scorri mappe suolo: Alt Sinistro + T — scorre le cinque mappe del suolo e le disattiva.
+- Scorri mappe suolo all'indietro: Ctrl Sinistro + Alt Sinistro + T.
+- Attiva una specifica mappa: Ctrl Sinistro + Alt Sinistro + 1–5:
+  - 1: Compattazione superficiale
+  - 2: Compattazione profonda
+  - 3: Struttura (Affinamento)
+  - 4: Uniformità
+  - 5: Resilienza
+
+Premi nuovamente la stessa scorciatoia di selezione diretta per disattivare quella mappa del suolo. Le associazioni dei tasti possono essere modificate nelle impostazioni dei controlli del gioco.
+
+Segnala bug, lascia feedback o suggerisci funzionalità:
+https://github.com/Saibotsu/FS25_TerraLogic
+]]></it>
     </description>
 
     <l10n filenamePrefix="translations/l10n" />
