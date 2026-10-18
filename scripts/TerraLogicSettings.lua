@@ -6,7 +6,7 @@
     Unauthorized copying, modification, or redistribution is prohibited
     except where expressly permitted by the copyright owner.
 
-    Source fingerprint: TMW-TL-SET-1.200862
+    Source fingerprint: TMW-TL-SET-1.200863
 ]]
 
 TerraLogicSettings = {
@@ -19,6 +19,10 @@ TerraLogicSettings = {
     physicalDropoutsEnabled = true,
     soilDevelopmentSpeed = 8,
     moistureYieldEnabled = true,
+    moistureYieldPreference = "auto",
+    compactionIntensity = 1,
+    precipitationState = 2,
+    moistureSource = "terraLogic",
     mapUpdatePreset = "gentle",
     tutorialsEnabled = true,
     tutorialMode = "guided",
@@ -32,7 +36,7 @@ TerraLogicSettings = {
     menuInstalled = false
 }
 -- Numeric source signature only; it is deliberately excluded from gameplay math.
-TerraLogicSettings.SOURCE_FINGERPRINT = 1.200862
+TerraLogicSettings.SOURCE_FINGERPRINT = 1.200863
 
 TerraLogicLogging = TerraLogicLogging or {verbose = false}
 
@@ -216,7 +220,138 @@ function TerraLogicSettings:getResilienceTillageLossScale(value)
 end
 
 function TerraLogicSettings:getMoistureYieldEnabled()
+    if g_currentMission and g_currentMission:getIsServer() then
+        return self:resolveMoistureYieldEnabled()
+    end
     return self.moistureYieldEnabled ~= false
+end
+
+function TerraLogicSettings:resolveMoistureYieldEnabled()
+    if self.moistureYieldPreference == "on" then return true end
+    if self.moistureYieldPreference == "off" then return false end
+    return not self:isMoistureSystemActive()
+end
+
+function TerraLogicSettings:applyMoistureYieldPreference(value)
+    self.moistureYieldPreference = (value == "on" or value == "off") and value or "auto"
+end
+
+-- Re-evaluate late mod initialization as well as savegame mod-list changes.
+-- Only the host resolves Auto. Clients display the effective host value.
+function TerraLogicSettings:refreshCompatibilityDefaults()
+    if not g_currentMission or not g_currentMission:getIsServer() then return end
+    local enabled = self:resolveMoistureYieldEnabled()
+    if self.moistureYieldEnabled == enabled then return end
+    self:applyMoistureYieldEnabled(enabled)
+    self:save()
+    if g_server then
+        g_server:broadcastEvent(TerraLogicSettingsEvent.new(
+            self.draftModel, true, self.visibleStoneDamageModel,
+            self.soilDevelopmentSpeed, enabled))
+    end
+end
+
+function TerraLogicSettings:normalizeCompactionIntensity(value)
+    local v = tonumber(value)
+    if not v or v ~= v or math.abs(v) == math.huge then return 1 end
+    return math.clamp(math.floor(v * 4 + .5), 2, 6) / 4
+end
+
+function TerraLogicSettings:getCompactionIntensity()
+    return self:normalizeCompactionIntensity(self.compactionIntensity)
+end
+
+function TerraLogicSettings:getCompactionIntensityState(value)
+    return self:normalizeCompactionIntensity(value or self.compactionIntensity) * 4 - 1
+end
+
+function TerraLogicSettings:applyCompactionIntensity(value)
+    value = self:normalizeCompactionIntensity(value)
+    local changed = value ~= self.compactionIntensity
+    self.compactionIntensity = value
+    if self.compactionIntensityOption then
+        self.compactionIntensityOption:setState(self:getCompactionIntensityState())
+    end
+    if changed and TerraLogicTrafficWarnings
+        and TerraLogicTrafficWarnings.onCompactionIntensityChanged then
+        TerraLogicTrafficWarnings:onCompactionIntensityChanged()
+    end
+end
+
+function TerraLogicSettings:setCompactionIntensityFromMenu(value)
+    if not self:isLocalAdmin() then return end
+    value = self:normalizeCompactionIntensity(value)
+    if g_server then
+        self:applyCompactionIntensity(value)
+        self:save()
+        g_server:broadcastEvent(TerraLogicSettingsEvent.new(
+            self.draftModel, true, self.visibleStoneDamageModel,
+            self.soilDevelopmentSpeed, self:getMoistureYieldEnabled()))
+    elseif g_client then
+        g_client:getServerConnection():sendEvent(TerraLogicSettingsEvent.new(
+            self.draftModel, true, self.visibleStoneDamageModel,
+            self.soilDevelopmentSpeed, self:getMoistureYieldEnabled(),
+            nil, nil, nil, nil, value))
+    end
+end
+
+function TerraLogicSettings:isMoistureSystemActive()
+    return TerraLogicMoistureSystemAdapter~=nil and TerraLogicMoistureSystemAdapter:isAvailable()
+end
+
+function TerraLogicSettings:applyMoistureSource(value)
+    value=value=="moistureSystem" and "moistureSystem" or "terraLogic"
+    if value~=self.moistureSource then
+        -- Finish forcing collected under the old owner before changing it.
+        if g_currentMission and g_currentMission:getIsServer() and TerraLogicFieldWaterManager then
+            TerraLogicFieldWaterManager:flushWater()
+        end
+        self.moistureSource=value
+        if TerraLogicMoistureSystemAdapter then
+            TerraLogicMoistureSystemAdapter:resetReferences(value=="moistureSystem")
+        end
+    end
+    self:refreshMoistureOptions()
+end
+
+function TerraLogicSettings:refreshMoistureOptions()
+    local available=self:isMoistureSystemActive()
+    if self.moistureSourceBox then self.moistureSourceBox:setVisible(available)end
+    local moreRealistic=self:isMoreRealisticActive()
+    if self.draftModelBox then self.draftModelBox:setVisible(moreRealistic)end
+    if self.compatibilityHeader then
+        local visible=available or moreRealistic
+        self.compatibilityHeader:setVisible(visible)
+        -- Availability can change during late mod initialization. Collapse the
+        -- empty section and its rows together, including on reopening the menu.
+        if self.compatibilitySectionVisible~=visible
+            or self.compatibilityMSVisible~=available
+            or self.compatibilityMRVisible~=moreRealistic then
+            self.compatibilitySectionVisible=visible
+            self.compatibilityMSVisible=available
+            self.compatibilityMRVisible=moreRealistic
+            local layout=self.compatibilityHeader.parent
+            if layout and layout.invalidateLayout then layout:invalidateLayout()end
+        end
+    end
+    if self.moistureSourceOption then
+        self.moistureSourceOption:setState(self.moistureSource=="moistureSystem" and 2 or 1)
+        self.moistureSourceOption:setDisabled(not self:isLocalAdmin())
+    end
+    if self.precipitationOption then
+        self.precipitationOption:setDisabled(not self:isLocalAdmin()
+            or available and self.moistureSource=="moistureSystem")
+    end
+end
+
+function TerraLogicSettings:setMoistureSourceFromMenu(value)
+    if not self:isLocalAdmin() then return end
+    value=value=="moistureSystem" and "moistureSystem" or "terraLogic"
+    local event=TerraLogicSettingsEvent.new(self.draftModel,true,self.visibleStoneDamageModel,
+        self.soilDevelopmentSpeed,self.moistureYieldEnabled,self.mapUpdatePreset,self.debugEnabled,
+        self.precipitationState,value)
+    if g_server then self:applyMoistureSource(value);self:save();g_server:broadcastEvent(event)
+    elseif g_client then g_client:getServerConnection():sendEvent(event)end
 end
 
 function TerraLogicSettings:getTutorialsEnabled()
@@ -329,13 +464,19 @@ function TerraLogicSettings:load()
     self:applyDraftModel(default)
     self:applyPhysicalDropoutsEnabled(true)
     self:applySoilDevelopmentSpeed(8)
+    self:applyCompactionIntensity(1)
+    self:applyMoistureYieldPreference("auto")
     self:applyMoistureYieldEnabled(true)
+    self:applyPrecipitationState(2)
+    self:applyMoistureSource("terraLogic")
     self:applyVisibleStoneDamageModel(self.VISIBLE_STONES_TERRALOGIC)
     local path, legacyPath = getSettingsPath()
-    if path == nil then return end
+    if path == nil then self:refreshCompatibilityDefaults(); return end
     local migrated = false
     if not fileExists(path) then
-        if legacyPath == nil or not fileExists(legacyPath) then return end
+        if legacyPath == nil or not fileExists(legacyPath) then
+            self:refreshCompatibilityDefaults(); return
+        end
         path = legacyPath
         migrated = true
     end
@@ -349,23 +490,51 @@ function TerraLogicSettings:load()
         self:applyPhysicalDropoutsEnabled(true)
         self:applySoilDevelopmentSpeed(tonumber(getXMLInt(
             xml, "settings#soilDevelopmentSpeed")) or 8)
+        self:applyPrecipitationState(getXMLInt(xml,"settings#precipitationState") or 2)
+        self:applyMoistureSource(getXMLString(xml,"settings#moistureSource"))
         self:applyMoistureYieldEnabled(Utils.getNoNil(
             getXMLBool(xml, "settings#moistureYieldEnabled"), true))
+        -- Old True could be the untouched default: do not mistake it for an
+        -- explicit opt-in. Old False was a deliberate opt-out and is retained.
+        local preference = getXMLString(xml, "settings#moistureYieldPreference")
+        if preference == nil and self.moistureYieldEnabled == false then preference = "off" end
+        self:applyMoistureYieldPreference(preference)
+        self:applyCompactionIntensity(getXMLFloat(xml, "settings#compactionIntensity") or 1)
         self:applyVisibleStoneDamageModel(
             getXMLString(xml, "settings#visibleStoneDamageModel")
                 or self.VISIBLE_STONES_TERRALOGIC)
         delete(xml)
     end
+    self:refreshCompatibilityDefaults()
     if migrated then self:save() end
 end
 
 -- Saves server-owned gameplay settings and the local player's HUD choices.
+function TerraLogicSettings:applyPrecipitationState(value)
+    self.precipitationState=math.clamp(math.floor(tonumber(value) or 2),1,3)
+    if self.precipitationOption then self.precipitationOption:setState(self.precipitationState) end
+end
+
+function TerraLogicSettings:setPrecipitationFromMenu(value)
+    if not self:isLocalAdmin() then return end
+    value=math.clamp(math.floor(tonumber(value) or 2),1,3)
+    local event=TerraLogicSettingsEvent.new(self.draftModel,self.physicalDropoutsEnabled,
+        self.visibleStoneDamageModel,self.soilDevelopmentSpeed,self.moistureYieldEnabled,
+        self.mapUpdatePreset,self.debugEnabled,value)
+    if g_server then self:applyPrecipitationState(value);self:save();g_server:broadcastEvent(event)
+    elseif g_client then g_client:getServerConnection():sendEvent(event) end
+end
+
 function TerraLogicSettings:save()
     if g_currentMission == nil or not g_currentMission:getIsServer() then return end
     local path = getSettingsPath()
     if path == nil then return end
     local xml = createXMLFile("osdSettings", path, "settings")
     if xml ~= nil and xml ~= 0 then
+        setXMLInt(xml,"settings#precipitationState",self.precipitationState)
+        setXMLString(xml,"settings#moistureSource",self.moistureSource)
+        setXMLString(xml,"settings#moistureYieldPreference",self.moistureYieldPreference or "auto")
+        setXMLFloat(xml,"settings#compactionIntensity",self:getCompactionIntensity())
         setXMLBool(xml, "settings#debugEnabled", self:getDebugEnabled())
         setXMLString(xml, "settings#draftModel", self.draftModel)
         setXMLString(xml, "settings#mapUpdatePreset", self.mapUpdatePreset)
@@ -440,6 +609,7 @@ function TerraLogicSettings:setMoistureYieldFromMenu(value)
     if not self:isLocalAdmin() then return end
     value = value ~= false
     if g_server ~= nil then
+        self:applyMoistureYieldPreference(value and "on" or "off")
         self:applyMoistureYieldEnabled(value)
         self:save()
         g_server:broadcastEvent(TerraLogicSettingsEvent.new(
@@ -449,7 +619,8 @@ function TerraLogicSettings:setMoistureYieldFromMenu(value)
     elseif g_client ~= nil then
         g_client:getServerConnection():sendEvent(TerraLogicSettingsEvent.new(
             self.draftModel, self.physicalDropoutsEnabled,
-            self.visibleStoneDamageModel, self.soilDevelopmentSpeed, value))
+            self.visibleStoneDamageModel, self.soilDevelopmentSpeed, value,
+            nil, nil, nil, nil, nil, value and "on" or "off", true))
     end
 end
 
@@ -524,6 +695,10 @@ function TerraLogicSettingsMenuCallbacks:onSoilDevelopmentSpeedChanged(state)
         TerraLogicSettings:getSoilDevelopmentSpeedFromState(state))
 end
 
+function TerraLogicSettingsMenuCallbacks:onCompactionIntensityChanged(state)
+    TerraLogicSettings:setCompactionIntensityFromMenu((state + 1) / 4)
+end
+
 function TerraLogicSettingsMenuCallbacks:onVisibleStoneDamageChanged(state)
     TerraLogicSettings:setVisibleStoneDamageModelFromMenu(
         state == 1 and "vanilla" or "terraLogic")
@@ -531,6 +706,14 @@ end
 
 function TerraLogicSettingsMenuCallbacks:onMoistureYieldChanged(state)
     TerraLogicSettings:setMoistureYieldFromMenu(state == 2)
+end
+
+function TerraLogicSettingsMenuCallbacks:onPrecipitationChanged(state)
+    TerraLogicSettings:setPrecipitationFromMenu(state)
+end
+
+function TerraLogicSettingsMenuCallbacks:onMoistureSourceChanged(state)
+    TerraLogicSettings:setMoistureSourceFromMenu(state==2 and "moistureSystem" or "terraLogic")
 end
 
 function TerraLogicSettingsMenuCallbacks:onTutorialsChanged(state)
@@ -601,17 +784,24 @@ function TerraLogicSettings:tryInstallMenu()
         or page.multiVolumeVoiceBox == nil then return false end
 
     TerraLogicSettingsMenuCallbacks.name = page.name
-    local header
+    local headerTemplate
     for _, element in ipairs(page.gameSettingsLayout.elements or {}) do
         if element.name == "sectionHeader" then
-            header = element:clone(page.gameSettingsLayout)
+            headerTemplate = element
             break
         end
     end
-    if header ~= nil then
-        header:setText(g_i18n:getText("terraLogic_settingSection"))
+    local function addSection(id, titleKey)
+        -- Reuse the game's header profile and spacing. With a replacement
+        -- settings menu lacking this template, retain the grouped row order.
+        if headerTemplate == nil then return nil end
+        local header = headerTemplate:clone(page.gameSettingsLayout)
+        header.id = id
+        header:setText(g_i18n:getText("terraLogic_settingSection")
+            .. " | " .. g_i18n:getText(titleKey))
         updateFocusIds(header)
         table.insert(page.controlsList, header)
+        return header
     end
 
     local function addOption(id, callback, texts, state, titleKey, tooltipKey)
@@ -746,29 +936,8 @@ function TerraLogicSettings:tryInstallMenu()
         return button, box
     end
 
-    -- Player-facing guidance and display options come first. The tutorial
-    -- reset is an ordinary row directly below the tutorial toggle so it is
-    -- visible in the same TerraLogic section on every input device.
-    self.tutorialsOption = addOption(
-        "terraLogicTutorials", "onTutorialsChanged",
-        {g_i18n:getText("terraLogic_settingOff"),
-            g_i18n:getText("terraLogic_tutorialModeGuided"),
-            g_i18n:getText("terraLogic_tutorialModeContext")},
-        self:getTutorialsEnabled() and (self.tutorialMode == "context" and 3 or 2) or 1,
-        "terraLogic_settingTutorialsTitle",
-        "terraLogic_settingTutorialsTooltip")
-    self.tutorialLibraryButton = addButton(
-        "terraLogicTutorialLibrary", "onTutorialLibrary",
-        "terraLogic_tutorialLibraryAction", "terraLogic_tutorialLibraryTitle",
-        "terraLogic_tutorialLibraryTooltip")
-    self.tutorialResetButton = addButton(
-        "terraLogicTutorialReset", "onTutorialReset",
-        "terraLogic_settingTutorialResetAction",
-        "terraLogic_settingTutorialReset",
-        "terraLogic_settingTutorialResetTooltip")
-    addButton("terraLogicTutorialPositionReset", "onTutorialPositionReset",
-        "terraLogic_tutorialPositionResetAction", "terraLogic_tutorialPositionResetTitle",
-        "terraLogic_tutorialPositionResetTooltip")
+    -- Client-only presentation choices. Keep simulation switches separate.
+    addSection("terraLogicDisplaySection", "terraLogic_settingsGroupDisplay")
     local speedHudState = self.speedHudMode == "always" and 2
         or (self.speedHudMode == "warnings" and 3 or (self.speedHudMode == "off" and 4 or 1))
     self.speedHudModeOption = addOption(
@@ -790,6 +959,15 @@ function TerraLogicSettings:tryInstallMenu()
         self:getWarningDisplaySeconds(),
         "terraLogic_settingWarningDurationTitle",
         "terraLogic_settingWarningDurationTooltip")
+    -- Stone-impact events are the only optional warning. Condition, wear and
+    -- mechanical-load information remain integral parts of the work HUD.
+    self.damageWarningsOption = addOption(
+        "terraLogicDamageWarnings", "onDamageWarningsChanged",
+        {g_i18n:getText("terraLogic_settingOff"),
+            g_i18n:getText("terraLogic_settingOn")},
+        self.damageWarningsEnabled and 2 or 1,
+        "terraLogic_settingDamageWarningsTitle",
+        "terraLogic_settingDamageWarningsTooltip")
     local minimapZoom = self:getSoilMinimapZoom()
     local minimapZoomState = minimapZoom == 0 and 1
         or (minimapZoom == 1.5 and 2
@@ -802,9 +980,37 @@ function TerraLogicSettings:tryInstallMenu()
         "terraLogic_settingSoilMinimapZoomTitle",
         "terraLogic_settingSoilMinimapZoomTooltip")
 
-    -- Gameplay simulation follows the local display options. Server-owned
-    -- switches stay together, which also makes the admin-disabled rows easy
-    -- to understand in multiplayer.
+    addSection("terraLogicTutorialSection", "terraLogic_settingsGroupTutorials")
+    self.tutorialsOption = addOption(
+        "terraLogicTutorials", "onTutorialsChanged",
+        {g_i18n:getText("terraLogic_settingOff"),
+            g_i18n:getText("terraLogic_tutorialModeGuided"),
+            g_i18n:getText("terraLogic_tutorialModeContext")},
+        self:getTutorialsEnabled() and (self.tutorialMode == "context" and 3 or 2) or 1,
+        "terraLogic_settingTutorialsTitle",
+        "terraLogic_settingTutorialsTooltip")
+    self.tutorialLibraryButton = addButton(
+        "terraLogicTutorialLibrary", "onTutorialLibrary",
+        "terraLogic_tutorialLibraryAction", "terraLogic_tutorialLibraryTitle",
+        "terraLogic_tutorialLibraryTooltip")
+    self.tutorialResetButton = addButton(
+        "terraLogicTutorialReset", "onTutorialReset",
+        "terraLogic_settingTutorialResetAction",
+        "terraLogic_settingTutorialReset",
+        "terraLogic_settingTutorialResetTooltip")
+    addButton("terraLogicTutorialPositionReset", "onTutorialPositionReset",
+        "terraLogic_tutorialPositionResetAction", "terraLogic_tutorialPositionResetTitle",
+        "terraLogic_tutorialPositionResetTooltip")
+
+    -- Host-owned gameplay choices keep their existing callbacks and values.
+    addSection("terraLogicSimulationSection", "terraLogic_settingsGroupSimulation")
+    self.compactionIntensityOption = addOption(
+        "terraLogicCompactionIntensity", "onCompactionIntensityChanged",
+        {"50%", "75%", "100%", "125%", "150%"},
+        self:getCompactionIntensityState(),
+        "terraLogic_settingCompactionIntensityTitle",
+        "terraLogic_settingCompactionIntensityTooltip")
+    self.compactionIntensityOption:setDisabled(not self:isLocalAdmin())
     self.soilDevelopmentSpeedOption = addOption(
         "terraLogicSoilDevelopmentSpeed", "onSoilDevelopmentSpeedChanged",
         {g_i18n:getText("terraLogic_settingSoilDevelopmentRealistic"),
@@ -813,13 +1019,10 @@ function TerraLogicSettings:tryInstallMenu()
         self:getSoilDevelopmentSpeedState(),
         "terraLogic_settingSoilDevelopmentTitle",
         "terraLogic_settingSoilDevelopmentTooltip")
-    self.mapUpdateOption = addOption(
-        "terraLogicMapUpdate", "onMapUpdateChanged",
-        {g_i18n:getText("terraLogic_mapUpdateGentle"),
-            g_i18n:getText("terraLogic_mapUpdateFast")},
-        self.mapUpdatePreset == "fast" and 2 or 1,
-        "terraLogic_mapUpdateTitle", "terraLogic_mapUpdateHelp")
-    self.mapUpdateOption:setDisabled(not self:isLocalAdmin())
+    self.precipitationOption = addOption("terraLogicPrecipitation","onPrecipitationChanged",
+        {g_i18n:getText("terraLogic_precipDry"),g_i18n:getText("terraLogic_precipNormal"),g_i18n:getText("terraLogic_precipMoist")},
+        self.precipitationState,"terraLogic_precipTitle","terraLogic_precipHelp")
+    self.precipitationOption:setDisabled(not self:isLocalAdmin())
     self.moistureYieldOption = addOption(
         "terraLogicMoistureYield", "onMoistureYieldChanged",
         {g_i18n:getText("terraLogic_settingOff"),
@@ -834,24 +1037,28 @@ function TerraLogicSettings:tryInstallMenu()
         self.visibleStoneDamageModel == self.VISIBLE_STONES_TERRALOGIC and 2 or 1,
         "terraLogic_settingVisibleStonesTitle",
         "terraLogic_settingVisibleStonesTooltip")
+    self.compatibilityHeader = addSection(
+        "terraLogicCompatibilitySection", "terraLogic_settingsGroupCompatibility")
+    self.moistureSourceOption,self.moistureSourceBox=addOption(
+        "terraLogicMoistureSource","onMoistureSourceChanged",
+        {"TerraLogic","Moisture System"},self.moistureSource=="moistureSystem" and 2 or 1,
+        "terraLogic_msSourceTitle","terraLogic_msSourceHelp")
     self.menuOption, self.draftModelBox = addOption(
         "terraLogicDraftModel", "onDraftModelChanged",
         {g_i18n:getText("terraLogic_settingDraftTerraLogic"),
             g_i18n:getText("terraLogic_settingDraftMR")},
         self.draftModel == self.DRAFT_MR and 2 or 1,
         "terraLogic_settingDraftTitle", "terraLogic_settingDraftTooltip")
-    self.draftModelBox:setVisible(self:isMoreRealisticActive())
+    self:refreshMoistureOptions()
 
-    -- Stone-impact events are the only optional warning. Condition, wear and
-    -- mechanical-load information are integral parts of the work HUD.
-    self.damageWarningsOption = addOption(
-        "terraLogicDamageWarnings", "onDamageWarningsChanged",
-        {g_i18n:getText("terraLogic_settingOff"),
-            g_i18n:getText("terraLogic_settingOn")},
-        self.damageWarningsEnabled and 2 or 1,
-        "terraLogic_settingDamageWarningsTitle",
-        "terraLogic_settingDamageWarningsTooltip")
-    -- Keep diagnostics last, separate from normal gameplay/display choices.
+    addSection("terraLogicDiagnosticsSection", "terraLogic_settingsGroupDiagnostics")
+    self.mapUpdateOption = addOption(
+        "terraLogicMapUpdate", "onMapUpdateChanged",
+        {g_i18n:getText("terraLogic_mapUpdateGentle"),
+            g_i18n:getText("terraLogic_mapUpdateFast")},
+        self.mapUpdatePreset == "fast" and 2 or 1,
+        "terraLogic_mapUpdateTitle", "terraLogic_mapUpdateHelp")
+    self.mapUpdateOption:setDisabled(not self:isLocalAdmin())
     self.debugOption = addOption(
         "terraLogicDebug", "onDebugChanged",
         {g_i18n:getText("terraLogic_settingOff"),
@@ -897,6 +1104,16 @@ function TerraLogicSettings:tryInstallMenu()
                 end
                 local moistureYieldControl =
                     TerraLogicSettings.moistureYieldOption
+                local compactionControl = TerraLogicSettings.compactionIntensityOption
+                if compactionControl ~= nil then
+                    compactionControl:setState(TerraLogicSettings:getCompactionIntensityState())
+                    compactionControl:setDisabled(not TerraLogicSettings:isLocalAdmin())
+                end
+                if TerraLogicSettings.precipitationOption then
+                    TerraLogicSettings.precipitationOption:setState(TerraLogicSettings.precipitationState)
+                    TerraLogicSettings.precipitationOption:setDisabled(not TerraLogicSettings:isLocalAdmin())
+                end
+                TerraLogicSettings:refreshMoistureOptions()
                 if moistureYieldControl ~= nil then
                     moistureYieldControl:setState(
                         TerraLogicSettings:getMoistureYieldEnabled()
@@ -983,8 +1200,12 @@ end
 
 function TerraLogicSettingsEvent.new(
         draftModel, physicalDropoutsEnabled, visibleStoneDamageModel,
-        soilDevelopmentSpeed, moistureYieldEnabled, mapUpdatePreset, debugEnabled)
+        soilDevelopmentSpeed, moistureYieldEnabled, mapUpdatePreset, debugEnabled, precipitationState, moistureSource,
+        compactionIntensity, moistureYieldPreference, moistureYieldPreferenceChanged)
     local self = TerraLogicSettingsEvent.emptyNew()
+    self.precipitationState=precipitationState or TerraLogicSettings.precipitationState
+    self.moistureSource=(moistureSource or TerraLogicSettings.moistureSource)=="moistureSystem"
+        and "moistureSystem" or "terraLogic"
     if debugEnabled == nil then debugEnabled = TerraLogicSettings:getDebugEnabled() end
     self.debugEnabled = debugEnabled == true
     self.mapUpdatePreset = (mapUpdatePreset or TerraLogicSettings.mapUpdatePreset)
@@ -996,9 +1217,17 @@ function TerraLogicSettingsEvent.new(
     self.soilDevelopmentSpeed =
         TerraLogicSettings:normalizeSoilDevelopmentSpeed(
             soilDevelopmentSpeed)
-    self.moistureYieldEnabled = moistureYieldEnabled == nil
-        and TerraLogicSettings:getMoistureYieldEnabled()
-        or moistureYieldEnabled ~= false
+    if moistureYieldEnabled == nil then
+        moistureYieldEnabled = TerraLogicSettings:getMoistureYieldEnabled()
+    end
+    self.moistureYieldEnabled = moistureYieldEnabled ~= false
+    self.compactionIntensity = TerraLogicSettings:normalizeCompactionIntensity(
+        compactionIntensity or TerraLogicSettings:getCompactionIntensity())
+    self.moistureYieldPreference = moistureYieldPreference or TerraLogicSettings.moistureYieldPreference
+    if self.moistureYieldPreference ~= "on" and self.moistureYieldPreference ~= "off" then
+        self.moistureYieldPreference = "auto"
+    end
+    self.moistureYieldPreferenceChanged = moistureYieldPreferenceChanged == true
     return self
 end
 
@@ -1014,6 +1243,13 @@ function TerraLogicSettingsEvent:readStream(streamId, connection)
     self.moistureYieldEnabled = streamReadBool(streamId)
     self.mapUpdatePreset = streamReadBool(streamId) and "fast" or "gentle"
     self.debugEnabled = streamReadBool(streamId)
+    self.precipitationState=streamReadUIntN(streamId,2)+1
+    self.moistureSource=streamReadBool(streamId) and "moistureSystem" or "terraLogic"
+    self.compactionIntensity = TerraLogicSettings:normalizeCompactionIntensity(
+        (streamReadUIntN(streamId, 3) + 2) / 4)
+    local preference = streamReadUIntN(streamId, 2)
+    self.moistureYieldPreference = preference == 1 and "on" or preference == 2 and "off" or "auto"
+    self.moistureYieldPreferenceChanged = streamReadBool(streamId)
     self:run(connection)
 end
 
@@ -1028,10 +1264,20 @@ function TerraLogicSettingsEvent:writeStream(streamId, connection)
     streamWriteBool(streamId, self.moistureYieldEnabled)
     streamWriteBool(streamId, self.mapUpdatePreset == "fast")
     streamWriteBool(streamId, self.debugEnabled)
+    streamWriteUIntN(streamId,self.precipitationState-1,2)
+    streamWriteBool(streamId,self.moistureSource=="moistureSystem")
+    streamWriteUIntN(streamId, TerraLogicSettings:getCompactionIntensityState(self.compactionIntensity) - 1, 3)
+    streamWriteUIntN(streamId, self.moistureYieldPreference == "on" and 1
+        or self.moistureYieldPreference == "off" and 2 or 0, 2)
+    streamWriteBool(streamId, self.moistureYieldPreferenceChanged)
 end
 
 function TerraLogicSettingsEvent:run(connection)
     if connection:getIsServer() then
+        TerraLogicSettings:applyCompactionIntensity(self.compactionIntensity)
+        TerraLogicSettings:applyMoistureYieldPreference(self.moistureYieldPreference)
+        TerraLogicSettings:applyPrecipitationState(self.precipitationState)
+        TerraLogicSettings:applyMoistureSource(self.moistureSource)
         TerraLogicSettings:applyDebugEnabled(self.debugEnabled)
         TerraLogicSettings:applyMapUpdatePreset(self.mapUpdatePreset)
         TerraLogicSettings:applyDraftModel(self.draftModel)
@@ -1049,6 +1295,14 @@ function TerraLogicSettingsEvent:run(connection)
     local userId = userManager ~= nil and userManager:getUserIdByConnection(connection) or nil
     local user = userId ~= nil and userManager:getUserByUserId(userId) or nil
     if user == nil or not user:getIsMasterUser() then return end
+    TerraLogicSettings:applyCompactionIntensity(self.compactionIntensity)
+    -- Ordinary settings snapshots must not turn an automatic default into an
+    -- explicit preference, or overwrite a choice made by the host meanwhile.
+    if self.moistureYieldPreferenceChanged then
+        TerraLogicSettings:applyMoistureYieldPreference(self.moistureYieldPreference)
+    end
+    TerraLogicSettings:applyPrecipitationState(self.precipitationState)
+    TerraLogicSettings:applyMoistureSource(self.moistureSource)
     TerraLogicSettings:applyDebugEnabled(self.debugEnabled)
     TerraLogicSettings:applyMapUpdatePreset(self.mapUpdatePreset)
     TerraLogicSettings:applyDraftModel(self.draftModel)
@@ -1059,7 +1313,7 @@ function TerraLogicSettingsEvent:run(connection)
     TerraLogicSettings:applySoilDevelopmentSpeed(
         self.soilDevelopmentSpeed)
     TerraLogicSettings:applyMoistureYieldEnabled(
-        self.moistureYieldEnabled)
+        TerraLogicSettings:resolveMoistureYieldEnabled())
     TerraLogicSettings:save()
     g_server:broadcastEvent(TerraLogicSettingsEvent.new(
         TerraLogicSettings.draftModel,

@@ -446,7 +446,7 @@ end
 -- keeping that choice at each process prevents accidental recoupling.
 local function scaleEnvironmentalStrength(strength, environment, speed)
     return scaleSlowStrength(clamp01(strength)
-        * math.clamp(tonumber(environment) or 1, 0, 2), speed)
+        * math.max(tonumber(environment) or 1, 0), speed)
 end
 
 local function newRecoveryAccumulator()
@@ -479,7 +479,7 @@ end
 -- Field Analysis page uses this to preview real implement behaviour without
 -- creating a WorkArea, mutating the implement, or writing a density map.
 function TerraLogicSoilManager:getSuitabilityAtState(state, soilTypeIndex,
-        classKey, workDepthCm, rawGround)
+        classKey, workDepthCm, rawGround, x, z)
     local profile = TerraLogicSoilProfiles ~= nil
         and TerraLogicSoilProfiles:getSuitabilityProfile(classKey) or nil
     if state == nil or profile == nil then
@@ -524,7 +524,7 @@ function TerraLogicSoilManager:getSuitabilityAtState(state, soilTypeIndex,
         (profile.dropoutMax or 0) * dropoutRisk * speedActivation)
     local moisture = TerraLogicSoilMoistureManager ~= nil
         and TerraLogicSoilMoistureManager:getMechanicalResponse(
-            soilTypeIndex, classKey, workDepthCm or 0) or {}
+            soilTypeIndex, classKey, workDepthCm or 0, x, z) or {}
     local rawMoistureQuality = clamp01(moisture.qualityFactor or 1)
     local moistureQuality = 1 - (1 - rawMoistureQuality) * residual
     local moistureDropout = math.max(
@@ -678,12 +678,12 @@ function TerraLogicSoilManager:prepareWorkAreaSuitability(
                 .. tostring(cell.iz)] = true
             local state = self:getStateAtWorldPosition(x, z)
             local soilTypeIndex = self:getPFSoilTypeAtWorldPosition(x, z)
-            local responseKey = tostring(soilTypeIndex or "default")
+            local responseKey = tostring(soilTypeIndex or "default") .. ":" .. tostring(TerraLogicFieldWaterManager and (TerraLogicFieldWaterManager:getField(x,z) or {}).id or 0)
             local moisture = mechanicalResponses[responseKey]
             if moisture == nil and TerraLogicSoilMoistureManager ~= nil then
                 moisture = TerraLogicSoilMoistureManager:
                     getMechanicalResponse(soilTypeIndex, classKey,
-                        spec.workDepthCm or 0)
+                        spec.workDepthCm or 0, x, z)
                 mechanicalResponses[responseKey] = moisture
             end
             moistureQualitySum = moistureQualitySum
@@ -1624,6 +1624,7 @@ function TerraLogicSoilManager:writeRecoverySnapshot(xml, key, snapshot)
     xml:setInt(key .. "#version", tonumber(snapshot.version)
         or self.RECOVERY_SNAPSHOT_VERSION)
     xml:setInt(key .. "#serial", tonumber(snapshot.serial) or 0)
+    if snapshot.moistureSerial then xml:setInt(key.."#moistureSerial",snapshot.moistureSerial) end
     xml:setFloat(key .. "#hours", tonumber(snapshot.hours) or 0)
     xml:setFloat(key .. "#daysPerPeriod",
         tonumber(snapshot.daysPerPeriod) or 1)
@@ -1664,6 +1665,7 @@ function TerraLogicSoilManager:readRecoverySnapshot(xml, key)
     local snapshot = {
         version=xml:getInt(key .. "#version", 1),
         serial=xml:getInt(key .. "#serial", 0),
+        moistureSerial=xml:getInt(key.."#moistureSerial"),
         hours=math.max(xml:getFloat(key .. "#hours", 0), 0),
         daysPerPeriod=math.max(xml:getFloat(
             key .. "#daysPerPeriod", 1), 1),
@@ -3440,6 +3442,8 @@ end
 function TerraLogicSoilManager:getRecoveryMoistureFactor(x, z)
     if TerraLogicSoilMoistureManager == nil then return 1 end
     local moisture = TerraLogicSoilMoistureManager:getStateAtWorldPosition(x, z)
+    moisture.surface=TerraLogicSoilMoistureManager:getResponseMoisture(moisture.surface,moisture.profileIndex)
+    moisture.subsoil=TerraLogicSoilMoistureManager:getResponseMoisture(moisture.subsoil,moisture.profileIndex)
     local value = clamp01((moisture.surface * 0.35)
         + (moisture.subsoil * 0.65))
     local dryActivity = smoothStep01((value - 0.12) / 0.38)
@@ -3449,19 +3453,27 @@ function TerraLogicSoilManager:getRecoveryMoistureFactor(x, z)
 end
 
 function TerraLogicSoilManager:getRecoveryEnvironmentFactors(
-        x, z, soilTypeIndex, temperatureOverride)
+        x, z, soilTypeIndex, temperatureOverride, moistureOverride)
     local moisture = {surface=0.50, subsoil=0.55, profileName="Generic"}
     if TerraLogicSoilMoistureManager ~= nil then
         if soilTypeIndex ~= nil then
             local surface, subsoil, _, profile =
-                TerraLogicSoilMoistureManager:getProfileState(soilTypeIndex)
-            moisture = {surface=surface, subsoil=subsoil,
+                TerraLogicSoilMoistureManager:getProfileState(soilTypeIndex, x, z)
+            moisture = {surface=surface, subsoil=subsoil, profileIndex=soilTypeIndex,
                 profileName=profile.name}
         else
             moisture = TerraLogicSoilMoistureManager:
                 getStateAtWorldPosition(x, z)
         end
     end
+    if moistureOverride then moisture=moistureOverride end
+    if TerraLogicSoilMoistureManager ~= nil then
+        local index=moisture.profileIndex or soilTypeIndex or 0
+        moisture.surface=TerraLogicSoilMoistureManager:getResponseMoisture(moisture.surface,index)
+        moisture.subsoil=TerraLogicSoilMoistureManager:getResponseMoisture(moisture.subsoil,index)
+    end
+    -- Ecology accumulators retain their dimensionless suitability scale;
+    -- public moisture and hydraulic storage use volume fractions.
     -- Inline the public moisture response here so a full monthly raster scan
     -- performs only one PF texture lookup per 8 m recovery cell.
     local rootMoisture = clamp01((moisture.surface * 0.35)
@@ -3502,11 +3514,9 @@ function TerraLogicSoilManager:getRecoveryEnvironmentFactors(
     local surfaceFrost = surfaceThawPulse * surfaceFrostMoisture
     local deepFrost = deepThawPulse * deepFrostMoisture
     local physicalSurface = math.clamp(
-        moistureFactor * (0.32 + 0.68 * warmth)
-            + 0.38 * surfaceFrost, 0.20, 1.35)
+        moistureFactor * (0.32 + 0.68 * warmth), 0.20, 1.35) + 0.38*surfaceFrost
     local physicalDeep = math.clamp(
-        moistureFactor * (0.45 + 0.55 * warmth)
-            + 0.16 * deepFrost, 0.25, 1.20)
+        moistureFactor * (0.45 + 0.55 * warmth), 0.25, 1.20) + 0.16*deepFrost
     return {
         moistureFactor=moistureFactor,
         biologicalFactor=biological,
@@ -3573,7 +3583,7 @@ function TerraLogicSoilManager:updateRecoveryEnvironmentAccumulator()
 
     for _, profileIndex in ipairs(getRecoveryProfileOrder()) do
         local environment = self:getRecoveryEnvironmentFactors(
-            0, 0, profileIndex, temperatureWithoutPulse)
+            nil, nil, profileIndex, temperatureWithoutPulse)
         local sums = accumulator.profiles[profileIndex]
         if sums == nil then
             sums = {hours=0, moistureFactor=0, biologicalFactor=0,
@@ -3606,9 +3616,15 @@ function TerraLogicSoilManager:createRecoveryEnvironmentSnapshot()
     end
     self.recoveryCompletedPeriods =
         (tonumber(self.recoveryCompletedPeriods) or 0) + 1
+    local water=TerraLogicSoilMoistureManager
+    local waterSerial=water and water:getPeriodSerial() or nil
+    if waterSerial and ((water.periodAccumulator or {}).hours or 0)>=12*(temperature.daysPerPeriod or 1) then
+        waterSerial=waterSerial+1
+    end
     local snapshot = {
         version=self.RECOVERY_SNAPSHOT_VERSION,
         serial=self.recoveryCompletedPeriods,
+        moistureSerial=waterSerial,
         hours=hours,
         daysPerPeriod=tonumber(accumulator.daysPerPeriod)
             or tonumber(temperature.daysPerPeriod) or 1,
@@ -3648,7 +3664,7 @@ function TerraLogicSoilManager:createRecoveryEnvironmentSnapshot()
             noPulse.pendingSurfaceThawPulse = 0
             noPulse.pendingDeepThawPulse = 0
             local environment = self:getRecoveryEnvironmentFactors(
-                0, 0, profileIndex, noPulse)
+                nil, nil, profileIndex, noPulse)
             snapshot.profiles[profileIndex] = environment
         end
     end
@@ -3658,8 +3674,20 @@ function TerraLogicSoilManager:createRecoveryEnvironmentSnapshot()
 end
 
 function TerraLogicSoilManager:getRecoveryEnvironmentFromSnapshot(
-        snapshot, soilTypeIndex)
+        snapshot, soilTypeIndex, x, z)
     if snapshot == nil or snapshot.profiles == nil then return nil end
+    if x and z and TerraLogicFieldWaterManager and snapshot.moistureSerial then
+        local w=TerraLogicFieldWaterManager:getStore(x,z,soilTypeIndex or 0)
+        local h=w and w.history and w.history[snapshot.moistureSerial]
+        if h then
+            local temp={surfaceTemperatureC=snapshot.surfaceTemperatureC,
+                subsoilTemperatureC=snapshot.subsoilTemperatureC,
+                freezeThawSurfacePulse=snapshot.surfaceThawPulse,
+                freezeThawDeepPulse=snapshot.deepThawPulse}
+            return self:getRecoveryEnvironmentFactors(x,z,soilTypeIndex,temp,
+                {surface=h.upper,subsoil=h.lower,profileIndex=soilTypeIndex or 0})
+        end
+    end
     local index = tonumber(soilTypeIndex)
     local stored = index ~= nil and snapshot.profiles[index] or nil
     stored = stored
@@ -3677,11 +3705,11 @@ function TerraLogicSoilManager:getRecoveryEnvironmentFromSnapshot(
         moistureFactor=tonumber(stored.moistureFactor) or 1,
         biologicalFactor=tonumber(stored.biologicalFactor) or 1,
         physicalSurfaceFactor=math.clamp(
-            (tonumber(stored.physicalSurfaceFactor) or 1)
-                + 0.38 * surfaceFrost, 0.20, 1.35),
+            (tonumber(stored.physicalSurfaceFactor) or 1), 0.20, 1.35)
+                + 0.38 * surfaceFrost,
         physicalDeepFactor=math.clamp(
-            (tonumber(stored.physicalDeepFactor) or 1)
-                + 0.16 * deepFrost, 0.25, 1.20),
+            (tonumber(stored.physicalDeepFactor) or 1), 0.25, 1.20)
+                + 0.16 * deepFrost,
         surfaceFrostFactor=surfaceFrost,
         deepFrostFactor=deepFrost,
         surfaceThawPulse=tonumber(snapshot.surfaceThawPulse) or 0,
@@ -3838,7 +3866,7 @@ function TerraLogicSoilManager:processNaturalRecoveryCell(job, index)
         developmentSpeed)
     local restFactor = getBiologicalContinuityFromAge(age)
     local environment = self:getRecoveryEnvironmentFromSnapshot(
-        job.snapshot, soilTypeIndex)
+        job.snapshot, soilTypeIndex, x, z)
     if environment == nil then
         -- Compatibility fallback for a v78 job resumed without a persisted
         -- snapshot. New v79 passes never use an instantaneous month value.
@@ -4040,6 +4068,8 @@ function TerraLogicSoilManager:startNaturalRecovery()
 end
 
 function TerraLogicSoilManager:finishNaturalRecovery(job)
+    local logger=TerraLogicWeatherLogger
+    if logger ~= nil and logger.active then logger:recordRecoveryCompleted(job) end
     if TerraLogicTutorialManager ~= nil then
         TerraLogicTutorialManager:observeRecovery(job)
     end
@@ -5604,7 +5634,7 @@ function TerraLogicSoilManager:updateVirtualImplementPass()
                     local soilType = self:getPFSoilTypeAtWorldPosition(x, z)
                     local projected = self:previewOperationFromState(
                         state, soilType, job.classKey, job.workDepthCm,
-                        job.speedKph, job.shopSpeedKph, ix, iz)
+                        job.speedKph, job.shopSpeedKph, ix, iz, x, z)
                     local nextValue = projected[layer.id]
                     local current = state[layer.id]
                     if nextValue ~= nil and math.abs(
@@ -5693,9 +5723,19 @@ function TerraLogicSoilManager:getTrafficSensitivityFactors(
     texture = texture or TerraLogicSoilProfiles:getPFTrafficResponse(soilType)
         or NEUTRAL_TRAFFIC_TEXTURE
     local biology = 1.30 - 0.60 * clamp01(resilience or 0.50)
+    -- Keep the physical suction/texture response as the single moisture
+    -- input, but give liquid subsoil a clearer dry/wet contrast. FC stays at
+    -- x1.11; the bounded curve changes the impulse, never an axle's target.
+    -- Frozen ground retains its separate, existing protection multiplier.
+    local deepMoistureResponse = tonumber(deepMoisture) or 1
+    if not deepFrozen then
+        deepMoistureResponse = math.clamp(
+            1.11 * (math.max(deepMoistureResponse, 0) / 1.11) ^ 5,
+            0.25, 1.60)
+    end
     return (texture.surface or 1) * biology * (surfaceMoisture or 1)
             * (surfaceFrozen and 0.20 or 1),
-        (texture.deep or 1) * biology * (deepMoisture or 1)
+        (texture.deep or 1) * biology * deepMoistureResponse
             * (deepFrozen and 0.35 or 1) * self.DEEP_TRAFFIC_RATE
 end
 
@@ -5735,12 +5775,12 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
     if TerraLogicSoilMoistureManager ~= nil then
         moistureSurfaceMultiplier, moistureDeepMultiplier =
             TerraLogicSoilMoistureManager:getTrafficMultipliers(
-                moistureSoilType)
+                moistureSoilType, x, z)
         moistureState = TerraLogicSoilMoistureManager:getStateAtWorldPosition(
             x, z)
         moistureMechanics =
             TerraLogicSoilMoistureManager:getMechanicalResponse(
-                moistureSoilType, nil, 5)
+                moistureSoilType, nil, 5, x, z)
     end
     local changed = false
     local changedLayerIds, changedLayerCount = {}, 0
@@ -5846,10 +5886,9 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
     local function moistureAdjustedTarget(baseTarget, multiplier,
             wetShift, dryShift)
         if baseTarget == nil then return nil end
-        -- Traffic moisture impulses retain their 50% moderation. Recover the
-        -- original positive moisture excursion for targets only; dry shifts
-        -- and neutral targets must remain bit-for-bit unchanged.
-        local wet = clamp01(((tonumber(multiplier) or 1) - 1) * 2 / 0.58)
+        -- Physical moisture response spans x0.72 (dry) to x1.50 (saturated).
+        -- The HUD reference pass and map writes share these adjusted targets.
+        local wet = clamp01(((tonumber(multiplier) or 1) - 1) / 0.50)
         local dry = clamp01((1 - (tonumber(multiplier) or 1)) / 0.28)
         return clamp01(baseTarget + wetShift * wet - dryShift * dry)
     end
@@ -5857,6 +5896,20 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
         impact.surfaceTarget, moistureSurfaceMultiplier, 0.18, 0.08)
     local appliedDeepTarget = moistureAdjustedTarget(
         impact.deepTarget, moistureDeepMultiplier, 0.15, 0.06)
+    -- Difficulty changes only new wheel/axle compaction. Keep 100% bit-for-bit
+    -- unchanged; never rescale stored soil, recovery, strength or seedbed work.
+    -- The returned detail feeds the very same targets into the HUD reference.
+    local compactionIntensity = TerraLogicSettings ~= nil
+        and TerraLogicSettings.getCompactionIntensity ~= nil
+        and TerraLogicSettings:getCompactionIntensity() or 1
+    if compactionIntensity ~= 1 then
+        if appliedSurfaceTarget ~= nil then
+            appliedSurfaceTarget = clamp01(appliedSurfaceTarget * compactionIntensity)
+        end
+        if appliedDeepTarget ~= nil then
+            appliedDeepTarget = clamp01(appliedDeepTarget * compactionIntensity)
+        end
+    end
     local surfaceFrostProtection = moistureState ~= nil
         and moistureState.surfaceFrozen and 0.20 or 1
     local deepFrostProtection = moistureState ~= nil
@@ -5878,8 +5931,18 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
     -- former full-cell behaviour.
     local deepCoverage = impact.deepTarget ~= nil
         and clamp01(tonumber(impact.deepCoverage) or 1) or 0
+    -- A wider stress band spreads a fixed axle load over more ground; it
+    -- must not simply add a stronger impulse through greater cell coverage.
+    -- Anchor the distribution at a 600-mm tyre plus the existing 350-mm
+    -- depth spread. Missing width preserves legacy/non-wheel callers.
+    local deepBandWidth = tonumber(impact.deepCoveredWidthM) or 0
+    -- The stress model already accounts for contact width AND length. Applying
+    -- the legacy inverse-width amplitude again would count that benefit twice.
+    -- Preserve the former response for any legacy/non-wheel impact producers.
+    local deepDistributionFactor = impact.deepStressModel == true and 1 or
+        (deepBandWidth > 0 and 0.95 / math.max(deepBandWidth, 0.35) or 1)
     local appliedDeepStrength = (tonumber(impact.deepStrength) or 0)
-        * deepSensitivity * deepCoverage
+        * deepSensitivity * deepCoverage * deepDistributionFactor
     moveTowards("surfaceCompaction", appliedSurfaceTarget,
         appliedSurfaceStrength)
     moveTowards("deepCompaction", appliedDeepTarget,
@@ -6070,10 +6133,12 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
         surfaceLowPressureResponse=
             impact.surfaceLowPressureResponse == true,
         deepBaseTarget=tonumber(impact.deepTarget) or 0,
+        compactionIntensity=compactionIntensity,
         deepTarget=tonumber(appliedDeepTarget) or 0,
         deepBaseStrength=tonumber(impact.deepStrength) or 0,
         deepCoverage=deepCoverage,
         deepCoveredWidthM=tonumber(impact.deepCoveredWidthM) or 0,
+        deepDistributionFactor=deepDistributionFactor,
         deepAppliedStrength=appliedDeepStrength,
         structurePass=impact.structurePass == true,
         structureMode=structureMode,
@@ -6278,7 +6343,7 @@ end
 -- assumed to be zero and vehicle traffic remains separate.
 function TerraLogicSoilManager:previewOperationFromState(
         state, soilTypeIndex, classKey, workDepthCm,
-        speedKph, shopSpeedKph, variationIx, variationIz)
+        speedKph, shopSpeedKph, variationIx, variationIz, x, z)
     local projected = {}
     for _, layerId in ipairs({"surfaceCompaction", "deepCompaction",
             "aggregateSize", "roughness", "resilience"}) do
@@ -6300,7 +6365,7 @@ function TerraLogicSoilManager:previewOperationFromState(
             local current = projected[layerId]
             local moistureResponse = TerraLogicSoilMoistureManager ~= nil
                 and TerraLogicSoilMoistureManager:getMechanicalResponse(
-                    soilTypeIndex, classKey, workDepthCm or 0) or nil
+                    soilTypeIndex, classKey, workDepthCm or 0, x, z) or nil
             local soilResponse = TerraLogicSoilProfiles:getPFSoilResponse(
                 soilTypeIndex, classKey)
             local textureStrength = soilResponse ~= nil
@@ -7727,7 +7792,7 @@ function TerraLogicSoilManager:applyWorkArea(
                             coverageEntry.baseValue)
                         local soilTypeIndex =
                             self:getPFSoilTypeAtWorldPosition(x, z)
-                        local contextKey = tostring(soilTypeIndex or "default")
+                        local contextKey = tostring(soilTypeIndex or "default") .. ":" .. tostring(TerraLogicFieldWaterManager and (TerraLogicFieldWaterManager:getField(x,z) or {}).id or 0)
                         local mechanicalContext =
                             mechanicalContextBySoilType[contextKey]
                         if mechanicalContext == nil then
@@ -7736,7 +7801,7 @@ function TerraLogicSoilManager:applyWorkArea(
                                 and TerraLogicSoilMoistureManager:
                                     getMechanicalResponse(
                                         soilTypeIndex, classKey,
-                                        operationWorkDepthCm) or nil
+                                        operationWorkDepthCm, x, z) or nil
                             mechanicalContext = {
                                 soilTypeIndex=soilTypeIndex,
                                 moistureResponse=moistureResponse,

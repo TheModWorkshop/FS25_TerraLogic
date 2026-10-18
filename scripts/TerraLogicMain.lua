@@ -44,6 +44,7 @@ TerraLogicMain.WORK_HUD_MECHANICAL_WARNING_ENTER_MARGIN = 0.05
 -- pin the dynamic HUD open as though the operation were already failing.
 TerraLogicMain.WORK_HUD_QUALITY_WARNING_LOSS = 0.05
 TerraLogicMain.WORK_HUD_DROPOUT_WARNING_FRACTION = 0.01
+TerraLogicMain.WORK_HUD_CRITICAL_DROPOUT_FRACTION = 0.05
 local SPEED_HUD_CAUTION_COLOR = {1, 0.4287, 0.0006, 1}
 local SPEED_HUD_CRITICAL_COLOR = {1, 0.18, 0.10, 1}
 
@@ -285,6 +286,7 @@ end
 
 -- Initializes persistent quality data, settings and console commands per mission.
 function TerraLogicMain:loadMap(mapNode, mapFile)
+    TerraLogicWeatherLogger:stop()
     if self.panelLogger ~= nil and self.panelLogger.active == true then
         self:stopPanelLogger("map reload")
     end
@@ -294,7 +296,9 @@ function TerraLogicMain:loadMap(mapNode, mapFile)
     TerraLogicGrassGapManager:load()
     TerraLogicSoilTemperatureManager:load()
     TerraLogicSoilMoistureManager:load()
+    TerraLogicMoistureSystemAdapter:load()
     TerraLogicSoilManager:load()
+    TerraLogicFieldWaterManager:load()
     TerraLogicWheelCompactionManager:load()
     TerraLogicTrafficWarnings:load()
     TerraLogicTutorialManager:load()
@@ -336,6 +340,8 @@ function TerraLogicMain:loadMap(mapNode, mapFile)
         {"tlBalanceReset", "Reset temporary TerraLogic balance settings", "consoleCommandBalanceReset"},
         {"tlPrintBalance", "Print TerraLogic balance settings to log", "consoleCommandPrintBalance"},
         {"tlLog", "Verbose diagnostics: tlLog [on|off]", "consoleCommandLogging"},
+        {"tlWeatherLog", "Record weather: tlWeatherLog start [name] | stop | status", "consoleCommandWeatherLog"},
+        {"tlFieldDebug", "Export field geometry on host/server: tlFieldDebug <field number> | status | stop", "consoleCommandFieldDebug"},
         {"tlDraftModel", "Synchronized draft model: tlDraftModel [terralogic|mr]", "consoleCommandDraftModel"},
         {"tlTestStart", "Open and record one panel: tlTestStart <panel> <name>", "consoleCommandCaptureTestStart"},
         {"tlTestStop", "Write the final sample and stop the active test CSV", "consoleCommandCaptureTestStop"},
@@ -366,6 +372,7 @@ function TerraLogicMain.saveWorkQualityData()
     TerraLogicGrassGapManager:save()
     TerraLogicSoilTemperatureManager:save()
     TerraLogicSoilMoistureManager:save()
+    TerraLogicFieldWaterManager:save()
     TerraLogicSoilManager:save()
     TerraLogicSettings:save()
 end
@@ -385,7 +392,10 @@ function TerraLogicMain:update(dt)
     TerraLogicQualityManager:updatePlowGrowthRecovery(dt)
     TerraLogicGrassGapManager:update(dt)
     TerraLogicSoilTemperatureManager:update(dt)
+    TerraLogicMoistureSystemAdapter:update(dt)
     TerraLogicSoilMoistureManager:update(dt)
+    TerraLogicFieldWaterManager:update(dt)
+    TerraLogicWeatherLogger:update(dt)
     TerraLogicSoilManager:update(dt)
     TerraLogicWheelCompactionManager:update(dt)
     TerraLogicTrafficWarnings:update(dt)
@@ -394,6 +404,7 @@ function TerraLogicMain:update(dt)
         TerraLogicAuditManager:update(dt, self)
     end
     self:updatePanelLogger(dt)
+    self:updateSoilDisplayBindings()
     TerraLogicSettings:tryInstallMenu()
 end
 
@@ -492,6 +503,11 @@ end
 
 function TerraLogicMain.registerSoilDisplayActionEvent()
     if g_inputBinding == nil or InputAction == nil then return end
+    -- Replace only our own player events; the engine may already have removed
+    -- them while rebuilding input after entering or leaving a vehicle.
+    for _, eventId in ipairs(TerraLogicMain.soilDisplayActionEventIds or {}) do
+        g_inputBinding:removeActionEvent(eventId)
+    end
     TerraLogicMain.soilDisplayActionEventIds = {}
     for _, definition in ipairs(SOIL_DISPLAY_ACTIONS) do
         local inputAction = InputAction[definition.name]
@@ -524,30 +540,105 @@ end
 
 function TerraLogicMain.registerVehicleSoilDisplayActionEvent(
         vehicle, isActiveForInput, isActiveForInputIgnoreSelection)
-    if vehicle == nil or vehicle.addActionEvent == nil
-        or vehicle.getIsEntered == nil or not vehicle:getIsEntered()
-        or vehicle.getIsActiveForInput == nil
-        or not vehicle:getIsActiveForInput(true, true) then return end
-    local spec = vehicle.spec_enterable
-    if spec == nil or spec.actionEvents == nil then return end
+    -- Enterable is still inside the engine's registration transaction here.
+    -- Queue our own bindings; do not nest a registration context or request
+    -- a full vehicle rebuild while a third-party HUD owns input.
+    local player = g_localPlayer
+    local controlled = player ~= nil and player.getCurrentVehicle ~= nil
+        and player:getCurrentVehicle() or nil
+    if vehicle == nil or vehicle ~= controlled then return end
+    TerraLogicMain.soilDisplayBindingsPending = true
+    TerraLogicLogging.debug(
+        "[FS25_TerraLogic] Soil bindings queued (active=%s ignoreSelection=%s)",
+        tostring(isActiveForInput), tostring(isActiveForInputIgnoreSelection))
+end
+
+function TerraLogicMain:clearVehicleSoilDisplayBindings()
+    if g_inputBinding ~= nil then
+        for _, eventId in ipairs(self.soilDisplayVehicleEventIds or {}) do
+            g_inputBinding:removeActionEvent(eventId)
+        end
+    end
+    self.soilDisplayVehicleEventIds = nil
+end
+
+function TerraLogicMain:updateSoilDisplayBindings()
+    if g_inputBinding == nil or InputAction == nil or Vehicle == nil then return end
+    local player = g_localPlayer
+    local controlled = player ~= nil and player.getCurrentVehicle ~= nil
+        and player:getCurrentVehicle() or nil
+    local context = g_inputBinding:getContextName()
+    local changedVehicle = controlled ~= self.soilDisplayBindingVehicle
+    local returnedToVehicle = context == Vehicle.INPUT_CONTEXT_NAME
+        and self.soilDisplayBindingContext ~= context
+    local playerContext = PlayerInputComponent ~= nil
+        and PlayerInputComponent.INPUT_CONTEXT_NAME or nil
+    local returnedToPlayer = playerContext ~= nil and context == playerContext
+        and self.soilDisplayBindingContext ~= context
+    if changedVehicle then
+        self:clearVehicleSoilDisplayBindings()
+        self.soilDisplayBindingVehicle = controlled
+        self.soilDisplayBindingsPending = controlled ~= nil
+        self.soilDisplayPlayerBindingsPending = controlled == nil
+    end
+    if returnedToVehicle and controlled ~= nil then
+        self.soilDisplayBindingsPending = true
+    end
+    if returnedToPlayer and controlled == nil then
+        self.soilDisplayPlayerBindingsPending = true
+    end
+    if changedVehicle or context ~= self.soilDisplayBindingContext then
+        TerraLogicLogging.debug(
+            "[FS25_TerraLogic] Soil binding context: %s vehicle=%s pending=%s",
+            tostring(context), tostring(controlled),
+            tostring(self.soilDisplayBindingsPending == true))
+    end
+    self.soilDisplayBindingContext = context
+    if controlled == nil then
+        -- Wait for normal on-foot input. In particular, do not register into
+        -- a QuickSelector/tutorial/menu context or force the player context.
+        if player == nil or playerContext == nil or context ~= playerContext
+            or not self.soilDisplayPlayerBindingsPending then return end
+        if g_gui ~= nil and g_gui.getIsGuiVisible ~= nil
+            and g_gui:getIsGuiVisible() then return end
+        g_inputBinding:beginActionEventsModification(playerContext)
+        self.registerSoilDisplayActionEvent()
+        g_inputBinding:endActionEventsModification()
+        self.soilDisplayPlayerBindingsPending = false
+        return
+    end
+    if controlled == nil or not self.soilDisplayBindingsPending
+        or context ~= Vehicle.INPUT_CONTEXT_NAME then return end
+    if controlled.getIsEntered == nil or not controlled:getIsEntered() then return end
+    if g_gui ~= nil and g_gui.getIsGuiVisible ~= nil
+        and g_gui:getIsGuiVisible() then return end
+
+    -- Only replace our seven bindings, once per rebuild/context return.
+    -- Never switch input contexts, remove foreign events or touch Enterable's
+    -- actionEvents table. No timer competes with QuickSelector's entry timer.
+    g_inputBinding:beginActionEventsModification(Vehicle.INPUT_CONTEXT_NAME)
+    self:clearVehicleSoilDisplayBindings()
+    self.soilDisplayVehicleEventIds = {}
     local registered = 0
     for _, definition in ipairs(SOIL_DISPLAY_ACTIONS) do
         local inputAction = InputAction[definition.name]
         if inputAction ~= nil then
-            local _, eventId = vehicle:addActionEvent(
-                spec.actionEvents, inputAction,
+            local _, eventId = g_inputBinding:registerActionEvent(
+                inputAction,
                 TerraLogicMain, definition.callback,
-                false, true, false, true, nil)
+                false, true, false, true, nil, true)
             if eventId ~= nil then
                 registered = registered + 1
+                table.insert(self.soilDisplayVehicleEventIds, eventId)
                 configureSoilDisplayActionEvent(eventId, definition)
             end
         end
     end
+    g_inputBinding:endActionEventsModification()
+    self.soilDisplayBindingsPending = false
     TerraLogicLogging.debug(
-        "[FS25_TerraLogic] Soil display actions registered in vehicle context: %d (active=%s ignoreSelection=%s)",
-        registered, tostring(isActiveForInput),
-        tostring(isActiveForInputIgnoreSelection))
+        "[FS25_TerraLogic] Soil bindings ready: %d/7 vehicle=%s context=%s",
+        registered, tostring(controlled), tostring(g_inputBinding:getContextName()))
 end
 
 local function getIsLocalControlledImplement(implement)
@@ -645,6 +736,8 @@ end
 
 -- Flushes data and releases HUD resources when leaving a mission.
 function TerraLogicMain:deleteMap()
+    if TerraLogicFieldCatalogDiagnostics then TerraLogicFieldCatalogDiagnostics:reset() end
+    TerraLogicWeatherLogger:stop()
     if TerraLogicPFYieldBridge ~= nil then TerraLogicPFYieldBridge:delete() end
     if TerraLogicWarningEpisodes ~= nil then TerraLogicWarningEpisodes.vehicles = nil end
     if TerraLogicPFHarvestTrace ~= nil and TerraLogicPFHarvestTrace.active ~= nil then
@@ -666,7 +759,9 @@ function TerraLogicMain:deleteMap()
         TerraLogicAuditManager:delete(self)
     end
     TerraLogicSoilTemperatureManager:delete(false)
+    TerraLogicMoistureSystemAdapter:delete()
     TerraLogicSoilMoistureManager:delete(false)
+    TerraLogicFieldWaterManager:delete()
     TerraLogicWheelCompactionManager:delete()
     TerraLogicTrafficWarnings:delete()
     TerraLogicTutorialManager:delete()
@@ -677,6 +772,11 @@ function TerraLogicMain:deleteMap()
         end
     end
     self.soilDisplayActionEventIds = nil
+    self:clearVehicleSoilDisplayBindings()
+    self.soilDisplayBindingVehicle = nil
+    self.soilDisplayBindingContext = nil
+    self.soilDisplayBindingsPending = nil
+    self.soilDisplayPlayerBindingsPending = nil
     self:deleteSpeedHudOverlays()
     self:clearQualityFieldInfoRows()
     if self.qualityInfoBox ~= nil and g_currentMission ~= nil
@@ -702,9 +802,9 @@ function TerraLogicMain:deleteMap()
             "tlDebug", "tlView", "tlViews", "tlDebugClose", "tlSetDamage", "tlDamageAnalysis",
             "tlPF", "tlPFInspect", "tlEnable", "tlWearPolicy", "tlAbrasion",
             "tlResistance", "tlDraft", "tlImpacts", "tlStones", "tlMowerQuality", "tlMultiplier",
-            "tlBalanceReset", "tlPrintBalance", "tlLog", "tlDraftModel",
+            "tlBalanceReset", "tlPrintBalance", "tlLog", "tlDraftModel", "tlWeatherLog",
             "tlTestStart", "tlTestStop", "tlTestStatus", "tlTestPanels",
-            "tlSoilTrace", "tlSoil",
+            "tlSoilTrace", "tlSoil", "tlFieldDebug",
             "tlSimulatePass", "tlTrafficPreset", "tlTestSoilType",
             "tlTestSectionPreset", "tlTestEnvironment",
             "tlRepairFieldPreset", "tlReinitializeFieldPresets", "tlWheel",
@@ -716,6 +816,14 @@ end
 
 function TerraLogicMain:consoleCommandTutorialStatus()
     return TerraLogicTutorialManager:consoleStatus()
+end
+
+function TerraLogicMain:consoleCommandWeatherLog(action, label)
+    return TerraLogicWeatherLogger:command(action, label)
+end
+
+function TerraLogicMain:consoleCommandFieldDebug(argument)
+    return TerraLogicFieldCatalogDiagnostics:command(argument)
 end
 
 function TerraLogicMain:consoleCommandTutorialReset()
@@ -1079,7 +1187,7 @@ function TerraLogicMain:consoleCommandSoil()
         getPFSoilTypeAtWorldPosition(x, z)
     local moistureYield = TerraLogicSoilMoistureManager:
         getCropYieldResponse(soilTypeIndex, fruitTypeIndex,
-            math.max(growthStage, 1))
+            math.max(growthStage, 1), x, z)
     local position = {ix=qualityIx, iz=qualityIz}
     local storedRoot, storedSteps = TerraLogicQualityManager:
         getGrowthRootYieldFactor(position, false, true)
@@ -4103,8 +4211,10 @@ local function getWorkHudWarning(
                     detail = classDetail or detail
                 end
                 consider({id=id,
-                    priority=causeHasDropout and 75 or 60, magnitude=magnitude,
-                    severity="caution",
+                    priority=dropoutMagnitude >= self.WORK_HUD_CRITICAL_DROPOUT_FRACTION and 85
+                        or causeHasDropout and 75 or 60, magnitude=magnitude,
+                    severity=dropoutMagnitude >= self.WORK_HUD_CRITICAL_DROPOUT_FRACTION
+                        and "critical" or "caution",
                     title=title, detail=detail})
             end
 
@@ -4208,179 +4318,22 @@ local function getWorkHudWarning(
         end
     end -- implement-specific mechanical/work-quality warnings
 
-    local trafficLevel, trafficKnown = TerraLogicTrafficWarnings:getLevel(
-        g_localPlayer ~= nil and g_localPlayer:getCurrentVehicle() or nil, now)
-    if trafficLevel >= 2 then
-        consider({id="trafficCompaction", priority=74, severity="caution", repeatRank=trafficLevel,
-            title=getWorkHudText("terraLogic_workHudCompactionTitle",
-                "HIGH COMPACTION RISK"),
-            detail=getWorkHudText(trafficLevel == 3
-                and "terraLogic_workHudWetCompactionDetail"
-                or "terraLogic_workHudCompactionDetail", trafficLevel == 3
-                    and "Wet soil: reduce load or use wider tires"
-                    or "Reduce axle load or ground contact pressure")})
-    elseif trafficLevel == 1 then
-        consider({id="trafficCompaction", priority=72, severity="caution", repeatRank=trafficLevel,
-            title=getWorkHudText("terraLogic_workHudWetTitle", "WET SOIL"),
-            detail=getWorkHudText("terraLogic_workHudWetDetail",
-                "Compaction risk increased")})
-    end
-
-    TerraLogicWarningEpisodes:update(warningVehicle, candidatesById, now, trafficKnown)
-    -- Stable source states debounce transient WorkArea samples before they can
-    -- enter the queue. A disappearing source receives only a short clear grace;
-    -- if it is already visible, its configured reading slot still finishes.
-    self.workHudWarningSources = self.workHudWarningSources or {}
-    for _, state in pairs(self.workHudWarningSources) do
-        state.seen = false
-    end
-    for id, candidate in pairs(candidatesById) do
-        local state = self.workHudWarningSources[id]
-        if state == nil then
-            state = {firstSeen=now}
-            self.workHudWarningSources[id] = state
-        end
-        state.warning = candidate
-        state.lastSeen = now
-        state.seen = true
-    end
-
-    local currentId = self.workHudWarningCurrentId
-    for id, state in pairs(self.workHudWarningSources) do
-        local warning = state.warning or {}
-        local expiredEvent = warning.oneShot == true
-            and now >= (warning.expiresAt or 0)
-        local cleared = warning.oneShot ~= true and state.seen ~= true
-            and now-(tonumber(state.lastSeen) or 0)
-                > self.WORK_HUD_WARNING_CLEAR_GRACE_MS
-        if (expiredEvent or cleared) and id ~= currentId then
-            self.workHudWarningSources[id] = nil
+    local traffic = TerraLogicTrafficWarnings:getStatus(warningVehicle, now)
+    local function trafficWarning(id, active, titleKey, title, detailKey, detail)
+        if active then
+            consider({id=id, traffic=true, priority=72, severity="caution",
+                title=getWorkHudText(titleKey,title), detail=getWorkHudText(detailKey,detail)})
         end
     end
+    trafficWarning("trafficWet",traffic.wet,"terraLogic_hudTrafficWetTitle","WET SOIL",
+        "terraLogic_hudTrafficWetDetail","Wet soil increases compaction. Wait for drier conditions if possible.")
+    trafficWarning("trafficPressure",traffic.pressure,"terraLogic_hudTrafficPressureTitle","HIGH GROUND PRESSURE",
+        "terraLogic_hudTrafficPressureDetail","Topsoil is compacting. Reduce wheel load where possible.")
+    trafficWarning("trafficAxle",traffic.axle,"terraLogic_hudTrafficAxleTitle","HIGH AXLE LOAD",
+        "terraLogic_hudTrafficAxleDetail","Subsoil is compacting. Reduce ballast or payload where possible.")
+    return TerraLogicWarningEpisodes:select(self,warningVehicle,implement,candidatesById,now,
+        isQualityActive,isMechanicalActive,traffic)
 
-    self.workHudWarningQueue = self.workHudWarningQueue or {}
-    local queue = self.workHudWarningQueue
-    local function isEligible(id)
-        local state = self.workHudWarningSources[id]
-        if state == nil or state.warning == nil then return false end
-        if standalone and not TerraLogicWarningEpisodes:eligible(warningVehicle, state.warning) then return false end
-        return state.warning.oneShot == true
-            or now-(tonumber(state.firstSeen) or now)
-                >= self.WORK_HUD_WARNING_CONFIRM_MS
-    end
-    local cleaned, queued = {}, {}
-    for _, id in ipairs(queue) do
-        if id ~= currentId and isEligible(id) and queued[id] ~= true then
-            cleaned[#cleaned+1] = id
-            queued[id] = true
-        end
-    end
-    self.workHudWarningQueue = cleaned
-    queue = cleaned
-
-    local newcomers = {}
-    for id, _ in pairs(self.workHudWarningSources) do
-        if id ~= currentId and queued[id] ~= true and isEligible(id) then
-            newcomers[#newcomers+1] = id
-        end
-    end
-    table.sort(newcomers, function(a, b)
-        local aw = self.workHudWarningSources[a].warning
-        local bw = self.workHudWarningSources[b].warning
-        local ap, bp = tonumber(aw.priority) or 0, tonumber(bw.priority) or 0
-        if ap ~= bp then return ap > bp end
-        return tostring(a) < tostring(b)
-    end)
-    local function insertByPriority(id)
-        local warning = self.workHudWarningSources[id].warning
-        local priority = tonumber(warning.priority) or 0
-        local position = #queue+1
-        for index, queuedId in ipairs(queue) do
-            local queuedState = self.workHudWarningSources[queuedId]
-            local queuedPriority = queuedState ~= nil
-                and tonumber(queuedState.warning.priority) or 0
-            if priority > queuedPriority then
-                position = index
-                break
-            end
-        end
-        table.insert(queue, position, id)
-        queued[id] = true
-    end
-    for _, id in ipairs(newcomers) do insertByPriority(id) end
-
-    local maximum = math.max(
-        tonumber(self.WORK_HUD_WARNING_MAX_QUEUE) or 5, 1)
-    while #queue+(currentId ~= nil and 1 or 0) > maximum do
-        queued[table.remove(queue)] = nil
-    end
-
-    local slotMs = math.max(
-        TerraLogicSettings ~= nil
-            and TerraLogicSettings.getWarningDisplayDurationMs ~= nil
-            and TerraLogicSettings:getWarningDisplayDurationMs()
-            or tonumber(self.WORK_HUD_WARNING_SLOT_MS) or 5000,
-        1000)
-    if currentId ~= nil
-        and now-(tonumber(self.workHudWarningSlotStartedAt) or now) >= slotMs then
-        local finishedState = self.workHudWarningSources[currentId]
-        local finishedWarning = finishedState ~= nil
-            and finishedState.warning or self.workHudWarningCurrent
-        if finishedWarning ~= nil and finishedWarning.oneShot == true then
-            self.workHudWarningSources[currentId] = nil
-            if self.workHudEventWarnings ~= nil then
-                self.workHudEventWarnings[currentId] = nil
-            end
-        elseif not standalone and finishedState ~= nil
-            and (finishedState.seen == true
-                or now-(tonumber(finishedState.lastSeen) or 0)
-                    <= self.WORK_HUD_WARNING_CLEAR_GRACE_MS) then
-            -- A continuously valid cause returns at the end of the waiting
-            -- line. This round-robin tail prevents one permanent high-priority
-            -- warning from starving every other useful explanation.
-            if queued[currentId] ~= true then
-                queue[#queue+1] = currentId
-                queued[currentId] = true
-            end
-        end
-        self.workHudWarningCurrentId = nil
-        self.workHudWarningCurrent = nil
-        currentId = nil
-    end
-
-    while currentId == nil and #queue > 0 do
-        local nextId = table.remove(queue, 1)
-        queued[nextId] = nil
-        local state = self.workHudWarningSources[nextId]
-        if state ~= nil and state.warning ~= nil then
-            currentId = nextId
-            self.workHudWarningCurrentId = nextId
-            TerraLogicWarningEpisodes:shown(warningVehicle, state.warning, now)
-            -- Copy the displayed values so title/detail cannot flicker during
-            -- the slot even if a live threshold changes behind the scenes.
-            self.workHudWarningCurrent = {
-                id=state.warning.id,
-                priority=state.warning.priority,
-                severity=state.warning.severity,
-                title=state.warning.title,
-                detail=state.warning.detail,
-                oneShot=state.warning.oneShot
-            }
-            self.workHudWarningSlotStartedAt = now
-            self.workHudWarningDisplaySequence =
-                (tonumber(self.workHudWarningDisplaySequence) or 0)+1
-            self.workHudWarningSlotCount = math.min(1+#queue, maximum)
-            self.workHudWarningSlotIndex =
-                (self.workHudWarningDisplaySequence-1)
-                    % math.max(self.workHudWarningSlotCount, 1)+1
-        end
-    end
-
-    local current = self.workHudWarningCurrent
-    if current == nil then return nil, 0, 0 end
-    return current,
-        math.max(tonumber(self.workHudWarningSlotCount) or 1, 1),
-        math.max(tonumber(self.workHudWarningSlotIndex) or 1, 1)
 end
 
 local function getWorkHudWearRank(self, implement, isMechanicalActive)
@@ -4477,6 +4430,58 @@ function TerraLogicMain:prepareWarningCard(warning,width,size,now)
     return shown,self:getWarningTextLayout(shown,width,size),2,alpha
 end
 
+-- Same full-size card, inactive speed/quality during field traffic.
+function TerraLogicMain:drawInactiveWorkHud(vehicle, now, hudMode, warning, count, index, hasImplement)
+    local _, boxY = getSpeedHudScaledPixels(0, 42)
+    if hudMode == "warnings" or hudMode == "off" then
+        self.speedHudFadeAlpha = 0
+        if hudMode == "warnings" then self:drawWorkHudWarning(warning,count,index,now,boxY) end
+        return
+    end
+    local top, deep = TerraLogicTrafficWarnings:getDisplayLevels(vehicle, now)
+    local show
+    show,top,deep=TerraLogicHudVisibility:soilState(self,now,top,deep)
+    show=show or now<(self.workHudFullUntil or 0) or hudMode=="always"
+    local alpha=updateSpeedHudFade(self,now,show and not self.workHudObstructed)
+    if self.workHudObstructed then alpha=0;self.speedHudFadeAlpha=0 end
+    local warningY=boxY
+    if alpha>0 then
+        local width,height=getSpeedHudScaledPixels(460,54)
+        local x=0.5-width*0.5
+        if not self:renderSpeedHudBackground(x,boxY,width,height,alpha) then
+            drawFilledRect(x,boxY,width,height,0.01,0.01,0.01,0.58*alpha)
+        end
+        local _,font=getSpeedHudScaledPixels(0,math.max(getSpeedHudDefaultTextPixels()-3,10))
+        local _,valueFont=getSpeedHudScaledPixels(0,getSpeedHudDefaultTextPixels()+3)
+        local speedLabel=getWorkHudText("terraLogic_workHudSpeedCompact","Recommended speed")
+        local qualityLabel=getWorkHudText("terraLogic_workHudQualityCompact","Work quality")
+        if getTextWidth then
+            font=font*math.min(1,getSpeedHudScaledPixels(202,0)/math.max(
+                getTextWidth(font,speedLabel)+getTextWidth(font,"-"),0.0001),
+                getSpeedHudScaledPixels(106,0)/math.max(getTextWidth(font,qualityLabel),0.0001))
+        end
+        local function label(px,py,size,text,align)
+            local dx,dy=getSpeedHudScaledPixels(px,py)
+            setTextAlignment(align);renderText(x+dx,boxY+dy,size,text)
+        end
+        setTextBold(false);setTextColor(0.78,0.82,0.84,alpha)
+        label(15,33,font,speedLabel,RenderText.ALIGN_LEFT)
+        label(225,33,font,"-",RenderText.ALIGN_RIGHT)
+        label(298,33,font,qualityLabel,RenderText.ALIGN_CENTER)
+        label(298,11,valueFont,"-",RenderText.ALIGN_CENTER)
+        local barX,barY=getSpeedHudScaledPixels(15,15)
+        local barW,barH=getSpeedHudScaledPixels(210,7)
+        drawFilledRect(x+barX,boxY+barY,barW,barH,0.23,0.25,0.26,0.8*alpha)
+        local dx,dy=getSpeedHudScaledPixels(235,11)
+        local dw,dh=getSpeedHudScaledPixels(1,32)
+        drawFilledRect(x+dx,boxY+dy,dw,dh,1,1,1,0.14*alpha)
+        TerraLogicSoilHud:draw(x,boxY,alpha,top,deep,getSpeedHudScaledPixels,font,drawFilledRect)
+        local _,gap=getSpeedHudScaledPixels(0,7)
+        warningY=boxY+height+gap
+    end
+    self:drawWorkHudWarning(warning,count,index,now,warningY)
+end
+
 function TerraLogicMain:drawSpeedHud()
     if self.enabled == false or g_localPlayer == nil or g_currentMission == nil then
         return
@@ -4505,6 +4510,10 @@ function TerraLogicMain:drawSpeedHud()
         return
     end
     if self.speedHudVehicle ~= vehicle then
+        self.soilHudLastSampleAt, self.soilHudLastTop, self.soilHudLastDeep = nil, nil, nil
+        self.workHudFullUntil = nil
+        self.soilHudValidSince, self.soilHudQualified = nil, false
+        self.workHudVisibilityTime = now
         self.workHudWarningLayoutState = nil
         self.speedHudVehicle = vehicle
         self.speedHudVehicleNameHiddenUntil = now
@@ -4528,6 +4537,7 @@ function TerraLogicMain:drawSpeedHud()
 
     -- Do not consume a one-time warning while the vehicle-name banner hides it.
     if now < (self.speedHudVehicleNameHiddenUntil or 0) then return end
+    TerraLogicHudVisibility:update(self,now,getSpeedHudScaledPixels)
     local currentSpeed = math.abs(vehicle:getLastSpeed(true) or 0)
     local requestedImplement, activeImplementCount, activeImplements =
         self:getSpeedHudImplement(
@@ -4539,15 +4549,13 @@ function TerraLogicMain:drawSpeedHud()
     end
     if implement == nil or implement.spec_terraLogic == nil
         or (tonumber(implement.spec_terraLogic.ratedSpeed) or 0) <= 0 then
-        self.speedHudFadeAlpha = 0
         local warning, count, index = getWorkHudWarning(
             self, nil, nil, nil, false, false, now, true)
         if now < (self.speedHudVehicleNameHiddenUntil or 0) then
             self.workHudWarningFadeAlpha = 0
             return
         end
-        local _, warningY = getSpeedHudScaledPixels(0, 42)
-        self:drawWorkHudWarning(warning, count, index, now, warningY)
+        self:drawInactiveWorkHud(vehicle, now, hudMode, warning, count, index)
         return
     end
     local spec = implement.spec_terraLogic
@@ -4621,8 +4629,8 @@ function TerraLogicMain:drawSpeedHud()
                     tonumber(context.conditionLoss) or 0,
                     tonumber(context.soilLoss) or 0)
                 priority = math.max(priority,
-                    dropout >= self.WORK_HUD_DROPOUT_WARNING_FRACTION
-                        and 75
+                    dropout >= self.WORK_HUD_CRITICAL_DROPOUT_FRACTION and 85
+                        or dropout >= self.WORK_HUD_DROPOUT_WARNING_FRACTION and 75
                         or (loss >= self.WORK_HUD_QUALITY_WARNING_LOSS
                             and 60 or 0))
             end
@@ -4644,8 +4652,10 @@ function TerraLogicMain:drawSpeedHud()
         implement, isWorkActive, isMechanicalActive, qualityContext,
         maximumDamage, maximumLoadRatio)
     local loadIsMechanicalActive = isMechanicalActive
+    local readyForFullHud = getIsSpeedHudImplementReady(implement, true)
     for _, candidate in ipairs(activeImplements or {}) do
         if candidate ~= implement and candidate.spec_terraLogic ~= nil then
+            readyForFullHud = readyForFullHud or getIsSpeedHudImplementReady(candidate, true)
             local candidateSpec = candidate.spec_terraLogic
             local candidateComponent = getSpeedHudWorkQualityComponent(candidate)
             local candidateProfile = getSpeedHudPhysicalQualityProfile(candidate)
@@ -4754,20 +4764,36 @@ function TerraLogicMain:drawSpeedHud()
         self:drawWorkHudWarning(warning, warningCount, warningIndex, now, warningY)
         return
     end
-    local hasContextWarning = warning ~= nil
+    local soilTopLevel, soilDeepLevel = TerraLogicTrafficWarnings:getDisplayLevels(vehicle, now)
+    -- Preserve the full card briefly on headland lifts, but clear inactive values.
+    if readyForFullHud then self.workHudFullUntil = now + 2000 end
+    if not readyForFullHud then
+        self:drawInactiveWorkHud(vehicle, now, hudMode, warning, warningCount, warningIndex, true)
+        return
+    end
+    local hasContextWarning = warning ~= nil or soilTopLevel >= 2 or soilDeepLevel >= 2
     local shouldShow = implement ~= nil
         and now >= (self.speedHudVehicleNameHiddenUntil or 0)
         and (hudMode ~= "dynamic"
             or (requestedImplement ~= nil and not hideForNominalRange)
+            or (not readyForFullHud and now < (self.workHudFullUntil or 0))
             or damage >= 0.9995 or hasContextWarning or wearRank >= 1)
     local alpha = updateSpeedHudFade(self, now, shouldShow)
     TerraLogicTutorialManager:observeHud(qualityImplement or implement,
         qualityContext, quality ~= nil, alpha > 0, currentSpeed)
-    if alpha <= 0 then self.workHudWarningLayoutState = nil; return end
+    if self.workHudObstructed then
+        self.speedHudFadeAlpha = 0
+        self:drawWorkHudWarning(warning,warningCount,warningIndex,now,select(2,getSpeedHudScaledPixels(0,42)))
+        return
+    end
+    if alpha <= 0 then
+        self:drawWorkHudWarning(warning,warningCount,warningIndex,now,select(2,getSpeedHudScaledPixels(0,42)))
+        return
+    end
 
     -- Two distinct columns: speed guidance on the left, work result on the
     -- right. Keep the game's default font and a shared heading size.
-    local boxWidth, boxHeight = getSpeedHudScaledPixels(380, 54)
+    local boxWidth, boxHeight = getSpeedHudScaledPixels(460, 54)
     local _, boxY = getSpeedHudScaledPixels(0, 42)
     local boxX = 0.5 - boxWidth * 0.5
     if not self:renderSpeedHudBackground(
@@ -4780,7 +4806,8 @@ function TerraLogicMain:drawSpeedHud()
     local dividerX = boxX + getSpeedHudScaledPixels(235, 0)
     local qualityX = boxX + getSpeedHudScaledPixels(245, 0)
     local rightX = boxX + boxWidth - padX
-    local qualityCenterX = (qualityX + rightX) * 0.5
+    local qualityRightX = boxX + getSpeedHudScaledPixels(351, 0)
+    local qualityCenterX = (qualityX + qualityRightX) * 0.5
     local _, topY = getSpeedHudScaledPixels(0, 33)
     local _, bottomY = getSpeedHudScaledPixels(0, 11)
     local _, barY = getSpeedHudScaledPixels(0, 15)
@@ -4820,7 +4847,7 @@ function TerraLogicMain:drawSpeedHud()
             + getTextWidth(smallSize, speedValue)
         local qualityTextWidth = getTextWidth(smallSize, qualityLabel)
         local fit = math.min(1, (speedWidth - gap) / math.max(speedTextWidth, 0.0001),
-            (rightX - qualityX) / math.max(qualityTextWidth, 0.0001))
+            (qualityRightX - qualityX) / math.max(qualityTextWidth, 0.0001))
         smallSize = smallSize * fit
     end
     setTextAlignment(RenderText.ALIGN_LEFT)
@@ -4914,6 +4941,8 @@ function TerraLogicMain:drawSpeedHud()
         boxY+barY-markerExtra, markerWidth,
         barHeight+markerExtra*2, 1, 1, 1, alpha)
 
+    TerraLogicSoilHud:draw(boxX, boxY, alpha, soilTopLevel, soilDeepLevel,
+        getSpeedHudScaledPixels, smallSize, drawFilledRect)
     local _, warningGap = getSpeedHudScaledPixels(0, 7)
     self:drawWorkHudWarning(warning, warningCount, warningIndex, now,
         boxY + boxHeight + warningGap)
@@ -4922,7 +4951,14 @@ end
 -- The same card and stable multiline queue layout serves both HUD modes.
 -- The caller supplies its bottom anchor; no invisible work-card spacer.
 function TerraLogicMain:drawWorkHudWarning(warning, warningCount, warningIndex, now, warningY)
-    local boxWidth = getSpeedHudScaledPixels(380, 0)
+    if self.workHudObstructed then
+        if warning == nil or warning.severity ~= "critical" then
+            self.workHudWarningFadeAlpha=0;self.workHudLastWarning=nil
+            return
+        end
+        warningY=math.max(warningY,self.workHudWarningFloor or warningY)
+    end
+    local boxWidth = getSpeedHudScaledPixels(460, 0)
     local boxX = 0.5 - boxWidth * 0.5
     local padX = getSpeedHudScaledPixels(15, 0)
     local _, smallSize = getSpeedHudScaledPixels(0,
@@ -5420,7 +5456,7 @@ function TerraLogicMain:drawSoilDebug()
     local depth = implementSpec ~= nil
         and tonumber(implementSpec.workDepthCm) or 0
     local mechanics = TerraLogicSoilMoistureManager:getMechanicalResponse(
-        moisture.profileIndex, classKey, depth)
+        moisture.profileIndex, classKey, depth, x, z)
     local ix = math.floor(x / TerraLogicQualityManager.CELL_SIZE)
     local iz = math.floor(z / TerraLogicQualityManager.CELL_SIZE)
     local fruitTypeIndex, growthState = TerraLogicQualityManager:
@@ -5429,7 +5465,7 @@ function TerraLogicMain:drawSoilDebug()
         fruitTypeIndex, growthState, nil)
     local moistureYield = TerraLogicSoilMoistureManager:
         getCropYieldResponse(moisture.profileIndex, fruitTypeIndex,
-            math.max(growthStage, 1))
+            math.max(growthStage, 1), x, z)
     local projectedMoisture, moistureSteps = TerraLogicQualityManager:
         getGrowthMoistureYieldFactor({ix=ix, iz=iz}, false, true)
     local lines = {

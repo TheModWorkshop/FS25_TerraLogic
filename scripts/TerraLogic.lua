@@ -7945,7 +7945,7 @@ function TerraLogic:updateOverSpeedSoilData(dt)
         if TerraLogicSoilMoistureManager ~= nil
             and TerraLogicSoilMoistureManager.getMechanicalResponse ~= nil then
             local moisture = TerraLogicSoilMoistureManager:getMechanicalResponse(
-                spec.soilTypeIndex, spec.implementClassKey, spec.workDepthCm)
+                spec.soilTypeIndex, spec.implementClassKey, spec.workDepthCm, x, z)
             spec.moistureDraftMultiplier = moisture.draftMultiplier or 1
             spec.moistureSurface = moisture.surface or 0.5
             spec.moistureSubsoil = moisture.subsoil or 0.5
