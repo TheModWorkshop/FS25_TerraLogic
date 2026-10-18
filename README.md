@@ -13,11 +13,14 @@ The aim is to make different equipment and farming systems useful in different s
 - Distinct soil effects for ploughs, cultivators, harrows, subsoilers, seeders, rollers and other supported equipment.
 - Adjustable working speed for supported, manually driven implements, with consequences for quality, soil, wear and damage.
 - Locally recorded fieldwork and visible missed areas where equipment can leave seed, crop or material behind.
+- Field-by-field water reserves, influenced by weather, soil type and the crop growing there.
 - Soil moisture, temperature and frost that affect fieldwork, natural recovery and crop growth.
 - Long-term effects from biological continuity, living roots, cover crops and crop rotation.
 - An in-game field analysis menu with a planner, explanations and practical recommendations.
 - Contextual tutorials, a browsable tutorial library and detailed in-game help.
-- Singleplayer and multiplayer support, optional Precision Farming integration and adjustable soil map update speed.
+- Live topsoil and subsoil compaction indicators, including during transport without a supported working implement.
+- Adjustable compaction intensity and precipitation effect to suit your preferred balance.
+- Singleplayer and multiplayer support, optional Precision Farming and Moisture System integration, and adjustable soil map update speed.
 
 ## Contents
 
@@ -124,7 +127,7 @@ The five pages answer different questions:
 
 Question-mark buttons explain the meaning and practical use of individual values.
 
-Recommendations pairs each suggested action with an explanation of the problem and how the action can help. Advice to prevent immediate damage comes first, followed by suitable preparation and longer-term soil care. This is guidance, not a mandatory sequence. Check whether the advice applies to unsown ground or an existing crop before making another pass.
+The Recommendations page pairs each suggested action with an explanation of the problem and how the action can help. Advice to prevent immediate damage comes first, followed by suitable preparation and longer-term soil care. This is guidance, not a mandatory sequence. Check whether the advice applies to unsown ground or an existing crop before making another pass.
 
 ### Compare operations before driving
 
@@ -132,7 +135,9 @@ In **Planner**, choose the operation and implement type. Where possible, your at
 
 The planner shows recommended speed, achievable work quality, expected missed areas, pulling resistance and the predicted soil condition after a pass. It also rates how strongly the implement affects resilience and disturbs biological continuity.
 
-While you are in a vehicle, the current-setup column helps compare vehicle and implement mass, total combination mass, maximum axle load, ground contact pressure and compaction risk.
+While you are in a vehicle, the current-setup column helps compare vehicle and implement mass, total combination mass, maximum axle load, ground contact pressure and compaction risk. Vehicle values remain available without a supported working implement, so you can also inspect a tractor and trailer. Unavailable implement-specific values appear as a dash.
+
+Compaction-risk factors on the weather page describe the influence of the soil and conditions. They are not the final result of a vehicle pass: load, tires, tracks and resilience matter too. Use the live HUD indicators to assess the combination you are actually driving, and the soil maps to inspect the condition left behind.
 
 Use these forecasts to choose a suitable tool, then check the actual result. Extra turns, overlapping passes, changing loads and driving speed can all change what happens in practice.
 
@@ -197,11 +202,11 @@ Compaction changes dynamically with the load carried by the vehicle and its equi
 
 TerraLogic reads the current load supported by each wheel from the game's physics. It estimates the tire contact area from tire dimensions and load, then calculates average ground contact pressure. The pressure shown is therefore a modelled ground-pressure value, not a direct pressure reading from the engine or the tire's inflation pressure.
 
-Deep compaction uses the combined load of wheels belonging to the same axle. Tire width affects the area exposed to that load, but the surface contact-pressure value is not used directly to calculate deep compaction. Wider tires can reduce surface pressure without removing the risk from a heavily loaded axle.
+Deep compaction depends on axle load and how that load spreads into the soil. Contact width and length both matter: a long track or a large tire distributes the load differently from a smaller footprint. TerraLogic considers the complete track assembly rather than treating its support wheels as separate compacting axles. The pressure shown in the planner is still a surface value, not a direct measurement of pressure in the subsoil.
 
 Soil type, moisture, frost and resilience further modify the response. Repeated passes can accumulate compaction, but a lighter vehicle does not loosen soil that was already compacted by a heavier load.
 
-Wide tires, dual wheels and tracks spread weight over a larger contact area and can reduce surface compaction. Narrow crop-care tires can protect suitable standing crops from wheel damage, but concentrate the load on less soil. Wide tires do not make a very heavy axle harmless to the subsoil.
+Wide tires, dual wheels and tracks spread weight over a larger contact area and can reduce compaction. Narrow crop-care tires can protect suitable standing crops from wheel damage, but concentrate the load on less soil. A large tracked machine can therefore have an advantage over a similarly loaded wheeled machine, but neither wide tires nor tracks make a very heavy load harmless on wet ground.
 
 ### Why fixed traffic lanes matter
 
@@ -233,13 +238,22 @@ The compact work HUD separates speed guidance from the result of the operation:
 
 - **Recommended speed, on the left:** the numbers show the recommended working range. The bar shows your current speed relative to that range. Read your actual speed on the game's speedometer.
 - **Work Quality, on the right:** describes how well the operation is being carried out. The speed bar does not represent this percentage.
+- **Compaction icons beside Work Quality:** show the severity of loading on the topsoil and subsoil under the current conditions. The wheel symbol refers to the upper layer; the axle symbol refers to the deeper layer.
 - **Warnings, above the HUD:** explain problems such as unsuitable soil conditions, high implement load, damaging overload or stone impacts. Mechanical load and wear are no longer shown as permanent readouts.
 
 The green speed range is guidance, not a guarantee of perfect quality or safe load. Soil conditions, moisture, frost and equipment wear can still require slower work.
 
 With several recognized implements, the HUD shows their count. Speed guidance follows the limiting implement, while Work Quality shows the lowest currently assessed quality. For balers and loading wagons, **Material pickup** describes collection performance rather than sowing or application quality. A dash means that no applicable quality value is currently available.
 
+The HUD also works during transport and without a supported working implement. Recommended speed and Work Quality show a dash when they do not apply, while the compaction icons can still help you judge a loaded trailer or other heavy combination.
+
+The compaction icons describe the combination's potential effect on the soil beneath you, not the amount of old compaction already present or just the small increase added to an existing track. Driving along an already compacted tramline therefore does not make a damaging combination appear harmless. Use the soil maps to see the actual condition of each area. When you start moving, the indicators briefly wait for a completed soil-cell passage rather than showing a misleading low reading.
+
 Warning cards have a fixed height and room for two lines. When several messages are queued, they rotate using your selected warning duration. Compaction warnings can also appear while driving without an active working implement.
+
+Yellow advisories normally appear once while a problem continues. They can appear again after the cause has been absent for at least 30 seconds while the relevant system is being monitored. Red warnings remain active for as long as a serious problem persists. Individual events, such as new stone impacts, can still produce new notifications.
+
+The HUD temporarily steps aside for important vanilla messages, including the attach-implement prompt. This also applies in Always visible mode; it does not switch off the simulation.
 
 Set cruise control to a sensible starting speed, then adjust it while watching the result. Small cruise-control fluctuations do not necessarily require intervention; sustained overload and meaningful quality losses do.
 
@@ -277,11 +291,31 @@ If field stones are disabled in the game settings, visible-stone damage is absen
 
 TerraLogic's soil moisture and temperature respond to the game's weather with a delay. The surface changes faster than deeper layers, so the air-temperature display or a rain icon does not tell the whole story.
 
+### Each field has its own water reserve
+
+Water is tracked separately for the upper 15 cm and the layer from 15 to 60 cm. Rain and melting snow enter from above, seep down and drain away when there is more water than the soil can retain. Some water can also move back upward when the surface is drier than the soil below.
+
+Each field develops its own conditions. A growing crop draws water through its roots, while its leaves shade the surface and reduce evaporation from the soil. Crop type, growth stage, harvest and regrowth all change that balance. A bare field and an established grass field can therefore respond differently to the same weather. Unknown crops from mod maps use a general crop profile.
+
+With Precision Farming, the soil types within a field keep separate water reserves. Without it, the same system works with a representative default soil. When fields are joined or split, existing water reserves are carried across according to the area involved. Newly created ground starts with the current background moisture for its soil type.
+
+These are field averages by soil type, not a separate simulation of every puddle or wheel track. Soil mechanics use the moisture of the field and soil type beneath the vehicle; the compaction maps still record local traffic damage.
+
+### Reading moisture values
+
+Moisture is shown in **vol.%**. A reading of 25 vol.% means that water occupies 25 litres of every 100 litres of soil. It is not 25% of a full water tank, and it is not the moisture of the harvested crop.
+
+The meaning depends on soil type. A value that is normal for a clay-rich soil may already be wet for a sandy soil. Field Analysis adds a **Dry, Normal, Moist or Wet** assessment and its moisture question-mark opens a table with current values and normal ranges for the soil types in the selected field.
+
+The normal range runs from half of the plant-available water reserve to field capacity, the level above which excess water drains away. Moist and Wet describe progressively wetter conditions. They are a guide to moisture, not a guarantee that a particular machine can drive without damage. If the field contains soils with different assessments, the summary can show **Mixed**.
+
 ### Moisture and work timing
 
 Wet, unfrozen soil is more vulnerable to compaction and deformation. Tillage can smear or clump it. Very dry soil may resist penetration or break down poorly. Check **Weather and Effects** before committing heavy equipment to a difficult field.
 
 For rain-sensitive applications, rain or wet plants can reduce application quality. The consequences depend on the type of application; follow the relevant HUD warning.
+
+If the weather on your map makes fields feel too dry or too wet, the **Precipitation effect** setting offers Dry, Normal and Moist. It changes how much water precipitation contributes, not how often it rains. Existing water reserves are not suddenly rescaled when you change it. This option applies when TerraLogic supplies soil moisture; when Moisture System supplies it, its moisture signal remains in control.
 
 ### Frost and thaw
 
@@ -289,11 +323,15 @@ Frozen ground can resist compaction more strongly, while also being harder to pe
 
 Freezing followed by thawing can contribute some natural loosening. Cold conditions meanwhile slow biological recovery. Waiting for the worked layer to thaw is often preferable to forcing an implement through it.
 
+Both soil temperatures update continuously. With short months, their response is sped up so the soil can follow the changing seasons rather than staying warm through most of winter. With longer months, the loosening from each freeze-thaw cycle is reduced to account for the additional days. Staying frozen does not repeatedly loosen the soil; it needs to thaw before that effect occurs.
+
 ### Water during growth
 
-Water supply matters throughout crop growth. A shower just before harvest cannot erase an earlier dry spell, and a dry harvest day does not cancel a season of adequate water.
+Water supply matters throughout crop growth. Each field's daily averages and moisture history contribute to its crop's water-related yield effect. A shower just before harvest cannot erase an earlier dry spell, and a dry harvest day does not cancel a season of adequate water.
 
 The **Soil moisture affects yield** setting lets you disable the weather-related yield effect if the map's weather does not suit your preferred experience. Moisture still affects traffic, soil work and pulling resistance.
+
+With Moisture System installed, this setting defaults to Off to avoid overlapping water-related yield losses. You can turn it back on, and your explicit choice is saved. See [Moisture System](#moisture-system) for how the two mods work together.
 
 ## Resilience, biological continuity and recovery
 
@@ -304,6 +342,12 @@ These three ideas explain why immediate soil repair and long-term management are
 - **Natural recovery** gradually changes existing soil conditions through roots, biological activity and physical processes such as settling and freeze–thaw action.
 
 Resilient soil is not automatically loose. It may withstand future loads better while still carrying compaction from earlier work.
+
+### Resilience and drainage
+
+Resilience also helps the field deal with excess rainwater. High resilience allows it to move through the soil and drain away somewhat faster; low resilience slows that movement. The effect is calculated for each field and soil type, and existing compaction limits the benefit.
+
+At the extremes, the change is up to 15% slower or 30% faster transport. This changes the length of wet periods rather than increasing the soil's water-storage capacity. It does not add extra drying to already dry soil. Good structure can help a field recover after rain, but it cannot make a wet field safe for every load.
 
 ### Disturbance and rebuilding
 
@@ -357,7 +401,7 @@ For example, deductions of 2 points for soil, 1 point for water and 3 points for
 
 The resulting factor is limited to **60–110%**. Missing plants remain a separate loss: the lower limit does not create a harvest on unsown ground. The breakdown explains the same TerraLogic factor used by the harvest calculation and Precision Farming integration.
 
-Resilience and crop rotation affect yield through the soil. They add no separate direct yield bonus or penalty. Well-loosened, well-prepared soil can therefore support a good crop even before high resilience has developed.
+Resilience and crop rotation affect yield through the soil, including its water balance. They add no separate direct yield bonus or penalty. Well-loosened, well-prepared soil can therefore support a good crop even before high resilience has developed.
 
 Individual quality indicators stop at 100%, while final yield potential can reach 110% because it uses a different reference: the harvest without TerraLogic.
 
@@ -365,7 +409,7 @@ Use **Work and Yield** to identify the main causes. Also check the base game or 
 
 ## Tutorials and settings
 
-Find TerraLogic's options in the normal game settings menu. Display preferences are personal; in multiplayer, shared gameplay and map-update settings are controlled by the server administrator.
+Find TerraLogic's options in the normal game settings menu, grouped into Display, Tutorials, Simulation, Compatibility and Diagnostics. Compatibility options appear when the relevant mod is installed. Display preferences are personal; in multiplayer, shared gameplay and map-update settings are controlled by the server administrator.
 
 ### Learn at your own pace
 
@@ -394,19 +438,24 @@ Movement is limited so that part of the window and a usable section of its top b
 | Soil map minimap zoom | 4x while a TerraLogic soil map is active. |
 | Soil map updates | Normal by default; Fast refreshes maps sooner but uses more processing power and, in multiplayer, more network traffic. |
 | Soil resilience development | Normal (8x); 4x and Realistic (1x) are available for slower development. |
-| Soil moisture affects yield | On; controls the moisture-related yield effect. |
+| Compaction intensity | 100%; choose 50%, 75%, 100%, 125% or 150% to adjust new wheel and axle compaction. |
+| Precipitation effect | Normal; Dry and Moist reduce or increase water supplied by precipitation when TerraLogic supplies moisture. |
+| Soil moisture affects yield | On without Moisture System; defaults to Off when MS is detected unless you have made an explicit choice. |
+| Soil moisture source | TerraLogic by default; Moisture System becomes selectable when installed. |
 | Visible-stone damage | Extended stone damage; base-game damage behaviour is also selectable. |
 | Stone-impact warnings | On. |
 
-**Dynamic** shows the work HUD when useful. During steady work within the recommended range, it fades after three seconds unless warnings or increased wear require attention. Leaving the range or changing cruise speed brings it back.
+**Dynamic** shows the work HUD when useful, including relevant soil loading during transport. During steady work within the recommended range, it can fade when no warning, increased wear or other condition requires attention. Leaving the range or changing cruise speed brings it back.
 
-**Always visible** also keeps the display available for recognized implements that are raised or switched off.
+**Always visible** keeps the HUD available while you are in a vehicle, even with a raised implement or no supported working implement. Important overlapping vanilla messages can still temporarily hide it.
 
 **Warnings only** hides the speed and quality display while retaining warning cards.
 
 **Off** hides both the work HUD and TerraLogic's HUD warnings. These display modes do not disable the simulation.
 
 The resilience-development setting scales biological gains and soil-disturbance losses together. It does not accelerate the physical recovery of compaction, tilth or evenness.
+
+Compaction intensity lets you make new traffic damage more forgiving or demanding without changing the compaction already stored in the field. HUD indicators and compaction warnings follow the same setting. Natural recovery, seedbed preparation and machinery wear are not directly increased or reduced by this option.
 
 If More Realistic is installed, an additional setting selects which mod controls pulling resistance. Existing saved preferences are retained after updates.
 
@@ -425,6 +474,18 @@ A full-map view may still take time to catch up, especially after loading or ext
 Precision Farming remains responsible for its own soil sampling, pH, nitrogen and environmental systems. TerraLogic uses its soil types to vary moisture behaviour, draft, traffic sensitivity and recovery.
 
 A TerraLogic soil map temporarily replaces Precision Farming's coloured overlay while active. Switch it off to return to the other view; Precision Farming's gameplay remains active.
+
+### Moisture System
+
+The two mods can work together without giving up TerraLogic's soil mechanics. When Moisture System is installed, **Soil moisture source** lets you choose which mod provides the moisture input. Both choices respond to the game's weather, including weather generated by Moisture System's selected climate profile. A wetter climate can therefore give TerraLogic wetter working conditions even if TerraLogic remains the moisture source.
+
+With **TerraLogic** selected, its field water balance continues to handle rain, soil types, seepage, drainage and plant water use. Newly delivered MS irrigation adds water to the relevant field reserves. Booking irrigation does not instantly wet the field; delivery needs to take place.
+
+With **Moisture System** selected, its local field moisture guides TerraLogic's topsoil water balance. Water can then move into the subsoil, be taken up by plants and drain away, including the influence of resilience. Rain and MS irrigation are not added a second time. Field Analysis marks these values with **MS**. They are converted TL soil-moisture values, not the percentages shown by Moisture System, and they can differ as the field's own water balance develops.
+
+To avoid overlapping water-related yield losses, **Soil moisture affects yield** defaults to Off when MS is detected. You can explicitly switch it on or off, and that choice is retained when you reload or change the mod combination. This also applies when either mod is added later to an existing savegame. Switching off this option does not disable MS's own crop effects or TerraLogic's yield consequences from compaction and fieldwork.
+
+Moisture System keeps control of crop withering, grain moisture, quality grades, drying, hay, bales and storage. TerraLogic does not change those systems. Without MS, the field-water model continues to work independently.
 
 ### Multiplayer
 
@@ -445,6 +506,8 @@ When using More Realistic, select the desired pulling-resistance provider in Ter
 | What you notice | What to check |
 | --- | --- |
 | A red strip but a reasonable field average | Inspect the local map: the strip may be one traffic lane. Consider its area before adding a full-field pass. |
+| A high compaction icon on an already compacted tramline | The icon assesses the current combination, not just the small amount of extra damage possible in that lane. Reusing the lane still protects the rest of the field. |
+| Compaction icons briefly show a dash when starting | Allow the combination to pass over a complete soil cell. The HUD waits for a usable reading instead of assuming Low. |
 | Low sowing quality or gaps at shop speed | Check tilth, evenness, compaction, moisture, frost and implement wear. Try a lower speed or suitable seedbed preparation. |
 | Persistent deep compaction | Reduce heavy axle loads and repeated traffic; consider targeted subsoiling where natural recovery is insufficient. |
 | Unexpectedly high draft or damage | Check soil conditions, actual working speed, implement wear, load and stone warnings. More horsepower does not remove the cause. |
@@ -454,6 +517,11 @@ When using More Realistic, select the desired pulling-resistance provider in Ter
 | Tutorial cursor seems unavailable | A card or topic index must be visible. Use a short right-click to toggle it. |
 | Warnings appear, but the speed and quality display is missing | Check whether Work HUD is set to Warnings only. |
 | The work HUD disappears during normal work | Dynamic mode fades it after steady work within the recommended range when no warning or increased wear requires attention. |
+| The HUD disappears near an attach-implement prompt | TerraLogic temporarily steps aside for important vanilla messages, including in Always visible mode. |
+| Speed and quality show a dash while towing a trailer | These values may not apply to the attached equipment. The compaction indicators can still show its effect on the soil. |
+| The same vol.% has a different assessment on another field | Soil types hold water differently. Use the moisture question-mark table to compare their normal ranges. |
+| TL and MS show different moisture numbers | MS percentages and TL vol.% use different scales. TL also retains its own field water use and subsoil response. |
+| Soil moisture affects yield is Off after adding MS | This is the default to avoid overlapping water-related penalties. Turn it on explicitly if you want both mods' effects. |
 | No TerraLogic HUD warnings appear | Check whether Work HUD is set to Off. Stone-impact notifications also have their own setting. |
 | The tutorial window is in an inconvenient position | Enable the cursor with a short right-click and drag the top bar, or use Reset tutorial position in settings. |
 | Several entries belong to the same field number | They may be separate connected sections. Use the numbered section names in the field dropdown to distinguish them. |
