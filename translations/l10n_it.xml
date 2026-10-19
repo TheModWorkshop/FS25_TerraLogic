@@ -1289,5 +1289,6 @@
         <e k="tutorial.group.5" v="RESA E AIUTO" />
         <e k="terraLogic_precipHelpBase" v="Modifica la quantità d'acqua che pioggia e neve apportano al suolo, non la frequenza delle precipitazioni. Normale usa il bilancio standard. Secco apporta meno acqua; Umido ne apporta di più. Cambiare questa impostazione non modifica l'acqua già presente. L'impostazione influisce anche sulla risposta del suolo al passaggio dei mezzi." />
         <e k="terraLogic_settingMoistureYieldTooltipBase" v="Valuta l'umidità durante tre fasi di crescita e applica alla resa gli effetti della siccità e del ristagno idrico. La compattazione e gli effetti delle lavorazioni restano attivi anche quando questa opzione è disattivata. La scelta viene salvata. In multiplayer decide l'host." />
+        <e k="terraLogic_settingsHostOnlyNotice" v="Queste impostazioni valgono per tutti i giocatori. Solo l'host o un amministratore può modificarle." />
     </elements>
 </l10n>

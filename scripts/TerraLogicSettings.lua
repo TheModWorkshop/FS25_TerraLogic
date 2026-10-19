@@ -782,19 +782,21 @@ local function updateFocusIds(element)
     for _, child in pairs(element.elements or {}) do updateFocusIds(child) end
 end
 
--- Adds TerraLogic controls to the in-game settings page when it is available.
+-- Keep every TerraLogic category together in the player-accessible layout.
+-- Server callbacks/events still enforce the original multiplayer permissions.
 function TerraLogicSettings:tryInstallMenu()
     if self.menuInstalled or g_gui == nil or g_gui.screenControllers == nil then
         return self.menuInstalled
     end
     local menu = g_gui.screenControllers[InGameMenu]
     local page = menu ~= nil and menu.pageSettings or nil
-    if page == nil or page.gameSettingsLayout == nil
+    if page == nil or page.generalSettingsLayout == nil
         or page.multiVolumeVoiceBox == nil then return false end
+    local settingsLayout = page.generalSettingsLayout
 
     TerraLogicSettingsMenuCallbacks.name = page.name
     local headerTemplate
-    for _, element in ipairs(page.gameSettingsLayout.elements or {}) do
+    for _, element in ipairs(settingsLayout.elements or {}) do
         if element.name == "sectionHeader" then
             headerTemplate = element
             break
@@ -804,7 +806,7 @@ function TerraLogicSettings:tryInstallMenu()
         -- Reuse the game's header profile and spacing. With a replacement
         -- settings menu lacking this template, retain the grouped row order.
         if headerTemplate == nil then return nil end
-        local header = headerTemplate:clone(page.gameSettingsLayout)
+        local header = headerTemplate:clone(settingsLayout)
         header.id = id
         header:setText(g_i18n:getText("terraLogic_settingSection")
             .. " | " .. g_i18n:getText(titleKey))
@@ -814,7 +816,7 @@ function TerraLogicSettings:tryInstallMenu()
     end
 
     local function addOption(id, callback, texts, state, titleKey, tooltipKey)
-        local box = page.multiVolumeVoiceBox:clone(page.gameSettingsLayout)
+        local box = page.multiVolumeVoiceBox:clone(settingsLayout)
         box.id = id .. "Box"
         local option = box.elements[1]
         option.id = id
@@ -838,7 +840,9 @@ function TerraLogicSettings:tryInstallMenu()
     -- centred caption and mouse-hover animation for this exact layout.
     local function findSettingsActionButtonTemplate()
         if ButtonElement == nil then return nil end
-        for _, row in ipairs(page.gameSettingsLayout.elements or {}) do
+        -- The action template may still live in the native game-settings
+        -- layout. Only read it; cloned TerraLogic rows belong to General.
+        for _, row in ipairs((page.gameSettingsLayout or settingsLayout).elements or {}) do
             if row.isa ~= nil and row:isa(ButtonElement) then
                 return row
             end
@@ -859,7 +863,7 @@ function TerraLogicSettings:tryInstallMenu()
     -- values still processes left/right input and can receive the same release
     -- event again after a modal dialog closes.
     local function addButton(id, callback, textKey, titleKey, tooltipKey)
-        local box = page.multiVolumeVoiceBox:clone(page.gameSettingsLayout)
+        local box = page.multiVolumeVoiceBox:clone(settingsLayout)
         box.id = id .. "Box"
         local optionTemplate = box.elements[1]
         local titleElement = box.elements[2]
@@ -1012,6 +1016,11 @@ function TerraLogicSettings:tryInstallMenu()
         "terraLogic_tutorialPositionResetTooltip")
 
     -- Host-owned gameplay choices keep their existing callbacks and values.
+    self.serverSettingsNotice = addSection(
+        "terraLogicServerSettingsNotice", "terraLogic_settingsHostOnlyNotice")
+    if self.serverSettingsNotice ~= nil then
+        self.serverSettingsNotice:setVisible(not self:isLocalAdmin())
+    end
     addSection("terraLogicSimulationSection", "terraLogic_settingsGroupSimulation")
     self.compactionIntensityOption = addOption(
         "terraLogicCompactionIntensity", "onCompactionIntensityChanged",
@@ -1077,7 +1086,7 @@ function TerraLogicSettings:tryInstallMenu()
         self:getDebugEnabled() and 2 or 1,
         "terraLogic_settingDebugTitle", "terraLogic_settingDebugTooltip")
     self.debugOption:setDisabled(not self:isLocalAdmin())
-    page.gameSettingsLayout:invalidateLayout()
+    settingsLayout:invalidateLayout()
     self.menuInstalled = true
 
     if InGameMenuSettingsFrame ~= nil
@@ -1085,6 +1094,9 @@ function TerraLogicSettings:tryInstallMenu()
         InGameMenuSettingsFrame.onFrameOpen = Utils.appendedFunction(
             InGameMenuSettingsFrame.onFrameOpen,
             function(frame)
+                if TerraLogicSettings.serverSettingsNotice ~= nil then
+                    TerraLogicSettings.serverSettingsNotice:setVisible(not TerraLogicSettings:isLocalAdmin())
+                end
                 local debugControl = TerraLogicSettings.debugOption
                 if debugControl ~= nil then
                     debugControl:setState(TerraLogicSettings:getDebugEnabled() and 2 or 1)

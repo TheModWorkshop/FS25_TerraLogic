@@ -1289,5 +1289,6 @@
         <e k="tutorial.group.5" v="YIELD AND HELP" />
         <e k="terraLogic_precipHelpBase" v="Changes the amount of water that rain and snow add to the soil, not how often it rains. Normal uses the standard balance. Dry provides less water; Moist provides more. Existing water is not changed when you switch. This setting also affects soil response to machinery." />
         <e k="terraLogic_settingMoistureYieldTooltipBase" v="Evaluates moisture during three growth periods and applies drought and waterlogging stress to yield. Compaction and fieldwork effects remain active when this setting is Off. Your choice is saved. The host controls this setting in multiplayer." />
+        <e k="terraLogic_settingsHostOnlyNotice" v="These settings apply to all players. Only the host or an administrator can change them." />
     </elements>
 </l10n>

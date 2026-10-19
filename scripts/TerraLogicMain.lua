@@ -906,6 +906,7 @@ function TerraLogicMain:deleteMap()
     TerraLogicWheelCompactionManager:delete()
     TerraLogicTrafficWarnings:delete()
     TerraLogicTutorialManager:delete()
+    TerraLogicSoilHud:delete()
     TerraLogicSoilManager:delete(false)
     if g_inputBinding ~= nil then
         for _, eventId in ipairs(self.soilDisplayActionEventIds or {}) do
@@ -3897,6 +3898,9 @@ local function getSpeedHudScaledPixels(widthPx, heightPx)
     if reference ~= nil and reference.scalePixelValuesToScreenVector ~= nil then
         return reference:scalePixelValuesToScreenVector(widthPx or 0, heightPx or 0)
     end
+    if reference ~= nil and reference.scalePixelToScreenVector ~= nil then
+        return reference:scalePixelToScreenVector({ widthPx or 0, heightPx or 0 })
+    end
     if getNormalizedScreenValues ~= nil then
         return getNormalizedScreenValues(widthPx or 0, heightPx or 0)
     end
@@ -5755,33 +5759,54 @@ end
 -- Adds TerraLogic's bars to a real InfoDisplay box. The native box controls
 -- position, stacking, UI scaling and background; only the right-hand value
 -- region is custom-drawn.
+function TerraLogicMain:getNativeSoilBarLayout(box, posX, posY, rowCount)
+    local display = box.infoDisplay
+    local function pixels(x, y)
+        if display ~= nil and display.scalePixelToScreenWidth ~= nil
+            and display.scalePixelToScreenHeight ~= nil then
+            return display:scalePixelToScreenWidth(x), display:scalePixelToScreenHeight(y)
+        end
+        local width, height = getNormalizedScreenValues(x, y)
+        local scale = tonumber(box.uiScale) or 1
+        return width * scale, height * scale
+    end
+    -- Prefer native, already-scaled dimensions. Scale reference pixels only
+    -- when a native field is absent; never scale an existing field twice.
+    local defaultWidth, defaultHeight = pixels(340, 26)
+    local defaultMarginX, defaultMarginY = pixels(16, 15)
+    local boxWidth = box.boxWidth or defaultWidth
+    local rowHeight = box.rowHeight or defaultHeight
+    local lineHeight = box.lineHeight or rowHeight * (22 / 26)
+    local marginWidth = box.listMarginWidth or defaultMarginX
+    local marginHeight = box.listMarginHeight or defaultMarginY
+    local rowTextSize = box.rowTextSize or rowHeight * 0.55
+    local baselineOffset = box.rightTextOffsetY or (rowHeight - rowTextSize) * 0.5
+    setTextBold(false)
+    local valueWidth = getTextWidth(rowTextSize, "100 %")
+    local barWidth = boxWidth * 0.245
+    local markerWidth = pixels(2, 0)
+    return {
+        x = posX - marginWidth - (box.rightTextOffsetX or 0) - valueWidth - boxWidth * 0.025 - barWidth,
+        y = posY + marginHeight + (rowCount - 2) * rowHeight + baselineOffset,
+        width = barWidth,
+        height = rowTextSize * 0.88,
+        lineHeight = lineHeight,
+        markerWidth = math.max(markerWidth, g_pixelSizeX),
+    }
+end
+
 function TerraLogicMain:drawNativeSoilBars(box, posX, posY)
     local rows = box.terraLogicSoilRows
     if rows == nil or #rows == 0 then
         return
     end
-    local boxWidth = box.boxWidth or select(1, getNormalizedScreenValues(340, 0))
-    local rowHeight = box.rowHeight or select(2, getNormalizedScreenValues(0, 26))
-    local lineHeight = box.lineHeight or rowHeight * (22 / 26)
-    local marginWidth = box.listMarginWidth or select(1, getNormalizedScreenValues(16, 0))
-    local marginHeight = box.listMarginHeight or select(2, getNormalizedScreenValues(0, 15))
-    local rightOffset = box.rightTextOffsetX or 0
-    local rowTextSize = box.rowTextSize or rowHeight * 0.55
-    -- Reserve a fixed numeric column. Descriptors live in the left label, so
-    -- neither changing values nor coarse/optimal/fine can move the bars.
-    local valueWidth = getTextWidth(rowTextSize, "100 %")
-    local valueGap = boxWidth * 0.025
-    local barWidth = boxWidth * 0.245
-    local barHeight = rowTextSize * 0.88
-    local rightX = posX - marginWidth - rightOffset
-    local barX = rightX - valueWidth - valueGap - barWidth
-    local baselineOffset = box.rightTextOffsetY or (rowHeight - rowTextSize) * 0.5
-
-    -- The desktop native box reserves 26 px per background row but advances
-    -- text baselines by 22 px. Using rowHeight for both made the error grow
-    -- with every line. Keep the already-correct first-row anchor, then follow
-    -- the native baseline spacing for subsequent rows.
-    local firstRowY = posY + marginHeight + (#rows - 2) * rowHeight + baselineOffset
+    -- Resolve against this box on every draw, so UI-scale changes and other
+    -- mods' stacked info boxes cannot leave stale absolute coordinates.
+    local layout = self:getNativeSoilBarLayout(box, posX, posY, #rows)
+    local barX, barWidth, barHeight = layout.x, layout.width, layout.height
+    -- Snap the filled bar once. Its marker uses these identical vertical
+    -- bounds rather than independently scaled overhangs or rounded edges.
+    barHeight = math.max(1, math.floor(barHeight / g_pixelSizeY + 0.5)) * g_pixelSizeY
     for index, row in ipairs(rows) do
         local condition = row
         local layerId = nil
@@ -5790,7 +5815,8 @@ function TerraLogicMain:drawNativeSoilBars(box, posX, posY)
             layerId = row.layerId
         end
         condition = math.clamp(tonumber(condition) or 0, 0, 1)
-        local y = firstRowY - (index - 1) * lineHeight
+        local y = layout.y - (index - 1) * layout.lineHeight
+        y = math.floor(y / g_pixelSizeY + 0.5) * g_pixelSizeY
         drawFilledRect(barX, y, barWidth, barHeight, 0.035, 0.035, 0.035, 0.95)
         local segments = 24
         for segment = 1, segments do
@@ -5811,10 +5837,10 @@ function TerraLogicMain:drawNativeSoilBars(box, posX, posY)
         end
         local markerX = barX + condition * barWidth
         drawFilledRect(
-            markerX - g_pixelSizeX,
-            y - g_pixelSizeY,
-            g_pixelSizeX * 2,
-            barHeight + g_pixelSizeY * 2,
+            markerX - layout.markerWidth * 0.5,
+            y,
+            layout.markerWidth,
+            barHeight,
             1,
             1,
             1,

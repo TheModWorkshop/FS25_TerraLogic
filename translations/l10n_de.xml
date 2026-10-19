@@ -1289,5 +1289,6 @@
         <e k="tutorial.group.5" v="ERTRAG UND HILFE" />
         <e k="terraLogic_precipHelpBase" v="Bestimmt, wie viel Wasser Regen und Schnee dem Boden zuführen, nicht wie oft es regnet. Normal verwendet die übliche Wasserbilanz. Trocken liefert weniger Wasser, Feucht mehr. Beim Umschalten bleibt der vorhandene Wasservorrat erhalten. Die Einstellung beeinflusst auch die Bodenwirkung deiner Maschinen." />
         <e k="terraLogic_settingMoistureYieldTooltipBase" v="Bewertet die Feuchte während drei Wachstumsabschnitten und berücksichtigt Trockenheit sowie Staunässe beim Ertrag. Verdichtung und Arbeitsqualität bleiben auch bei ausgeschalteter Option wirksam. Deine Auswahl wird gespeichert. Im Multiplayer entscheidet der Host." />
+        <e k="terraLogic_settingsHostOnlyNotice" v="Diese Einstellungen gelten für alle Spieler. Nur Host oder Administratoren können sie ändern." />
     </elements>
 </l10n>

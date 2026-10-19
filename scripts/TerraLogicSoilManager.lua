@@ -10011,6 +10011,19 @@ end
 
 -- Draw fixed TerraLogic UI only after the complete native minimap, including
 -- its vehicle and helper icons, has finished using the temporary map zoom.
+function TerraLogicSoilManager:getMinimapUiPixels(ingameMap, x, y)
+    if ingameMap ~= nil and ingameMap.scalePixelValuesToScreenVector ~= nil then
+        return ingameMap:scalePixelValuesToScreenVector(x, y)
+    end
+    if ingameMap ~= nil and ingameMap.scalePixelToScreenVector ~= nil then
+        return ingameMap:scalePixelToScreenVector({ x, y })
+    end
+    local width, height = getNormalizedScreenValues(x, y)
+    local scale = ingameMap ~= nil and tonumber(ingameMap.uiScale) or 1
+    scale = scale ~= nil and scale > 0 and scale or 1
+    return width * scale, height * scale
+end
+
 function TerraLogicSoilManager:drawMinimapUi(ingameMap)
     if self.activeMapMode <= 0 or self.minimapUiVisible ~= true then
         return
@@ -10032,10 +10045,10 @@ function TerraLogicSoilManager:drawMinimapUi(ingameMap)
         frameTop = frameTop ~= nil and math.min(frameTop, ingameMap.clipY2) or ingameMap.clipY2
     end
     if g_i18n ~= nil and frameLeft ~= nil and frameRight > frameLeft and frameTop > frameBottom then
-        local _, preferredTextSize = getNormalizedScreenValues(0, 10)
-        local titlePadding = getNormalizedScreenValues(10, 0)
+        local _, preferredTextSize = self:getMinimapUiPixels(ingameMap, 0, 10)
+        local titlePadding = self:getMinimapUiPixels(ingameMap, 10, 0)
         -- Leave additional space for the multiplayer ping above the map label.
-        local _, titleTopInset = getNormalizedScreenValues(0, 38)
+        local _, titleTopInset = self:getMinimapUiPixels(ingameMap, 0, 38)
         local title = getLocalizedCompactSoilMapLabel(self.activeMapMode)
         local textSize =
             fitTextSize(title, preferredTextSize, math.max(frameRight - frameLeft - titlePadding * 2, 0.001), 0.70)
@@ -10060,14 +10073,14 @@ function TerraLogicSoilManager:drawMinimapUi(ingameMap)
         and frameRight > frameLeft
         and frameTop > frameBottom
     then
-        local preferredLegendWidth, legendHeight = getNormalizedScreenValues(124, 4)
-        local horizontalPadding = getNormalizedScreenValues(12, 0)
+        local preferredLegendWidth, legendHeight = self:getMinimapUiPixels(ingameMap, 124, 4)
+        local horizontalPadding = self:getMinimapUiPixels(ingameMap, 12, 0)
         local availableWidth = math.max(frameRight - frameLeft - horizontalPadding * 2, 0.001)
         -- Keep the scale inside the safe central chord of round minimaps.
         local legendWidth = math.min(preferredLegendWidth, availableWidth * 0.68)
-        local _, preferredLegendTextSize = getNormalizedScreenValues(0, 10)
-        local _, legendTextBottom = getNormalizedScreenValues(0, 38)
-        local _, legendBarGap = getNormalizedScreenValues(0, 3)
+        local _, preferredLegendTextSize = self:getMinimapUiPixels(ingameMap, 0, 10)
+        local _, legendTextBottom = self:getMinimapUiPixels(ingameMap, 0, 38)
+        local _, legendBarGap = self:getMinimapUiPixels(ingameMap, 0, 3)
         local legendX = (frameLeft + frameRight - legendWidth) * 0.5
         local legendTextY = frameBottom + legendTextBottom
         local legendY = legendTextY + preferredLegendTextSize + legendBarGap
