@@ -314,8 +314,42 @@ function TerraLogicSettings:applyMoistureSource(value)
     self:refreshMoistureOptions()
 end
 
+-- Permission hints belong in the native tooltip, not a full-width heading.
+function TerraLogicSettings:setMenuOptionTooltip(option,key)
+    if option == nil then return end
+    option.terraLogicTooltipKey = key
+    if option.elements ~= nil and option.elements[1] ~= nil then
+        local text = g_i18n:getText(key)
+        if option.terraLogicHostOnly and not self:isLocalAdmin() then
+            text = text .. "\n\n" .. g_i18n:getText("terraLogic_settingsHostOnlyNotice")
+        end
+        option.elements[1]:setText(text)
+    end
+end
+
+function TerraLogicSettings:refreshServerSettingLabels()
+    local locked = not self:isLocalAdmin()
+    for _, entry in ipairs(self.serverSettingHeaders or {}) do
+        local title = g_i18n:getText("terraLogic_settingSection") .. " | " .. g_i18n:getText(entry.key)
+        if locked then
+            title = title .. " (" .. g_i18n:getText("terraLogic_settingsHostOnlyLabel") .. ")"
+        end
+        entry.header:setText(title)
+    end
+    for _, option in ipairs(self.serverSettingOptions or {}) do
+        self:setMenuOptionTooltip(option,option.terraLogicTooltipKey)
+    end
+end
+
 function TerraLogicSettings:refreshMoistureOptions()
     local available=self:isMoistureSystemActive()
+    local function refreshTooltip(option,key)
+        self:setMenuOptionTooltip(option,key)
+    end
+    refreshTooltip(self.precipitationOption,
+        available and "terraLogic_precipHelp" or "terraLogic_precipHelpBase")
+    refreshTooltip(self.moistureYieldOption,
+        available and "terraLogic_settingMoistureYieldTooltip" or "terraLogic_settingMoistureYieldTooltipBase")
     if self.moistureSourceBox then self.moistureSourceBox:setVisible(available)end
     local moreRealistic=self:isMoreRealisticActive()
     if self.draftModelBox then self.draftModelBox:setVisible(moreRealistic)end
@@ -773,39 +807,47 @@ local function updateFocusIds(element)
     for _, child in pairs(element.elements or {}) do updateFocusIds(child) end
 end
 
--- Adds TerraLogic controls to the in-game settings page when it is available.
+-- Keep every TerraLogic category together in the player-accessible layout.
+-- Server callbacks/events still enforce the original multiplayer permissions.
 function TerraLogicSettings:tryInstallMenu()
     if self.menuInstalled or g_gui == nil or g_gui.screenControllers == nil then
         return self.menuInstalled
     end
     local menu = g_gui.screenControllers[InGameMenu]
     local page = menu ~= nil and menu.pageSettings or nil
-    if page == nil or page.gameSettingsLayout == nil
+    if page == nil or page.generalSettingsLayout == nil
         or page.multiVolumeVoiceBox == nil then return false end
+    local settingsLayout = page.generalSettingsLayout
+    self.serverSettingHeaders,self.serverSettingOptions = {},{}
+    local serverSection = false
 
     TerraLogicSettingsMenuCallbacks.name = page.name
     local headerTemplate
-    for _, element in ipairs(page.gameSettingsLayout.elements or {}) do
+    for _, element in ipairs(settingsLayout.elements or {}) do
         if element.name == "sectionHeader" then
             headerTemplate = element
             break
         end
     end
-    local function addSection(id, titleKey)
+    local function addSection(id, titleKey, hostOnly)
+        serverSection = hostOnly == true
         -- Reuse the game's header profile and spacing. With a replacement
         -- settings menu lacking this template, retain the grouped row order.
         if headerTemplate == nil then return nil end
-        local header = headerTemplate:clone(page.gameSettingsLayout)
+        local header = headerTemplate:clone(settingsLayout)
         header.id = id
         header:setText(g_i18n:getText("terraLogic_settingSection")
             .. " | " .. g_i18n:getText(titleKey))
+        if hostOnly then
+            table.insert(self.serverSettingHeaders,{header=header,key=titleKey})
+        end
         updateFocusIds(header)
         table.insert(page.controlsList, header)
         return header
     end
 
     local function addOption(id, callback, texts, state, titleKey, tooltipKey)
-        local box = page.multiVolumeVoiceBox:clone(page.gameSettingsLayout)
+        local box = page.multiVolumeVoiceBox:clone(settingsLayout)
         box.id = id .. "Box"
         local option = box.elements[1]
         option.id = id
@@ -813,9 +855,11 @@ function TerraLogicSettings:tryInstallMenu()
         option:setCallback("onClickCallback", callback)
         option:setTexts(texts)
         option:setState(state)
-        if option.elements ~= nil and option.elements[1] ~= nil then
-            option.elements[1]:setText(g_i18n:getText(tooltipKey))
+        option.terraLogicHostOnly = serverSection
+        if serverSection then
+            table.insert(self.serverSettingOptions,option)
         end
+        self:setMenuOptionTooltip(option,tooltipKey)
         if box.elements[2] ~= nil then
             box.elements[2]:setText(g_i18n:getText(titleKey))
         end
@@ -829,7 +873,9 @@ function TerraLogicSettings:tryInstallMenu()
     -- centred caption and mouse-hover animation for this exact layout.
     local function findSettingsActionButtonTemplate()
         if ButtonElement == nil then return nil end
-        for _, row in ipairs(page.gameSettingsLayout.elements or {}) do
+        -- The action template may still live in the native game-settings
+        -- layout. Only read it; cloned TerraLogic rows belong to General.
+        for _, row in ipairs((page.gameSettingsLayout or settingsLayout).elements or {}) do
             if row.isa ~= nil and row:isa(ButtonElement) then
                 return row
             end
@@ -850,7 +896,7 @@ function TerraLogicSettings:tryInstallMenu()
     -- values still processes left/right input and can receive the same release
     -- event again after a modal dialog closes.
     local function addButton(id, callback, textKey, titleKey, tooltipKey)
-        local box = page.multiVolumeVoiceBox:clone(page.gameSettingsLayout)
+        local box = page.multiVolumeVoiceBox:clone(settingsLayout)
         box.id = id .. "Box"
         local optionTemplate = box.elements[1]
         local titleElement = box.elements[2]
@@ -1003,7 +1049,7 @@ function TerraLogicSettings:tryInstallMenu()
         "terraLogic_tutorialPositionResetTooltip")
 
     -- Host-owned gameplay choices keep their existing callbacks and values.
-    addSection("terraLogicSimulationSection", "terraLogic_settingsGroupSimulation")
+    addSection("terraLogicSimulationSection", "terraLogic_settingsGroupSimulation", true)
     self.compactionIntensityOption = addOption(
         "terraLogicCompactionIntensity", "onCompactionIntensityChanged",
         {"50%", "75%", "100%", "125%", "150%"},
@@ -1021,7 +1067,8 @@ function TerraLogicSettings:tryInstallMenu()
         "terraLogic_settingSoilDevelopmentTooltip")
     self.precipitationOption = addOption("terraLogicPrecipitation","onPrecipitationChanged",
         {g_i18n:getText("terraLogic_precipDry"),g_i18n:getText("terraLogic_precipNormal"),g_i18n:getText("terraLogic_precipMoist")},
-        self.precipitationState,"terraLogic_precipTitle","terraLogic_precipHelp")
+        self.precipitationState,"terraLogic_precipTitle",
+        self:isMoistureSystemActive() and "terraLogic_precipHelp" or "terraLogic_precipHelpBase")
     self.precipitationOption:setDisabled(not self:isLocalAdmin())
     self.moistureYieldOption = addOption(
         "terraLogicMoistureYield", "onMoistureYieldChanged",
@@ -1029,7 +1076,8 @@ function TerraLogicSettings:tryInstallMenu()
             g_i18n:getText("terraLogic_settingOn")},
         self:getMoistureYieldEnabled() and 2 or 1,
         "terraLogic_settingMoistureYieldTitle",
-        "terraLogic_settingMoistureYieldTooltip")
+        self:isMoistureSystemActive()
+            and "terraLogic_settingMoistureYieldTooltip" or "terraLogic_settingMoistureYieldTooltipBase")
     self.visibleStoneDamageOption = addOption(
         "terraLogicVisibleStoneDamage", "onVisibleStoneDamageChanged",
         {g_i18n:getText("terraLogic_settingVisibleStonesVanilla"),
@@ -1038,7 +1086,7 @@ function TerraLogicSettings:tryInstallMenu()
         "terraLogic_settingVisibleStonesTitle",
         "terraLogic_settingVisibleStonesTooltip")
     self.compatibilityHeader = addSection(
-        "terraLogicCompatibilitySection", "terraLogic_settingsGroupCompatibility")
+        "terraLogicCompatibilitySection", "terraLogic_settingsGroupCompatibility", true)
     self.moistureSourceOption,self.moistureSourceBox=addOption(
         "terraLogicMoistureSource","onMoistureSourceChanged",
         {"TerraLogic","Moisture System"},self.moistureSource=="moistureSystem" and 2 or 1,
@@ -1051,7 +1099,7 @@ function TerraLogicSettings:tryInstallMenu()
         "terraLogic_settingDraftTitle", "terraLogic_settingDraftTooltip")
     self:refreshMoistureOptions()
 
-    addSection("terraLogicDiagnosticsSection", "terraLogic_settingsGroupDiagnostics")
+    addSection("terraLogicDiagnosticsSection", "terraLogic_settingsGroupDiagnostics", true)
     self.mapUpdateOption = addOption(
         "terraLogicMapUpdate", "onMapUpdateChanged",
         {g_i18n:getText("terraLogic_mapUpdateGentle"),
@@ -1066,7 +1114,8 @@ function TerraLogicSettings:tryInstallMenu()
         self:getDebugEnabled() and 2 or 1,
         "terraLogic_settingDebugTitle", "terraLogic_settingDebugTooltip")
     self.debugOption:setDisabled(not self:isLocalAdmin())
-    page.gameSettingsLayout:invalidateLayout()
+    self:refreshServerSettingLabels()
+    settingsLayout:invalidateLayout()
     self.menuInstalled = true
 
     if InGameMenuSettingsFrame ~= nil
@@ -1074,6 +1123,7 @@ function TerraLogicSettings:tryInstallMenu()
         InGameMenuSettingsFrame.onFrameOpen = Utils.appendedFunction(
             InGameMenuSettingsFrame.onFrameOpen,
             function(frame)
+                TerraLogicSettings:refreshServerSettingLabels()
                 local debugControl = TerraLogicSettings.debugOption
                 if debugControl ~= nil then
                     debugControl:setState(TerraLogicSettings:getDebugEnabled() and 2 or 1)

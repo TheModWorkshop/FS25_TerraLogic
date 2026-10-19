@@ -1,135 +1,327 @@
--- Approved German tutorial text and its English translation. Form feeds separate teaching sections.
+-- Stable lesson IDs and translation keys. Text is resolved when displayed.
 TerraLogicTutorialLessons = {}
-local function lesson(id, group, deTitle, enTitle, de, en, actions)
-    table.insert(TerraLogicTutorialLessons, {id=id, group=group,
-        de={title=deTitle, text=de}, en={title=enTitle, text=en}, actions=actions})
+local function lesson(id, group, sections, actions)
+    table.insert(
+        TerraLogicTutorialLessons,
+        { id = id, group = group, titleKey = "tutorial." .. id .. ".title", sections = sections, actions = actions }
+    )
 end
-lesson("welcome", 1, "Dein Boden hat eine Geschichte", "Your soil has a history",
-    "Willkommen bei TerraLogic!\n\nMit einem kurzen Rechtsklick schaltest du den Mauszeiger ein oder aus, solange ein Tutorial sichtbar ist. Beim Schließen wird er wieder freigegeben.\n\nDein Acker ist jetzt Teil einer umfangreichen Bodensimulation. Er reagiert unterschiedlich auf Gerätearten, Bearbeitung, Reifen, Bewuchs und Wetter.\n\nLerne zunächst, den Boden zu lesen, und wähle dann den passenden Arbeitsschritt. Unter sehr guten Bedingungen sind bis zu 10 % mehr Ertrag möglich als unter denselben Bedingungen ohne TerraLogic.",
-    "Welcome to TerraLogic!\n\nA short right-click turns the cursor on or off while a tutorial is visible. Closing the tutorial releases it again.\n\nYour field is now part of a comprehensive soil simulation. It responds differently to implement types, tillage, tires, plant cover and weather.\n\nStart by learning to read the soil, then choose the right operation. Under very good conditions, yields can be up to 10% higher than under the same conditions without TerraLogic.")
-lesson("firstMap", 1, "Ein erster Blick unter die Oberfläche", "A first look below the surface",
-    "Öffne eine Bodenkarte mit der unten angezeigten Aktion. Dafür muss die Minimap eingeblendet sein. Dass viele Felder anfangs einheitlich aussehen, ist normal: Erst durch Bearbeitung, Befahrung und Wetter entstehen Unterschiede. Dein Ackerboden entwickelt sich mit deiner Bewirtschaftung und beeinflusst die Bedingungen für Pflanzenwachstum und Ertrag.\n\nDie Bodenkarten zeigen den simulierten Zustand, nicht einfach die sichtbare Bodentextur. Zu Fuß kannst du außerdem die lokalen Bodenwerte an deinem Standort ablesen, wenn die TerraLogic-Feldanzeige aktiv ist.\n\nMit der unten angezeigten Aktion schaltest du durch die Karten, bis die Ansicht wieder ausgeschaltet ist. Im nächsten Thema erfährst du, was die fünf Bodenwerte bedeuten und wie du die Karten direkt aufrufst.",
-    "Open a soil map using the action shown below. The minimap needs to be visible. Many fields look uniform at first. That is normal: tillage, traffic and weather create differences over time. Your management changes the soil and affects conditions for crop growth and yield.\n\nThe soil maps show simulated conditions, not just the visible ground texture. On foot, you can also read local soil values at your position while the TerraLogic field display is active.\n\nUse the action shown below to cycle through the maps until the display switches off again. The next topic explains what the five soil values mean and how to open each map directly.", {"TERRALOGIC_TOGGLE_SOIL_DISPLAY"})
-lesson("mapControls", 1, "Die fünf Bodenkarten verstehen", "Understanding the five soil maps",
-    "Die fünf Bodenkarten zeigen unterschiedliche Eigenschaften deines Ackers. Zusammen helfen sie dir zu erkennen, ob der Boden einen weiteren Arbeitsgang braucht – und welcher dafür geeignet ist.\fOberflächenverdichtung – STRG + ALT + 1\n\nVerdichtung bedeutet, dass der Boden zusammengedrückt wird. Dabei werden die Zwischenräume kleiner, durch die sich Wurzeln ausbreiten können. Reifen und schwere Maschinen können die obere Bodenschicht so stark verdichten, dass die Pflanzen schlechter wurzeln und weniger Ertrag liefern.\n\nNiedrigere Werte bedeuten weniger Verdichtung. Passende Bereifung und eine geringe Fahrzeuglast helfen, neue Schäden zu vermeiden. Bei Bedarf können geeignete Bodenbearbeitungsgeräte die obere Schicht wieder lockern.\fTiefenverdichtung – STRG + ALT + 2\n\nAuch unterhalb der üblichen Bearbeitungstiefe kann Boden zusammengedrückt werden. Besonders hohe Achslasten können diese tieferen Schichten belasten. Die Oberfläche kann dabei locker aussehen, obwohl darunter eine verdichtete Schicht das Wurzelwachstum begrenzt.\n\nNiedrigere Werte sind günstiger. Ein flach arbeitendes Gerät erreicht diese Verdichtung nicht. Starke Tiefenverdichtung kann eine gezielte Tiefenlockerung erfordern; die natürliche Erholung braucht hier deutlich länger.\fKrümelstruktur – STRG + ALT + 3\n\nDie Krümelstruktur beschreibt, wie grob oder fein der Boden zerteilt ist. Große Schollen erschweren es der Sämaschine, das Saatgut gleichmäßig abzulegen. Übermäßig fein zerkleinerter Boden ist aber ebenfalls kein ideales Saatbett.\n\nDas Ziel liegt ungefähr bei 50 %: eine ausgewogene Mischung statt grober Schollen oder nahezu pulverisiertem Boden. Entscheidend sind das passende Gerät, geeignete Bodenbedingungen und ein angemessenes Arbeitstempo – nicht möglichst viele Arbeitsgänge.\fEbenheit – STRG + ALT + 4\n\nEbenheit beschreibt, wie gleichmäßig die bearbeitete Bodenoberfläche ist. Auf rauem Boden mit ausgeprägten Furchen können empfindliche Geräte schlechter arbeiten. Bei der Aussaat kann dadurch die Ablagequalität sinken; unter ungünstigen Bedingungen bleiben sogar ungesäte Stellen zurück.\n\nHöhere Werte bedeuten eine ebenere Oberfläche. Geräte zur Saatbettbereitung können sie verbessern. Eine glatte Fläche ist allerdings nicht automatisch locker: Ebenheit und Verdichtung sind unterschiedliche Eigenschaften.\fBodenresilienz – STRG + ALT + 5\n\nBodenresilienz beschreibt, wie widerstandsfähig die gewachsene Bodenstruktur gegen neue Belastungen ist. Wurzeln und Bodenleben tragen über längere Zeit zu dieser Struktur bei. Ein widerstandsfähiger Boden wird bei vergleichbarer Befahrung weniger stark zusätzlich verdichtet als ein empfindlicher.\n\nHöhere Werte sind günstiger. Abwechslungsreiche Fruchtfolgen, Bewuchs und weniger intensive Bodenbearbeitung können den Aufbau unterstützen. Hohe Bodenresilienz beseitigt aber keine bereits vorhandene Verdichtung und erhöht den Ertrag nicht unmittelbar.\fKarten bedienen\n\nDie genannten Tastenkombinationen sind die Standardbelegung. Drückst du die Kombination der bereits aktiven Karte erneut, schaltest du sie aus. Mit ALT + T schaltest du die Karten vorwärts durch, mit STRG + ALT + T rückwärts. Alle Belegungen lassen sich in den Steuerungseinstellungen ändern.",
-    "The five soil maps show different properties of your field. Together, they help you decide whether the soil needs another operation and which implement would suit the job.\fSurface compaction – CTRL + ALT + 1\n\nCompaction means that soil is pressed together. This reduces the spaces through which roots can grow. Tires and heavy machinery can compact the upper soil layer enough to restrict rooting and reduce yield.\n\nLower values mean less compaction. Suitable tires and a low vehicle load help prevent new damage. Where necessary, appropriate tillage implements can loosen the upper layer again.\fDeep compaction – CTRL + ALT + 2\n\nSoil can also be compressed below the usual working depth. High axle loads in particular can affect these deeper layers. The surface may look loose while a compacted layer underneath restricts root growth.\n\nLower values are better. A shallow-working implement cannot reach this compaction. Severe deep compaction may require targeted subsoiling; natural recovery takes considerably longer here.\fTilth – CTRL + ALT + 3\n\nTilth describes how coarse or fine the soil has become. Large clods make it harder for a seeder to place seeds evenly. Excessively pulverized soil is not an ideal seedbed either.\n\nThe target is around 50%: a balanced structure rather than large clods or almost powdered soil. What matters is the right implement, suitable soil conditions and an appropriate working speed, not as many passes as possible.\fEvenness – CTRL + ALT + 4\n\nEvenness describes how level the worked soil surface is. Sensitive implements may struggle on rough ground with pronounced furrows. During sowing, placement quality can fall; under unfavorable conditions, some patches may receive no seed at all.\n\nHigher values mean a more even surface. Seedbed preparation implements can improve it. However, a smooth field is not automatically loose: evenness and compaction are separate properties.\fSoil resilience – CTRL + ALT + 5\n\nSoil resilience describes how well the established soil structure withstands new loads. Roots and soil life help build this structure over time. Under comparable traffic, resilient soil accumulates less additional compaction than vulnerable soil.\n\nHigher values are better. Varied crop rotations, plant cover and less intensive tillage can support its development. High resilience does not remove existing compaction or increase yield directly.\fUsing the maps\n\nThe shortcuts listed above are the default bindings. Press the shortcut for the active map again to switch it off. Use ALT + T to cycle forward through the maps and CTRL + ALT + T to cycle backward. All bindings can be changed in the control settings.")
-lesson("speedHud", 1, "Dein Begleiter bei der Feldarbeit", "Your fieldwork companion",
-    "Das Arbeits-HUD hilft dir, ein passendes Arbeitstempo für dein Gerät zu finden. Links zeigt der Tempobalken dein Tempo im empfohlenen Arbeitsbereich. Rechts beschreibt die Arbeitsqualität das Ergebnis. Der Balken zeigt keine Arbeitsqualität. Der empfohlene Tempobereich dient als Orientierung, garantiert aber keine sichere Belastung. Warnungen melden Probleme wie zu hohe Belastung oder schädliche Überlastung.\n\nSchwierige Bodenbedingungen können ein Gerät bereits unterhalb seines üblichen Arbeitstempos stark belasten. Langsameres Fahren kann Belastung und geschwindigkeitsbedingte Qualitätsverluste verringern. Einen zu nassen, gefrorenen oder ungeeigneten Boden macht es aber nicht automatisch gut bearbeitbar.\n\nEin Strich bedeutet, dass gerade kein passender Wert vorliegt. Bei Gerätekombinationen macht die Anzeige auf den begrenzenden Teil aufmerksam. Im dynamischen Modus blendet sie bei unauffälliger Arbeit aus und bei Änderungen wieder ein. Dieses Verhalten kannst du in den TerraLogic-Optionen anpassen.\fDie Bodensymbole berechnen die aktuelle Überfahrt auf Referenzboden mit 20% Ausgangsverdichtung: Rad für Oberboden, Achse für Unterboden. Die tatsächlichen Targets und Stärken einschließlich aktueller Bodenbedingungen werden übernommen. Vorhandene Verdichtung bleibt unberücksichtigt. Kontakte derselben Referenzzelle bauen während der Überfahrt der Kombination aufeinander auf. Pro Schicht zählt der höchste aktuelle Referenzwert, nicht der echte Feldwert. Die experimentelle Anzeige sagt das Endergebnis nicht voraus, bevor alle Achsen passiert sind. Beide Schichten nutzen die Grenzen der Feldanalyse: Gering bis 30%, Mäßig über 30% bis 50%, Hoch über 50% bis 70%, Sehr hoch über 70%. Die Karte verwendet einen fließenden Farbverlauf. Ein Strich bedeutet, dass kein aktueller anwendbarer Messwert vorliegt. Gelbe Verdichtungshinweise beginnen bei Hoch in der Referenzrechnung, nicht aufgrund vorhandener Verdichtung. Sie erscheinen einmal pro Situation und können nach 30 Sekunden bestätigter Fahrt unter der Warnschwelle erneut erscheinen. Anhalten oder Fahrzeugwechsel setzen sie nicht zurück. Andere schwere rote Warnungen bleiben bei anhaltender Ursache; Steinschläge sind kurze Ereignismeldungen.\fDas HUD behält bei Feldüberfahrten seine volle Größe. Ist kein Arbeitsgerät bereit, zeigen empfohlenes Tempo und Arbeitsqualität Striche; der Tempobalken bleibt grau und ohne Marker. Die Bodensymbole bleiben aktiv. Die Karte erscheint nach einer Sekunde Feldmessungen; kurzes Anhalten wird vor dem Ausblenden zwei Sekunden überbrückt. Native Interaktionshinweise, etwa zum Ankuppeln oder Befüllen, blenden die Wertekarte vorübergehend aus. Gelbe Warnungen warten ohne Verlust ihrer Lesezeit; aktive rote Warnungen stehen über dem Hinweis. Nach dessen Ende kann die Karte nach einer halben Sekunde zurückkehren. Nur Warnungen versteckt die Wertekarte; Aus versteckt alle TerraLogic-HUD-Meldungen. Immer sichtbar zeigt das vollständige HUD im Fahrzeug auch ohne Arbeitsgerät oder Bodenmesswerte. Nicht verfügbare Werte erscheinen als Striche. Hinweise des Spiels haben weiterhin Vorrang.",
-    "The work HUD helps you choose an appropriate speed for your implement. The speed bar on the left shows your speed relative to the recommended working range. Work Quality on the right describes the result. The bar does not represent quality. The recommended speed range is guidance, not a guarantee of safe load. Warnings report problems such as high load or damaging overload.\n\nDifficult soil conditions can put considerable stress on an implement even below its usual working speed. Slowing down can reduce load and speed-related quality losses. It does not automatically make excessively wet, frozen or unsuitable soil workable.\n\nA dash means there is no applicable value at present. With implement combinations, the display highlights the limiting part. In Dynamic mode, it fades during uneventful work and returns when conditions change. You can adjust this behavior in TerraLogic options.\fThe soil icons estimate the current pass on reference soil starting at 20% compaction: wheel for topsoil, axle for subsoil. Actual contact targets and strengths are reused, including current soil conditions. Existing compaction is excluded. Contacts on the same reference cell accumulate while the vehicle combination crosses it. Each layer shows the highest recent reference reading, not the actual field value. This experimental preview is not a prediction of the final value before all axles have passed. Both layers use the Field Analysis bands: Low up to 30%, Regular above 30% to 50%, High above 50% to 70%, Severe above 70%. The map uses a continuous colour gradient. A dash means no current applicable measurement. Yellow compaction messages start at High in the reference calculation, not because of existing compaction. They appear once per episode and can return after 30 seconds of confirmed driving below the warning threshold. Stopping or changing vehicles does not reset them. Other severe red warnings remain while active; stone hits are brief event messages.\fThe HUD keeps its full size during field traffic. When no work implement is ready, recommended speed and Work Quality show dashes and the speed bar is grey without a marker. Soil icons remain active. In Dynamic mode, field traffic needs one second of measurements before the card appears; brief stops are bridged for two seconds before fading. Native interaction prompts such as attaching or filling temporarily hide the values card. Yellow warnings wait without losing reading time; active red warnings are placed above the prompt. After the prompt closes, the card can return after half a second. Warnings only hides the values card; Off hides all TerraLogic HUD messages. Always visible keeps the full HUD on screen while you are in a vehicle, even without a work implement or soil measurements. Unavailable values show dashes. Native interaction prompts still take priority.")
-lesson("cruise", 1, "Du bestimmst das Arbeitstempo", "You choose the working speed",
-    "Bei unterstützten Geräten entfällt die starre Arbeitsgeschwindigkeitsgrenze. Stelle den Tempomat deshalb bewusst ein: Beginne im empfohlenen Tempobereich und beobachte Arbeitsqualität und Warnungen. Die Meldungen geben dir Hinweise auf mögliche Probleme. Mit den unten angezeigten Aktionen stellst du den Tempomat ein und aktivierst ihn.\n\nEin stärkerer Traktor ermöglicht zwar höheres Tempo, doch das hat häufig seinen Preis. Zu schnelles Arbeiten kann je nach Gerät die Bodenwirkung, die Ausbringungsqualität oder die Haltbarkeit verschlechtern und Fehlstellen hinterlassen.\n\nKleine Schwankungen durch die Regelung des Tempomats sind noch kein Grund zur Sorge. Achte vor allem auf anhaltende Belastung und erkennbare Qualitätsverluste.",
-    "Supported implements no longer have a fixed working-speed limit. Set cruise control deliberately: start within the recommended speed range and watch Work Quality and warnings. The messages point out potential problems. Use the actions shown below to adjust and activate cruise control.\n\nA more powerful tractor allows higher speeds, but that often comes at a cost. Depending on the implement, excessive speed can reduce soil work, application quality or durability and leave missed areas.\n\nSmall fluctuations from cruise control are not automatically a cause for concern. Pay particular attention to sustained load and noticeable quality losses.", {"AXIS_CRUISE_CONTROL", "TOGGLE_CRUISE_CONTROL"})
-lesson("changedSoil", 1, "Was deine Arbeit hinterlässt", "What your work leaves behind",
-    "Nach einem Arbeitsgang lohnt sich ein Blick auf die passende Bodenkarte. Vergleiche bearbeitete und unbearbeitete Stellen. Ein Pflug lockert die oberen Bodenschichten kräftig, hinterlässt aber meist eine gröbere und unebenere Oberfläche. Wie gut das gelingt, hängt auch von den Bedingungen und deinem Arbeitstempo ab.\n\nDie folgenden Geräte reagieren auf dieses Ergebnis. Viele Sämaschinen können auf grobem Pflugboden schlechter arbeiten. Je nach Krümelstruktur und Ebenheit kann deshalb eine Scheibenegge, ein Flachgrubber oder eine Kreiselegge sinnvoll sein. Eine Walze kann zusätzlich glätten und rückverfestigen, ersetzt aber nicht jede Saatbettbereitung.\n\nMit TerraLogic zählt deshalb nicht nur, welcher Arbeitsschritt erledigt wurde, sondern auch, welchen Boden du für den nächsten hinterlässt.",
-    "After an operation, take a look at the relevant soil map. Compare worked and unworked areas. A plow loosens the upper soil layers strongly, but usually leaves a coarser, rougher surface. Conditions and working speed also affect the result.\n\nThe next implement responds to that result. Many seeders struggle on coarse, plowed ground. Depending on tilth and evenness, a disc harrow, shallow cultivator or power harrow may therefore help. A roller can provide additional leveling and reconsolidation, but cannot replace every type of seedbed preparation.\n\nWith TerraLogic, what matters is not just which operation you completed, but the soil conditions you leave for the next one.")
-lesson("traffic", 1, "Auch die Reifen arbeiten am Boden", "Tires change the soil too",
-    "Bei der Feldarbeit belasten nicht nur die Werkzeuge den Acker. Fahrzeuggewicht, Beladung und angehängte Geräte verändern die Radlast. Die Aufstandsfläche bestimmt mit, wie stark diese Last auf den Boden wirkt.\n\nBodenart, Feuchtigkeit und Frost beeinflussen zusätzlich, wie empfindlich der Boden reagiert. Ein leichter Traktor allein garantiert deshalb noch keine schonende Überfahrt.\n\nBreit- und Zwillingsreifen verteilen die Last auf eine größere Aufstandsfläche und können die Oberflächenverdichtung reduzieren. TerraLogic berücksichtigt dafür die Abmessungen von Reifen und Laufwerken sowie die anliegende Last. Auch Bandlaufwerke können dadurch einen spürbaren Vorteil bieten.",
-    "Tools are not the only things loading the soil during fieldwork. Vehicle weight, payload and attached equipment change wheel load. The contact area helps determine how strongly that load affects the ground.\n\nSoil type, moisture and frost also influence how vulnerable the soil is. A light tractor alone therefore does not guarantee a gentle pass.\n\nWide and twin tires spread the load over a larger contact area and can reduce surface compaction. TerraLogic considers tire and track dimensions as well as the load they carry. Tracks can therefore offer a noticeable advantage too.")
-lesson("analysis", 1, "Planen statt raten", "Plan instead of guessing",
-    "Stelle dich auf ein Feld, öffne das ESC-Menü und wähle das TerraLogic-Symbol. In der TerraLogic-Feldanalyse findest du die gemeinsame Auswertung der zusammenhängenden Feldfläche, auf der du dich befindest.\n\nDie Übersicht fasst den Bodenzustand zusammen und empfiehlt passende Maßnahmen. Arbeit und Ertrag erklärt die gespeicherte Arbeitsqualität und ihre Folgen für die Ernte. Wetter und Einflüsse zeigt unter anderem Feuchtigkeit, Temperaturen in verschiedenen Bodenschichten und deren Auswirkungen auf die Arbeit.\n\nIm Planer kannst du abschätzen, wie unterschiedliche Geräte den aktuellen Boden verändern würden. Im Fahrzeug siehst du außerdem Angaben zu Gewicht, Achslast und Bodenkontaktdruck.\n\nÜber die Feldauswahl oben kannst du zwischen verfügbaren Feldern und Teilflächen wechseln. Unter Empfehlungen stehen Maßnahmen und Begründungen nebeneinander: zuerst akute Risiken, danach vorbereitende Arbeiten und langfristige Bodenpflege. Das ist keine verpflichtende Arbeitsfolge; beachte die genannten Voraussetzungen und schütze vorhandene Pflanzenbestände.\n\nDie Fragezeichen neben den Werten erklären ihre Bedeutung. Bei der Arbeitsqualität zeigen sie auch, auf welchem Flächenanteil der Arbeitsgang erfasst wurde.",
-    "Stand on a field, open the ESC menu and select the TerraLogic icon. TerraLogic Field Analysis provides a combined assessment of the connected field area you are on.\n\nOverview summarizes soil conditions and recommends suitable actions. Work and Yield explains stored work quality and its consequences for the harvest. Weather and Effects shows moisture, temperatures in different soil layers and their effects on fieldwork.\n\nThe Planner lets you estimate how different implements would change the current soil. In a vehicle, you can also see weight, axle load and ground contact pressure.\n\nUse the field dropdown at the top to switch between available fields and sections. Recommendations pairs each action with its explanation: immediate risks first, then preparatory work and longer-term soil care. This is not a mandatory work sequence; follow the stated conditions and protect existing crops.\n\nThe question marks explain the values. For work quality, they also show how much of the area has a record for that operation.")
-lesson("compaction", 2, "Oben fest ist nicht unten fest", "Firm on top is not firm underneath",
-    "Oberflächenverdichtung betrifft die obere Bodenschicht. Tiefenverdichtung sitzt darunter und ist schwerer zu lösen. Beides kann die Durchwurzelung begrenzen und dadurch den Ertrag verringern. Eine oberflächlich gut aussehende Fläche ist deshalb nicht automatisch auch in der Tiefe locker.\n\nWähle dein Gerät nach dem tatsächlichen Problem. Ein Tiefenlockerer ist für tiefe Verdichtung gedacht. Er greift allerdings stark in die gewachsene Bodenstruktur ein. Wurzeln und Bodenleben brauchen danach wieder Zeit, um diese aufzubauen.\n\nJe schonender du den Acker befährst, desto seltener musst du solche Schäden durch zusätzliche Bodenbearbeitung beheben.",
-    "Surface compaction affects the upper soil layer. Deep compaction lies underneath and is harder to relieve. Both can restrict rooting and reduce yield. A field that looks good on the surface is therefore not automatically loose at depth.\n\nChoose your implement for the actual problem. A subsoiler is designed for deep compaction, but it also strongly disturbs the established soil structure. Roots and soil life then need time to rebuild it.\n\nThe more carefully you drive on the field, the less often you need extra tillage to repair this damage.")
-lesson("tires", 2, "Reifenwahl hat jetzt einen Zweck", "Tire choice now has a purpose",
-    "Breitere Reifen verteilen die Fahrzeuglast auf eine größere Fläche. Breitreifen, Zwillingsreifen und Bandlaufwerke können dadurch die Oberflächenverdichtung reduzieren. Schmale Pflegereifen können bei geeigneten Kulturen Pflanzenschäden durch Überfahren vermeiden, belasten den Boden bei gleicher Last aber stärker.\n\nAuch die Beladung deiner Fahrzeuge und Anhänger zählt. Ein voller Anhänger drückt stärker auf den Boden als ein leerer.\n\nTiefere Schichten reagieren stärker auf die Achslast beziehungsweise die zusammenwirkenden Lasten benachbarter Achsen. Breite Reifen machen ein schweres Gespann deshalb nicht automatisch unbedenklich für den Unterboden. Im Planer der Feldanalyse kannst du Bodenkontaktdruck und Achslast deiner Fahrzeugkombination prüfen.",
-    "Wider tires spread vehicle load over a larger area. Wide tires, twin tires and tracks can therefore reduce surface compaction. Narrow crop-care tires can prevent traffic damage to suitable crops, but put more pressure on the soil under the same load.\n\nVehicle and trailer payload matters too. A full trailer presses harder on the ground than an empty one.\n\nDeeper layers respond more strongly to axle load and the combined loads of neighboring axles. Wide tires therefore do not automatically make a heavy combination harmless to the subsoil. Check ground contact pressure and axle load for your combination in the Field Analysis Planner.")
-lesson("payload", 2, "Mit der Ladung ändert sich die Belastung", "Payload changes the load on the soil",
-    "Ein voller Tank oder Anhänger fährt sich nicht nur schwerer: Das zusätzliche Gewicht belastet auch den Boden. Das gilt ebenso für den Korntank beim Dreschen.\n\nPlane Transport- und Abfahrwege möglichst über feste Wege oder bereits genutzte Fahrspuren und vermeide unnötige Fahrten mit hoher Last.\n\nNach Regen kann der Boden deutlich empfindlicher sein. Entscheidend ist nicht allein, ob es gerade regnet, sondern wie feucht der Boden noch ist.",
-    "A full tank or trailer does more than make the vehicle harder to pull: its extra weight also loads the soil. The same applies as a combine's grain tank fills.\n\nWhere possible, plan transport and unloading routes along firm roads or existing traffic lanes, and avoid unnecessary trips with heavy loads.\n\nSoil can be much more vulnerable after rain. What matters is not just whether it is raining now, but how wet the soil still is.")
-lesson("tramlines", 2, "Lieber dieselbe Spur als überall fahren", "Reuse a lane rather than driving everywhere",
-    "Die erste Überfahrt lockeren Bodens bewirkt häufig den größten Verdichtungsschritt. Fünf Spuren an verschiedenen Stellen belasten deshalb mehr Anbaufläche als fünf Fahrten auf derselben Spur. Weitere Überfahrten bleiben trotzdem nicht folgenlos, besonders für den Unterboden.\n\nNutze für Düngung und Pflanzenschutz möglichst dieselben Fahrspuren. So konzentrierst du die Belastung und lässt dem übrigen Boden mehr Ruhe.\n\nWenn du gezielt ungesäte Fahrgassen anlegst, bleibt die stärkste Belastung außerdem auf Bereichen, auf denen ohnehin keine Kultur wächst.",
-    "The first pass over loose soil often causes the largest step in compaction. Five tracks in different places therefore affect more crop area than five trips along the same track. Further passes are still not harmless, especially to the subsoil.\n\nWhere possible, use the same lanes for fertilizing and crop protection. This concentrates traffic and leaves more of the soil undisturbed.\n\nIf you deliberately leave tramlines unsown, the heaviest traffic also stays on ground where no crop is growing anyway.")
-lesson("pfLanes", 2, "Fahrgassen und Anbaufläche", "Tramlines and crop area",
-    "Mit Precision Farming kannst du Fahrgassen anlegen, die ungesät bleiben. Nutzt du sie für Pflegefahrten, konzentriert sich die Verdichtung auf diese Bereiche und mehr bewachsene Fläche bleibt von zusätzlichen Überfahrten verschont.\n\nDie Fahrgassen kosten zwar Anbaufläche, können dafür aber den übrigen Boden schützen. Wie groß der Vorteil ausfällt, hängt unter anderem von Fahrzeuglast, Bereifung, Bodenfeuchte und der Zahl deiner Pflegefahrten ab.",
-    "Precision Farming lets you create tramlines that remain unsown. Using them for crop-care passes concentrates compaction in those areas and keeps additional traffic off more of the growing crop.\n\nTramlines reduce the planted area, but can protect the remaining soil. The size of the benefit depends on factors such as vehicle load, tires, soil moisture and the number of crop-care passes.")
-lesson("tilth", 2, "Fein genug, nicht möglichst fein", "Fine enough, not as fine as possible",
-    "Die Krümelstruktur beschreibt, wie grob oder fein der Boden zerteilt ist. Grobe Schollen erschweren eine saubere Saatablage. Übermäßig fein zerkleinerter Boden ist aber ebenfalls kein ideales Ziel. Für die besten Ergebnisse sollte der Wert ungefähr bei 50 % liegen.\n\nFeuchtigkeit, Bodenart, Gerätetyp und Arbeitsgeschwindigkeit beeinflussen das Ergebnis. Mehr Bearbeitung bedeutet deshalb nicht automatisch ein besseres Saatbett.",
-    "Tilth describes how coarse or fine the soil has become. Large clods make clean seed placement harder. Excessively pulverized soil is not an ideal target either. For the best results, aim for a value around 50%.\n\nMoisture, soil type, implement type and working speed affect the result. More tillage therefore does not automatically mean a better seedbed.")
-lesson("evenness", 2, "Ebenheit hilft bei der Saat", "Evenness helps seed placement",
-    "Auf einem unebenen Saatbett kann die Sätechnik schlechter arbeiten. Die Arbeitsqualität kann sinken, und unter ungünstigen Bedingungen entstehen ungesäte Fehlstellen. Beides kann später den Ertrag verringern.\n\nNicht jedes Gerät reagiert gleich empfindlich. Einzelkornsätechnik stellt in der Regel höhere Anforderungen an die Ebenheit als entsprechend ausgelegte Direktsaattechnik.\n\nMit der Zeit wirst du erkennen, welche Bodenbedingungen deine Geräte benötigen und wann eine zusätzliche Saatbettbereitung sinnvoll ist.",
-    "Sowing equipment may struggle on an uneven seedbed. Work quality can fall and, under unfavorable conditions, some areas may remain unsown. Both can reduce the eventual yield.\n\nNot all implements are equally sensitive. Precision planters generally demand a more even surface than appropriately designed direct-drilling equipment.\n\nOver time, you will learn which soil conditions your implements need and when extra seedbed preparation is worthwhile.")
-lesson("plow", 2, "Pflügen ist ein Anfang, kein fertiges Saatbett", "Plowing is a start, not a finished seedbed",
-    "Der Pflug wendet und lockert den Boden kräftig. Dabei hinterlässt er meist grobe, unebene Erde und unterbricht gewachsene Wurzelgänge und Bodenstrukturen.\n\nDu kannst weiterhin direkt nach dem Pflügen säen. Viele Sämaschinen benötigen auf diesem Boden jedoch ein geringeres Arbeitstempo, um eine brauchbare Ablagequalität zu erreichen. Bei stark ausgeprägten Unebenheiten oder groben Schollen kann eine zusätzliche Saatbettbereitung sinnvoller sein.",
-    "A plow turns and loosens the soil strongly. It usually leaves coarse, uneven ground and interrupts established root channels and soil structures.\n\nYou can still sow directly after plowing. However, many seeders need a lower speed on this ground to achieve acceptable placement quality. With pronounced unevenness or large clods, additional seedbed preparation may be the better choice.")
-lesson("seedbed", 2, "Das passende Saatbettgerät", "Choosing a seedbed implement",
-    "Grubber, Flachgrubber, Scheibenegge und Kreiselegge haben unterschiedliche Aufgaben. Sie lockern, mischen, zerkleinern und ebnen den Boden unterschiedlich stark und tief.\n\nIst der Boden ausreichend locker und soll nach dem Pflügen hauptsächlich für die Saat vorbereitet werden, kann ein flacherer Eingriff mit Flachgrubber oder Scheibenegge genügen.\n\nEntscheidend sind die vorhandenen Bodenwerte. Im Planer der Feldanalyse kannst du vergleichen, welches Gerät die gewünschte Verbesserung erwarten lässt.",
-    "Cultivators, shallow cultivators, disc harrows and power harrows serve different purposes. They loosen, mix, break up and level the soil to different degrees and depths.\n\nIf the soil is already loose enough and mainly needs seedbed preparation after plowing, a shallower pass with a shallow cultivator or disc harrow may be sufficient.\n\nThe current soil values are what matter. Use the Field Analysis Planner to compare which implement is likely to provide the improvement you need.")
-lesson("directDrill", 2, "Direktsaat spart Eingriffe", "Direct drilling reduces disturbance",
-    "Direktsaat spart die separate Saatbettbereitung und damit Arbeitszeit, Kraftstoff und zusätzliche Überfahrten. Sie erhält mehr gewachsene Bodenstruktur als Pflügen. Vorhandene Tiefenverdichtung beseitigt sie jedoch nicht.\n\nAchte deshalb besonders auf Fahrzeuggewicht, Beladung und Bereifung: Vermeide unnötigen Ballast und nutze geeignete breite Reifen. Fahre bei der Pflege möglichst auf festen Fahrspuren oder Fahrgassen. So bleibt mehr bewachsene Fläche von zusätzlichen Radlasten verschont. Auch die Direktsaatmaschine selbst bringt Gewicht auf den Boden.\fWeil intensive Eingriffe entfallen, kann die biologische Kontinuität erhalten bleiben und die natürliche Erholung wirksamer werden. Eine vielfältige Fruchtfolge und lebende Wurzeln unterstützen den Aufbau der Bodenresilienz. Ein widerstandsfähiger Boden wird durch Befahrung weniger leicht verdichtet.\n\nNach der Umstellung kann die Verdichtung zunächst steigen und der Ertrag fallen. Wenn neue Belastung und Erholung ins Gleichgewicht kommen, kann sich der Ertrag stabilisieren oder wieder etwas erholen. Er kann trotzdem unter dem eines gut gelockerten und vorbereiteten Feldes liegen. Prüfe die Entwicklung in der Feldanalyse; stark verdichteter Unterboden kann weiterhin gezielte Lockerung benötigen.\n\nMit aktivem Precision Farming kann eine gute Umweltbewertung die Wirtschaftlichkeit zusätzlich verbessern. Zusammen mit eingesparten Arbeitsschritten kann das geringere Erntemengen ausgleichen. Ein garantierter Ausgleich jedes Verdichtungsverlusts ist es nicht.",
-    "Direct drilling skips separate seedbed preparation, saving working time, fuel and additional passes. It preserves more established soil structure than plowing. However, it does not remove existing deep compaction.\n\nPay particular attention to vehicle weight, fill level and tires: avoid unnecessary ballast and use suitable wide tires. Keep crop-care passes on permanent traffic lanes or tramlines where possible. This protects more cropped ground from additional wheel loads. The direct drill itself also adds weight to the soil.\fAvoiding intensive disturbance can preserve biological continuity and allow natural recovery to work more effectively. A varied crop rotation and living roots support soil resilience. Resilient soil is less susceptible to compaction from traffic.\n\nAfter switching to direct drilling, compaction may initially increase and yields may fall. If new loading and recovery reach a balance, yields can stabilize or recover somewhat. They may still remain below those of a well-loosened and prepared field. Monitor the trend in Field Analysis; severely compacted subsoil may still need targeted loosening.\n\nWith Precision Farming active, a good environmental score can further improve profitability. Together with the operations saved, this can offset lower harvested volumes. It does not guarantee compensation for every compaction loss.")
-lesson("seeding", 2, "Saatqualität und echte Lücken", "Sowing quality and real gaps",
-    "Die gespeicherte Saatqualität beschreibt, wie gut die Aussaat im aktuellen Anbauzyklus ausgeführt wurde. Bodenzustand, Wetter, Arbeitsgeschwindigkeit und der Zustand der Sämaschine können das Ergebnis beeinträchtigen. In der Feldanalyse findest du unter Arbeit und Ertrag die Folgen für das Ertragspotenzial.\n\nUnterscheide dabei zwischen schlechterer Ablagequalität und echten Fehlstellen. Ungünstig abgelegte Saat kann noch Pflanzen hervorbringen. In einer ungesäten Fehlstelle wächst dagegen keine Kultur, die später geerntet werden könnte.",
-    "Stored sowing quality describes how well sowing was carried out in the current crop cycle. Soil conditions, weather, working speed and the seeder's condition can affect the result. Work and Yield in Field Analysis shows the consequences for yield potential.\n\nDistinguish between poorer seed placement and actual missed areas. Poorly placed seed can still produce plants. An unsown patch, however, contains no crop to harvest later.")
-lesson("roller", 2, "Walzen mit einem Ziel", "Rolling with a purpose",
-    "Ackerwalzen können auch vor der Aussaat verwendet werden. Sie glätten und rückverfestigen den Oberboden und können dadurch die Bedingungen für die Saatablage verbessern.\n\nNach der Aussaat kann Walzen einen Teil der Saatqualitätsverluste ausgleichen, die durch ein ungünstiges Saatbett entstanden sind. Verluste durch zu hohes Saattempo oder Geräteverschleiß werden dadurch nicht nachträglich behoben. Der reguläre Walzbonus des Spiels von 2,5 % bleibt erhalten, wenn dessen Voraussetzungen erfüllt sind.\n\nUngesäte Fehlstellen kann eine Walze nicht reparieren. Zu hohes Arbeitstempo verringert außerdem ihren Nutzen.",
-    "Arable rollers can also be used before sowing. They level and reconsolidate the topsoil, which can improve conditions for seed placement.\n\nAfter sowing, rolling can recover part of the sowing quality lost to an unsuitable seedbed. It cannot retrospectively fix losses caused by excessive sowing speed or implement wear. The game's regular 2.5% rolling bonus remains available when its requirements are met.\n\nA roller cannot repair unsown gaps. Excessive working speed also reduces its benefit.")
-lesson("overspeed", 2, "Tempo gegen Ergebnis abwägen", "Weigh speed against results",
-    "Geräte reagieren unterschiedlich auf zu hohe Arbeitsgeschwindigkeiten. Je nach Gerät bleibt Material liegen, die Bodenwirkung nimmt ab oder die mechanische Belastung steigt. Überlastung kann zusätzlichen Schaden verursachen.\n\nBeobachte, ob sich Arbeitsqualität und Belastung nach dem Verlangsamen verbessern. Die Folgen unterscheiden sich je nach Geräteart. Mit der Zeit lernst du, welches Tempo unter den jeweiligen Bedingungen sinnvoll ist.",
-    "Implements respond differently to excessive working speed. Depending on the tool, material may be left behind, soil work may become less effective or mechanical load may rise. Overloading can cause additional damage.\n\nWatch whether work quality improves and load warnings clear when you slow down. The consequences differ between implement types. Over time, you will learn what speed makes sense under the current conditions.")
-lesson("draft", 2, "Zugbedarf ist nicht Motorauslastung", "Draft demand is not engine load",
-    "Ein schwer ziehendes Gerät fordert den Traktor stärker. Wie viel Zugkraft nötig ist, hängt auch von Verdichtung, Feuchtigkeit, Frost und Bodenart ab.\n\nDie Anzeige Mechanische Belastung beschreibt die Beanspruchung des Geräts. Ein großer Traktor beschädigt ein kleines Gerät nicht allein durch seine Motorleistung. Er kann es aber trotz hohen Widerstands weiterziehen oder auf ein Tempo bringen, bei dem die tatsächlich übertragenen Kräfte zu groß werden.\n\nBei bodeneingreifenden Geräten zählt der Bodenkontakt. Auch eine abgesenkte, ausgeschaltete Sämaschine kann deshalb Zugwiderstand und Verschleiß verursachen. Hebe das Gerät für schnelle Fahrten aus, um unnötige Belastung und Reparaturkosten zu vermeiden.",
-    "An implement that is hard to pull places greater demands on the tractor. The pulling force needed also depends on compaction, moisture, frost and soil type.\n\nMechanical Load describes stress on the implement. A large tractor does not damage a small implement simply because it has more engine power. However, it may keep pulling against high resistance or reach a speed at which the forces actually transmitted become excessive.\n\nFor soil-engaging implements, ground contact matters. Even a lowered seeder that is switched off can create draft resistance and wear. Raise the implement for fast travel to avoid unnecessary stress and repair costs.")
-lesson("condition", 2, "Verschleiß kann das Ergebnis begrenzen", "Wear can limit the result",
-    "Stark verschlissene Geräte können unzuverlässiger arbeiten. Langsameres Fahren hilft gegen zusätzliche Geschwindigkeitsfolgen, ersetzt auf Dauer aber keine Reparatur.\n\nWenn der Gerätezustand die Arbeitsqualität deutlich beeinträchtigt, weist dich eine entsprechende Warnung darauf hin. Eine angepasste Fahrweise schont das Gerät und hilft, solche Einschränkungen hinauszuzögern.",
-    "Heavily worn implements can work less reliably. Slowing down helps with additional speed-related effects, but is not a lasting substitute for repairs.\n\nIf implement condition significantly reduces work quality, a warning points this out. An appropriate driving style protects the implement and helps delay these limitations.")
-lesson("stones", 2, "Ein Steintreffer ist ein eigenes Ereignis", "A stone impact is a separate event",
-    "Sichtbare Feldsteine können bei betroffenen Geräten zusätzlichen Schaden verursachen. TerraLogic simuliert außerdem unterirdische Steintreffer bei Geräten, die in den Boden eingreifen. Arbeitstiefe, Geräteart und Geschwindigkeit beeinflussen deren Folgen.\n\nEin Mähwerk kann beispielsweise auf oberflächlich liegende Steine treffen, während ein tief arbeitendes Gerät zusätzlich Steinen im Unterboden ausgesetzt ist. Nicht jede Geräteart reagiert auf dieselben Steine gleich.\n\nWelche Steinwirkungen aktiv sind, hängt von den Spiel- und TerraLogic-Einstellungen ab.",
-    "Visible field stones can cause additional damage to affected implements. TerraLogic also simulates underground stone impacts for soil-engaging tools. Working depth, implement type and speed influence the consequences.\n\nA mower may hit stones on the surface, for example, while a deep-working implement is also exposed to stones below ground. Not every implement responds to the same stones in the same way.\n\nWhich stone effects are active depends on the game and TerraLogic settings.")
-lesson("weather", 3, "Der Boden folgt dem Wetter verzögert", "Soil responds to weather with a delay",
-    "Lufttemperatur und Bodentemperatur sind nicht dasselbe. Der Boden erwärmt sich und kühlt sich langsamer ab als die Luft. Tiefere Schichten reagieren nochmals verzögert. Deshalb kann die Oberfläche bereits gefroren sein, während darunter noch ungefrorener Boden liegt.\n\nAuch die Wasserversorgung verändert sich mit dem Wetter. Jedes Feld hat einen eigenen Wasservorrat. Regen und Bodenart beeinflussen ihn, und wachsende Pflanzen entziehen Wasser. Ein dichter Bestand beschattet die Oberfläche, während seine Wurzeln Wasser verbrauchen. Ernte und Nachwachsen verändern diesen Bedarf. Die Feldanalyse zeigt den Durchschnitt des gewählten Feldes.\n\nUnter Wetter und Einflüsse in der Feldanalyse kannst du die aktuellen Umweltbedingungen und ihre Folgen für deine Arbeit prüfen.",
-    "Air temperature and soil temperature are not the same. Soil heats up and cools down more slowly than the air. Deeper layers respond later still. The surface can therefore be frozen while the ground underneath remains unfrozen.\n\nWater supply changes with the weather too. Rain and drying affect soil moisture and thus the conditions for crop growth.\n\nWeather and Effects in Field Analysis shows current environmental conditions and their consequences for your work.")
-lesson("wetTraffic", 3, "Nässe und schwere Last", "Wet soil and heavy loads",
-    "Nasser, ungefrorener Boden reagiert empfindlicher auf Befahrung. Wenn eine Überfahrt warten kann, lass den Boden zunächst etwas abtrocknen. Musst du trotzdem arbeiten, helfen eine möglichst geringe Last und eine ausreichend große Reifenaufstandsfläche.\n\nBodenfrost kann die Anfälligkeit für Verdichtung verringern. Die Bodenschichten können aber unterschiedlich kalt sein. Eine gefrorene Oberfläche bedeutet deshalb nicht, dass auch der Unterboden geschützt ist.",
-    "Wet, unfrozen soil is more vulnerable to traffic. If a pass can wait, let the ground dry out a little first. If you still need to work, keep the load as low as practical and use an adequate tire contact area.\n\nFrozen soil can be less susceptible to compaction. However, soil layers can have different temperatures. A frozen surface does not mean the subsoil is protected too.")
-lesson("moistureWork", 3, "Der richtige Zeitpunkt spart Arbeit", "The right timing saves work",
-    "Sehr trockener Boden lässt sich nicht immer gut zerkleinern. Nasser Boden kann dagegen schmieren und klumpen.\n\nWenn die Bodenwirkung begrenzt ist, löst ein zweiter, schneller Arbeitsgang das Problem nicht unbedingt. Soweit es dein Zeitplan erlaubt, ist es häufig sinnvoller, auf günstigere Bedingungen zu warten, statt den Boden mehrfach zu bearbeiten.",
-    "Very dry soil does not always break up well. Wet soil, on the other hand, can smear and clump.\n\nIf soil work is less effective, a second fast pass will not necessarily solve the problem. Where your schedule allows, waiting for better conditions often makes more sense than working the soil repeatedly.")
-lesson("waterGrowth", 3, "Wasser zählt während des Wachstums", "Water matters throughout growth",
-    "Für den Ertrag zählt die Wasserversorgung des jeweiligen Feldes während des Wachstums. Regen und der dort gespeicherte Wasservorrat bestimmen, wie gut seine Pflanzen versorgt sind. Kultur und Wachstumsstadium beeinflussen den Bedarf. Unbekannte Pflanzen aus Mod-Karten erhalten ein allgemeines Pflanzenprofil.\n\nEin Regenschauer kurz vor der Ernte gleicht eine längere Trockenphase deshalb nicht einfach aus. Umgekehrt wird eine gut versorgte Kultur nicht allein durch trockenes Erntewetter nachträglich schlecht bewertet.\n\nDas Wetter hängt von der gespielten Karte ab. Falls deren Wetterverlauf für deinen Spielstil zu starke Ertragseinbußen verursacht, kannst du Bodenfeuchte beeinflusst Ertrag in den TerraLogic-Optionen abschalten. Die Feuchtigkeit wirkt dann weiterhin auf Befahrbarkeit und Bodenbearbeitung.",
-    "Yield depends on water supply during the growing period. Rainfall and the water stored in this field determine how well its plants are supplied. Crop type and growth stage affect demand. Unfamiliar crops from mod maps use a general plant profile.\n\nA shower shortly before harvest does not simply make up for a long dry spell. Conversely, a well-supplied crop is not retrospectively penalized just because harvest weather is dry.\n\nWeather depends on the map you play. If its weather patterns cause larger yield losses than suit your playstyle, you can disable Soil moisture affects yield in TerraLogic options. Moisture will still affect trafficability and soil work.")
-lesson("frost", 3, "Gefrorener Boden lässt sich schwer bearbeiten", "Frozen soil is harder to work",
-    "Hat sich die Bodenarbeit ungewöhnlich schwer angefühlt? In gefrorenen Boden können Werkzeuge schlechter eindringen und mehr Zugkraft benötigen. Entscheidend ist die Temperatur der bearbeiteten Bodenschicht, nicht nur die angezeigte Lufttemperatur.\n\nWarte nach Möglichkeit, bis diese Schicht aufgetaut ist.\n\nBei kürzeren Monaten passt sich die Bodentemperatur schneller an das Wetter an. So bleibt der Boden nicht noch warm, während der kurze Winter schon wieder vorbei ist.",
-    "Did the soil feel unusually hard to work? Tools may struggle to penetrate frozen ground and need more pulling force. What matters is the temperature of the layer being worked, not just the displayed air temperature.\n\nWhere possible, wait until that layer has thawed.\n\nWith shorter months, soil temperature adjusts faster to the weather. This helps the ground catch up before a short winter has already passed.")
-lesson("thaw", 3, "Frost kann auch leicht lockern", "Frost can also loosen soil slightly",
-    "Wenn feuchter Boden gefriert und danach auftaut, kann er sich etwas lockern. Wie viel das bringt, hängt davon ab, wie stark und wie lange er gefroren war. Solange er gefroren bleibt, kommt nicht ständig neue Lockerung hinzu.\n\nBei längeren Monaten zählt jeder Wechsel entsprechend weniger. Die natürliche Hilfe ersetzt weder eine angepasste Befahrung noch eine notwendige gezielte Lockerung. Sichtbar wird sie bei der monatlichen Bodenerholung.\n\nDie biologische Erholung läuft bei niedrigen Temperaturen trotzdem langsamer.",
-    "When moist ground freezes and then thaws, it can loosen a little. How much it helps depends on how cold the soil became and how long it stayed frozen. Remaining frozen does not keep adding more loosening.\n\nWith longer months, each cycle contributes less. This natural help does not replace careful traffic or necessary targeted loosening. It takes effect during the monthly soil recovery update.\n\nBiological recovery still slows down at low temperatures.")
-lesson("rainApplication", 3, "Nasse Pflanzen und Ausbringung", "Wet plants and application quality",
-    "Bei regenempfindlichen Anwendungen können Regen oder nasse Pflanzen die Ausbringungsqualität verringern. Mittel können schlechter haften oder teilweise abgewaschen werden. Die Auswirkungen unterscheiden sich je nach Art der Ausbringung.\n\nZeigt das Arbeits-HUD eine entsprechende Warnung, warte für bessere Ergebnisse nach Möglichkeit auf trockenere Bedingungen.",
-    "For rain-sensitive applications, rain or wet plants can reduce application quality. Products may adhere less well or be partly washed off. The effects differ between application methods.\n\nIf the work HUD shows a corresponding warning, wait for drier conditions where possible to achieve better results.")
-lesson("resilience", 4, "Widerstandsfähig ist nicht dasselbe wie locker", "Resilient is not the same as loose",
-    "Bodenresilienz beschreibt die Widerstandsfähigkeit der gewachsenen Bodenstruktur. Ein widerstandsfähiger Boden verträgt Belastungen besser und ist weniger anfällig für neue Verdichtung. Das bedeutet allerdings nicht, dass er automatisch locker ist.\n\nLebende Wurzeln, eine abwechslungsreiche Fruchtfolge und Zwischenfrüchte können diese Widerstandsfähigkeit über längere Zeit verbessern. Intensive Bodenbearbeitung mit Pflug oder Tiefenlockerer schwächt die gewachsene Struktur dagegen. Entscheidend ist vor allem, wie tief und stark ein Gerät eingreift – nicht allein sein Gewicht.\n\nMit passender Bereifung und geringerer Last vermeidest du neue Schäden. Dadurch brauchst du seltener intensive Lockerung und gibst dem Boden mehr Gelegenheit, eine widerstandsfähige Struktur aufzubauen.",
-    "Soil resilience describes the strength of the established soil structure. Resilient soil withstands loads better and is less vulnerable to new compaction. That does not mean it is automatically loose.\n\nLiving roots, a varied crop rotation and cover crops can improve this resilience over time. Intensive tillage with a plow or subsoiler, however, weakens the established structure. What matters most is how deeply and intensively an implement disturbs the soil, not just its weight.\n\nSuitable tires and lower loads help prevent new damage. This reduces the need for intensive loosening and gives the soil more opportunity to build a resilient structure.")
-lesson("continuity", 4, "Gib der Bodenbiologie Zeit", "Give soil biology time",
-    "Wurzeln und Bodenleben bauen nach und nach gewachsene Strukturen auf. Die biologische Kontinuität beschreibt, wie ungestört diese Entwicklung zuletzt stattfinden konnte.\n\nIntensive Bodenbearbeitung unterbricht sie. Danach braucht die biologische Erholung Zeit, um wieder in Gang zu kommen. Ein über längere Zeit wenig bearbeiteter Boden kann sich unter vergleichbaren Bedingungen deshalb besser natürlich erholen als ein regelmäßig tief bearbeiteter.\n\nDie Begriffe gehören zusammen, bedeuten aber nicht dasselbe: Bodenresilienz schützt vor neuen Belastungen. Natürliche Erholung kann bestehende Verdichtung nach und nach abbauen. Biologische Kontinuität beeinflusst, wie ungestört die biologischen Prozesse dazu beitragen können.",
-    "Roots and soil life gradually build established structures. Biological continuity describes how undisturbed this development has recently been.\n\nIntensive tillage interrupts it. Biological recovery then needs time to regain momentum. Under comparable conditions, soil left with little disturbance for a longer period can therefore recover more effectively than soil that is regularly worked deeply.\n\nThese terms are related, but do not mean the same thing: soil resilience protects against new loads. Natural recovery can gradually reduce existing compaction. Biological continuity influences how undisturbed the biological contribution can be.")
-lesson("recovery", 4, "Erholung passiert zwischen den Arbeitsgängen", "Recovery happens between operations",
-    "Bewuchs, Wurzeln, Temperatur und Wasser bestimmen mit, wie sich der Boden natürlich entwickelt. Lebende Wurzeln und längere Ruhe ohne intensive Bodenbearbeitung unterstützen diese Entwicklung. Kälte und ungünstige Feuchtigkeit bremsen sie.\n\nNicht jeder Wert verbessert sich über Nacht. Gerade Tiefenverdichtung bleibt hartnäckig. Vergleiche deshalb längerfristig dieselbe Fläche und vermeide zusätzliche Bearbeitung allein wegen kleiner kurzfristiger Schwankungen.\n\nResilienz hilft auch nach Regen: Überschüssiges Wasser fließt bei hoher Resilienz etwas schneller ab, bei geringer Resilienz langsamer. Bestehende Verdichtung begrenzt den Vorteil. Die Wasserspeicherkapazität bleibt gleich; trockener Boden verliert dadurch nicht zusätzlich Wasser.",
-    "Plant cover, roots, temperature and water all influence the soil's natural development. Living roots and longer periods without intensive tillage support it. Cold and unfavorable moisture slow it down.\n\nNot every value improves overnight. Deep compaction is particularly persistent. Compare the same area over a longer period and avoid extra tillage just because of small, short-term fluctuations.\n\nResilience also helps after rain: excess water drains somewhat faster with high resilience and more slowly with low resilience. Existing compaction limits the benefit. Water storage capacity stays the same; dry soil does not lose extra water because of this.")
-lesson("rotationPlan", 4, "Plane schon die nächste Frucht", "Start planning the next crop",
-    "Nach der Ernte beginnt die Planung für den nächsten Anbau. Wechsle die Kulturen über die Jahre auf derselben Fläche, statt dort immer wieder dieselbe Frucht anzubauen. Unterschiedliche Pflanzen und Wurzeltiefen unterstützen die natürliche Bodenentwicklung.\n\nZwischenfrüchte können die Anbaupause zusätzlich nutzen und bei geeigneter Einarbeitung zur Düngung beitragen. Arbeite sie möglichst schonend ein, etwa mit geeigneter Direktsaattechnik oder einer flachen Bearbeitung.\n\nEin unnötig tiefer Eingriff schwächt einen Teil des Vorteils, weil er die gerade aufgebaute Bodenstruktur wieder stört.",
-    "After harvest, planning begins for the next crop. Change crops over the years on the same area, rather than repeatedly growing the same crop there. Different plants and rooting depths support natural soil development.\n\nCover crops can also make use of the break between main crops and contribute nutrients when appropriately incorporated. Incorporate them as gently as possible, for example with suitable direct-drilling equipment or shallow tillage.\n\nUnnecessarily deep tillage reduces part of the benefit by disturbing the soil structure that has just developed.")
-lesson("rotation", 4, "Fruchtwechsel wirkt über den Boden", "Crop rotation works through the soil",
-    "Eine abwechslungsreiche Fruchtfolge unterstützt die Bodenresilienz und die natürliche Entwicklung. Sie gibt nicht sofort einen pauschalen Ertragsbonus.\n\nDer Nutzen entsteht über längere Zeit: Eine widerstandsfähigere Bodenstruktur begrenzt neue Verdichtung, und günstige Bedingungen unterstützen die natürliche Erholung. So kann sich der Boden leichter in einem Zustand halten, der den Pflanzen gute Wachstumsbedingungen bietet.",
-    "A varied crop rotation supports soil resilience and natural development. It does not provide an immediate flat yield bonus.\n\nThe benefit develops over time: a more resilient structure limits new compaction, while favorable conditions support natural recovery. This helps the soil maintain conditions in which crops can grow well.")
-lesson("cover", 4, "Zwischenfrüchte nutzen die Pause", "Cover crops use the growing break",
-    "Nutze passende Zeiträume zwischen Ernte und erneuter Aussaat für Zwischenfrüchte. Ihre Wurzeln unterstützen die natürliche Bodenentwicklung und können langfristig helfen, die Bodenwerte zu stabilisieren. Aktiver, lebender Bewuchs trägt dazu in der Regel stärker bei als bloße Erntereste.\n\nDie zusätzliche Aussaat bedeutet allerdings auch eine weitere Überfahrt. Achte deshalb auf Fahrzeuglast und Bereifung, besonders bei nassem Boden.\n\nWähle für die Einarbeitung einen möglichst schonenden, passenden Arbeitsgang. Eine geeignete Direktsaatmaschine kann ihn mit der nächsten Aussaat verbinden. Flachgrubber oder Scheibenegge können eine Alternative sein, wenn eine gesonderte Bearbeitung nötig ist.",
-    "Use suitable periods between harvest and the next sowing for cover crops. Their roots support natural soil development and can help stabilize soil conditions over time. Active, living cover generally contributes more than crop residues alone.\n\nHowever, the extra sowing operation also means another pass. Pay attention to vehicle load and tires, especially on wet soil.\n\nChoose a suitable, gentle operation for incorporation. An appropriate direct drill can combine this with sowing the next crop. A shallow cultivator or disc harrow can be an alternative when a separate pass is needed.")
-lesson("systems", 4, "Mehrere Wege zu gutem Ackerboden", "Several routes to healthy soil",
-    "Regelmäßiges Pflügen lockert vor allem die oberen Bodenschichten. Es kann aber zusätzliche Saatbettbereitung nötig machen und unterbricht die gewachsene biologische Struktur.\n\nDirektsaat greift weniger stark ein und lässt der natürlichen Bodenentwicklung mehr Ruhe. Sie beseitigt jedoch keine ausgeprägte Tiefenverdichtung. Auch ihre Erholung hängt weiterhin von Bewuchs, Temperatur, Feuchtigkeit und neuer Belastung ab.\n\nBeide Wege können sinnvoll sein, wenn Fahrzeuggewicht, Bereifung und Fahrweise zum Boden passen. TerraLogic soll keine einzige Bewirtschaftungsart zur Pflicht machen, sondern ihre unterschiedlichen Folgen nachvollziehbar abbilden.",
-    "Regular plowing mainly loosens the upper soil layers. However, it can require additional seedbed preparation and interrupts the established biological structure.\n\nDirect drilling causes less disturbance and leaves natural soil development more time undisturbed. It does not remove severe deep compaction. Recovery still depends on plant cover, temperature, moisture and new loads.\n\nBoth approaches can make sense when vehicle weight, tires and driving style suit the soil. TerraLogic is not intended to make one management method mandatory, but to represent their different consequences clearly.")
-lesson("yield", 5, "Der Ertrag hat eine Vorgeschichte", "Yield has a history",
-    "Bei der Ernte wirken die gespeicherte Arbeitsqualität und die Bedingungen während des Wachstums zusammen. Eine gute Aussaat kann schlechte Wasserversorgung oder einen stark verdichteten Wurzelraum nicht vollständig ausgleichen.\n\nUnter Arbeit und Ertrag in der Feldanalyse findest du diese Ertragseinschätzung. Die Übersicht beschreibt die ausgewertete Feldfläche. Lokale Werte an deinem Standort können deshalb vom angezeigten Felddurchschnitt abweichen.",
-    "At harvest, stored work quality and conditions during growth act together. Good sowing cannot fully compensate for poor water supply or a severely compacted root zone.\n\nWork and Yield in Field Analysis shows this yield estimate. The overview describes the assessed field area. Local values at your position can therefore differ from the displayed field average.")
-lesson("bonus", 5, "Bis zu zehn Prozent mehr", "Up to ten percent more",
-    "Bei sehr guten Bedingungen kann TerraLogic bis zu 110 % des Ertrags ermöglichen, den dieselbe Fläche unter denselben übrigen Bedingungen ohne TerraLogic hätte. Precision Farming und seine Mechaniken bleiben dabei berücksichtigt.\n\nDas ist ein erreichbares Potenzial, keine Garantie für jede Bewirtschaftung oder Wetterlage. Bodenresilienz und Fruchtfolge wirken über den Bodenzustand, nicht als zusätzlicher direkter Ertragsbonus.\n\nDie Rechnung beginnt bei 110 %. Abzüge für Boden, Wasser und Feldarbeit ergeben das finale Ertragspotenzial. 100 % bedeuten unveränderten Ertrag, 110 % bedeuten 10 % mehr. Die einzelnen Qualitätsanzeigen reichen bis 100 %; unter Arbeit und Ertrag siehst du die daraus berechneten Abzüge.",
-    "Under very good conditions, TerraLogic can allow up to 110% of the yield that the same area would produce under otherwise identical conditions without TerraLogic. Precision Farming and its mechanics remain accounted for.\n\nThis is achievable potential, not a guarantee for every management method or weather situation. Soil resilience and crop rotation act through soil conditions, not as an additional direct yield bonus.\n\nThe calculation starts at 110%. Soil, water and fieldwork deductions give final yield potential. 100% means unchanged yield, while 110% means 10% extra. Individual quality displays reach 100%; Work and Yield shows the deductions calculated from them.")
-lesson("pf", 5, "TerraLogic und Precision Farming", "TerraLogic and Precision Farming",
-    "Precision Farming kümmert sich weiterhin um seine eigenen Anforderungen, etwa pH-Wert und Nährstoffversorgung. TerraLogic ergänzt die Entwicklung des Bodens und die Folgen deiner Feldarbeit.\n\nEin guter TerraLogic-Boden ersetzt deshalb weder bedarfsgerechte Düngung noch erforderlichen Pflanzenschutz. Fällt der Ertrag anders aus als erwartet, prüfe beide Systeme, statt jede Veränderung allein auf Verdichtung zurückzuführen.",
-    "Precision Farming still handles its own requirements, such as pH and nutrient supply. TerraLogic adds soil development and the consequences of your fieldwork.\n\nGood TerraLogic soil therefore does not replace appropriate fertilization or necessary crop protection. If yield differs from expectations, check both systems rather than attributing every change to compaction alone.")
-lesson("moistureSystem", 3, "Zwei Mods, ein Wasserhaushalt", "Using Moisture System with TerraLogic",
-    "Wenn du Moisture System verwendest, kannst du in den TL-Optionen die Quelle der Bodenfeuchte wählen. Bei TerraLogic läuft unser eigener Wasserhaushalt weiter. Bei Moisture System folgt der Oberboden dessen örtlicher Feldfeuchte; das Wasser sickert anschließend in unseren Unterboden. MS in der Feldanalyse kennzeichnet umgerechnete TL-Bodenwerte, nicht die rohen MS-Prozente.\n\nBewässerung von MS wird bei beiden Einstellungen berücksichtigt. Sie wirkt erst, wenn der Auftrag tatsächlich Wasser liefert. Bodenart und Bewuchs beeinflussen weiterhin, wie sich das Wasser verteilt und wie stark der Boden auf Maschinen reagiert.\n\nDamit sich wasserbedingte Ertragsverluste nicht überlagern, steht Bodenfeuchte beeinflusst Ertrag bei TL zunächst auf Aus, sobald MS erkannt wird. Du kannst es wieder einschalten. Deine Auswahl bleibt im Spielstand gespeichert, auch wenn du MS später hinzufügst oder entfernst. Verdichtung und Arbeitsqualität bleiben aktiv. Vertrocknung, Kornfeuchte und Güteklassen bleiben bei Moisture System.",
-    "If you use Moisture System, choose Soil moisture source in the TL settings. TerraLogic keeps our own field water balance. With Moisture System selected, the topsoil follows its local field moisture; water then seeps into our subsoil. MS in Field Analysis marks converted TL soil values, not raw MS percentages.\n\nBoth settings support MS irrigation. It takes effect when the contractor actually delivers water, not when you book the job. Soil type and plant cover still affect water movement and the soil's response to machinery.\n\nTo avoid overlapping water-related yield losses, TL defaults Soil moisture affects yield to Off when MS is detected. You can switch it back on. Your choice stays saved, even if you later add or remove MS. Compaction and fieldwork effects remain active. Crop withering, grain moisture and quality grades stay with Moisture System.")
-lesson("options", 5, "Du bestimmst, wie viel Hilfe du möchtest", "You choose how much help you want",
-    "In den TerraLogic-Optionen kannst du zwischen geführtem Einstieg mit Kontexthinweisen, ausschließlich Kontexthinweisen und ausgeschalteten automatischen Tutorials wählen.\n\nAlle Themen bleiben in der Bibliothek zugänglich. Mit Tutorial zurücksetzen aktivierst du die Einführung erneut und beginnst mit einem neuen Lesefortschritt.\n\nIn der Hilfe des Spiels findest du außerdem einen eigenen TerraLogic-Abschnitt, der die Mechaniken ausführlicher erklärt.\n\nViel Spaß beim Spielen mit TerraLogic!\n\n— The Mod Workshop —",
-    "TerraLogic options let you choose between a guided introduction with contextual tips, contextual tips only, or no automatic tutorials.\n\nAll topics remain available in the library. Reset tutorial re-enables the introduction and starts your reading progress afresh.\n\nThe game's Help section also includes a dedicated TerraLogic guide explaining the mechanics in more detail.\n\nEnjoy playing with TerraLogic!\n\n— The Mod Workshop —")
+
+-- Resolve lazily: localization is loaded by the game, not at source-file load.
+function TerraLogicTutorialLessons.getContent(item)
+    local sections = {}
+    for _, keys in ipairs(item.sections) do
+        local paragraphs = {}
+        for _, key in ipairs(keys) do
+            paragraphs[#paragraphs + 1] = g_i18n:getText(key)
+        end
+        sections[#sections + 1] = table.concat(paragraphs, "\n\n")
+    end
+    return { title = g_i18n:getText(item.titleKey), text = table.concat(sections, "\f") }
+end
+
+lesson(
+    "welcome",
+    1,
+    {
+        {
+            "tutorial.welcome.page1.paragraph1",
+            "tutorial.welcome.page1.paragraph2",
+            "tutorial.welcome.page1.paragraph3",
+            "tutorial.welcome.page1.paragraph4",
+        },
+    }
+)
+lesson(
+    "firstMap",
+    1,
+    {
+        {
+            "tutorial.firstMap.page1.paragraph1",
+            "tutorial.firstMap.page1.paragraph2",
+            "tutorial.firstMap.page1.paragraph3",
+        },
+    },
+    { "TERRALOGIC_TOGGLE_SOIL_DISPLAY" }
+)
+lesson(
+    "mapControls",
+    1,
+    {
+        { "tutorial.mapControls.page1.paragraph1" },
+        {
+            "tutorial.mapControls.page2.paragraph1",
+            "tutorial.mapControls.page2.paragraph2",
+            "tutorial.mapControls.page2.paragraph3",
+        },
+        {
+            "tutorial.mapControls.page3.paragraph1",
+            "tutorial.mapControls.page3.paragraph2",
+            "tutorial.mapControls.page3.paragraph3",
+        },
+        {
+            "tutorial.mapControls.page4.paragraph1",
+            "tutorial.mapControls.page4.paragraph2",
+            "tutorial.mapControls.page4.paragraph3",
+        },
+        {
+            "tutorial.mapControls.page5.paragraph1",
+            "tutorial.mapControls.page5.paragraph2",
+            "tutorial.mapControls.page5.paragraph3",
+        },
+        {
+            "tutorial.mapControls.page6.paragraph1",
+            "tutorial.mapControls.page6.paragraph2",
+            "tutorial.mapControls.page6.paragraph3",
+        },
+        { "tutorial.mapControls.page7.paragraph1", "tutorial.mapControls.page7.paragraph2" },
+    }
+)
+lesson(
+    "speedHud",
+    1,
+    {
+        {
+            "tutorial.speedHud.page1.paragraph1",
+            "tutorial.speedHud.page1.paragraph2",
+            "tutorial.speedHud.page1.paragraph3",
+        },
+        { "tutorial.speedHud.page2.paragraph1" },
+        { "tutorial.speedHud.page3.paragraph1" },
+    }
+)
+lesson(
+    "cruise",
+    1,
+    { { "tutorial.cruise.page1.paragraph1", "tutorial.cruise.page1.paragraph2", "tutorial.cruise.page1.paragraph3" } },
+    { "AXIS_CRUISE_CONTROL", "TOGGLE_CRUISE_CONTROL" }
+)
+lesson(
+    "changedSoil",
+    1,
+    {
+        {
+            "tutorial.changedSoil.page1.paragraph1",
+            "tutorial.changedSoil.page1.paragraph2",
+            "tutorial.changedSoil.page1.paragraph3",
+        },
+    }
+)
+lesson(
+    "traffic",
+    1,
+    { { "tutorial.traffic.page1.paragraph1", "tutorial.traffic.page1.paragraph2", "tutorial.traffic.page1.paragraph3" } }
+)
+lesson(
+    "analysis",
+    1,
+    {
+        {
+            "tutorial.analysis.page1.paragraph1",
+            "tutorial.analysis.page1.paragraph2",
+            "tutorial.analysis.page1.paragraph3",
+            "tutorial.analysis.page1.paragraph4",
+            "tutorial.analysis.page1.paragraph5",
+        },
+    }
+)
+lesson(
+    "compaction",
+    2,
+    {
+        {
+            "tutorial.compaction.page1.paragraph1",
+            "tutorial.compaction.page1.paragraph2",
+            "tutorial.compaction.page1.paragraph3",
+        },
+    }
+)
+lesson(
+    "tires",
+    2,
+    { { "tutorial.tires.page1.paragraph1", "tutorial.tires.page1.paragraph2", "tutorial.tires.page1.paragraph3" } }
+)
+lesson(
+    "payload",
+    2,
+    { { "tutorial.payload.page1.paragraph1", "tutorial.payload.page1.paragraph2", "tutorial.payload.page1.paragraph3" } }
+)
+lesson(
+    "tramlines",
+    2,
+    {
+        {
+            "tutorial.tramlines.page1.paragraph1",
+            "tutorial.tramlines.page1.paragraph2",
+            "tutorial.tramlines.page1.paragraph3",
+        },
+    }
+)
+lesson("pfLanes", 2, { { "tutorial.pfLanes.page1.paragraph1", "tutorial.pfLanes.page1.paragraph2" } })
+lesson("tilth", 2, { { "tutorial.tilth.page1.paragraph1", "tutorial.tilth.page1.paragraph2" } })
+lesson(
+    "evenness",
+    2,
+    {
+        {
+            "tutorial.evenness.page1.paragraph1",
+            "tutorial.evenness.page1.paragraph2",
+            "tutorial.evenness.page1.paragraph3",
+        },
+    }
+)
+lesson("plow", 2, { { "tutorial.plow.page1.paragraph1", "tutorial.plow.page1.paragraph2" } })
+lesson(
+    "seedbed",
+    2,
+    { { "tutorial.seedbed.page1.paragraph1", "tutorial.seedbed.page1.paragraph2", "tutorial.seedbed.page1.paragraph3" } }
+)
+lesson(
+    "directDrill",
+    2,
+    {
+        { "tutorial.directDrill.page1.paragraph1", "tutorial.directDrill.page1.paragraph2" },
+        {
+            "tutorial.directDrill.page2.paragraph1",
+            "tutorial.directDrill.page2.paragraph2",
+            "tutorial.directDrill.page2.paragraph3",
+        },
+    }
+)
+lesson("seeding", 2, { { "tutorial.seeding.page1.paragraph1", "tutorial.seeding.page1.paragraph2" } })
+lesson(
+    "roller",
+    2,
+    { { "tutorial.roller.page1.paragraph1", "tutorial.roller.page1.paragraph2", "tutorial.roller.page1.paragraph3" } }
+)
+lesson("overspeed", 2, { { "tutorial.overspeed.page1.paragraph1", "tutorial.overspeed.page1.paragraph2" } })
+lesson(
+    "draft",
+    2,
+    { { "tutorial.draft.page1.paragraph1", "tutorial.draft.page1.paragraph2", "tutorial.draft.page1.paragraph3" } }
+)
+lesson("condition", 2, { { "tutorial.condition.page1.paragraph1", "tutorial.condition.page1.paragraph2" } })
+lesson(
+    "stones",
+    2,
+    { { "tutorial.stones.page1.paragraph1", "tutorial.stones.page1.paragraph2", "tutorial.stones.page1.paragraph3" } }
+)
+lesson(
+    "weather",
+    3,
+    { { "tutorial.weather.page1.paragraph1", "tutorial.weather.page1.paragraph2", "tutorial.weather.page1.paragraph3" } }
+)
+lesson("wetTraffic", 3, { { "tutorial.wetTraffic.page1.paragraph1", "tutorial.wetTraffic.page1.paragraph2" } })
+lesson("moistureWork", 3, { { "tutorial.moistureWork.page1.paragraph1", "tutorial.moistureWork.page1.paragraph2" } })
+lesson(
+    "waterGrowth",
+    3,
+    {
+        {
+            "tutorial.waterGrowth.page1.paragraph1",
+            "tutorial.waterGrowth.page1.paragraph2",
+            "tutorial.waterGrowth.page1.paragraph3",
+        },
+    }
+)
+lesson(
+    "frost",
+    3,
+    { { "tutorial.frost.page1.paragraph1", "tutorial.frost.page1.paragraph2", "tutorial.frost.page1.paragraph3" } }
+)
+lesson(
+    "thaw",
+    3,
+    { { "tutorial.thaw.page1.paragraph1", "tutorial.thaw.page1.paragraph2", "tutorial.thaw.page1.paragraph3" } }
+)
+lesson(
+    "rainApplication",
+    3,
+    { { "tutorial.rainApplication.page1.paragraph1", "tutorial.rainApplication.page1.paragraph2" } }
+)
+lesson(
+    "resilience",
+    4,
+    {
+        {
+            "tutorial.resilience.page1.paragraph1",
+            "tutorial.resilience.page1.paragraph2",
+            "tutorial.resilience.page1.paragraph3",
+        },
+    }
+)
+lesson(
+    "continuity",
+    4,
+    {
+        {
+            "tutorial.continuity.page1.paragraph1",
+            "tutorial.continuity.page1.paragraph2",
+            "tutorial.continuity.page1.paragraph3",
+        },
+    }
+)
+lesson(
+    "recovery",
+    4,
+    {
+        {
+            "tutorial.recovery.page1.paragraph1",
+            "tutorial.recovery.page1.paragraph2",
+            "tutorial.recovery.page1.paragraph3",
+        },
+    }
+)
+lesson(
+    "rotationPlan",
+    4,
+    {
+        {
+            "tutorial.rotationPlan.page1.paragraph1",
+            "tutorial.rotationPlan.page1.paragraph2",
+            "tutorial.rotationPlan.page1.paragraph3",
+        },
+    }
+)
+lesson("rotation", 4, { { "tutorial.rotation.page1.paragraph1", "tutorial.rotation.page1.paragraph2" } })
+lesson(
+    "cover",
+    4,
+    { { "tutorial.cover.page1.paragraph1", "tutorial.cover.page1.paragraph2", "tutorial.cover.page1.paragraph3" } }
+)
+lesson(
+    "systems",
+    4,
+    { { "tutorial.systems.page1.paragraph1", "tutorial.systems.page1.paragraph2", "tutorial.systems.page1.paragraph3" } }
+)
+lesson("yield", 5, { { "tutorial.yield.page1.paragraph1", "tutorial.yield.page1.paragraph2" } })
+lesson(
+    "bonus",
+    5,
+    { { "tutorial.bonus.page1.paragraph1", "tutorial.bonus.page1.paragraph2", "tutorial.bonus.page1.paragraph3" } }
+)
+lesson("pf", 5, { { "tutorial.pf.page1.paragraph1", "tutorial.pf.page1.paragraph2" } })
+lesson(
+    "moistureSystem",
+    3,
+    {
+        {
+            "tutorial.moistureSystem.page1.paragraph1",
+            "tutorial.moistureSystem.page1.paragraph2",
+            "tutorial.moistureSystem.page1.paragraph3",
+        },
+    }
+)
+lesson(
+    "options",
+    5,
+    {
+        {
+            "tutorial.options.page1.paragraph1",
+            "tutorial.options.page1.paragraph2",
+            "tutorial.options.page1.paragraph3",
+            "tutorial.options.page1.paragraph4",
+            "tutorial.options.page1.paragraph5",
+        },
+    }
+)
