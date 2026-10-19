@@ -31,7 +31,7 @@ TerraLogicWheelCompactionManager = {
     MAX_CONTINUOUS_SAMPLE_INTERVAL_MS = 1500,
     updateAccumulator = 0,
     vehicleStates = nil,
-    diagnostics = nil
+    diagnostics = nil,
 }
 
 local function clamp(value, minimum, maximum)
@@ -43,26 +43,40 @@ local function clamp01(value)
 end
 
 local function smoothstep(edge0, edge1, value)
-    if edge1 <= edge0 then return value >= edge1 and 1 or 0 end
+    if edge1 <= edge0 then
+        return value >= edge1 and 1 or 0
+    end
     local t = clamp01((value - edge0) / (edge1 - edge0))
     return t * t * (3 - 2 * t)
 end
 
 local function getVehicleNode(vehicle)
-    if vehicle == nil then return nil end
-    return vehicle.rootNode or (vehicle.components ~= nil
-        and vehicle.components[1] ~= nil and vehicle.components[1].node) or nil
+    if vehicle == nil then
+        return nil
+    end
+    return vehicle.rootNode
+        or (vehicle.components ~= nil and vehicle.components[1] ~= nil and vehicle.components[1].node)
+        or nil
+end
+
+local function isLiveNode(node)
+    return type(node) == "number" and node > 0
+        and (type(entityExists) ~= "function" or entityExists(node))
 end
 
 local function getVehicleSpeed(vehicle)
-    if vehicle == nil or vehicle.getLastSpeed == nil then return 0 end
-    local ok, speed = pcall(vehicle.getLastSpeed, vehicle, true)
-    return ok and math.abs(tonumber(speed) or 0) or 0
+    if vehicle == nil or type(vehicle.getLastSpeed) ~= "function" then
+        return 0
+    end
+    local speed = vehicle.getLastSpeed(vehicle, true)
+    return math.abs(tonumber(speed) or 0) or 0
 end
 
 local function getVehicles()
     local mission = g_currentMission
-    if mission == nil then return {} end
+    if mission == nil then
+        return {}
+    end
     if mission.vehicleSystem ~= nil and mission.vehicleSystem.vehicles ~= nil then
         return mission.vehicleSystem.vehicles
     end
@@ -70,22 +84,25 @@ local function getVehicles()
 end
 
 local function getTireTypeName(physics)
-    if physics == nil or WheelsUtil == nil
-        or WheelsUtil.getTireTypeName == nil then return "unknown" end
-    local ok, name = pcall(WheelsUtil.getTireTypeName, physics.tireType)
-    return ok and string.lower(tostring(name or "unknown")) or "unknown"
+    if physics == nil or WheelsUtil == nil or type(WheelsUtil.getTireTypeName) ~= "function" then
+        return "unknown"
+    end
+    local name = WheelsUtil.getTireTypeName(physics.tireType)
+    return string.lower(tostring(name or "unknown")) or "unknown"
 end
 
 local function isCrawlerWheel(wheel)
-    return string.find(getTireTypeName(wheel.physics), "crawler", 1, true)
-        ~= nil
+    return string.find(getTireTypeName(wheel.physics), "crawler", 1, true) ~= nil
 end
 
 local function getTireLoad(wheel)
     local physics = wheel ~= nil and wheel.physics or nil
-    if physics == nil or physics.getTireLoad == nil then return 0 end
-    local ok, load = pcall(physics.getTireLoad, physics)
-    if not ok then return 0 end
+    if physics == nil or physics.wheelShapeCreated == false
+        or type(physics.getTireLoad) ~= "function" then
+        return 0
+    end
+    local load = physics.getTireLoad(physics)
+
     return math.max(0, tonumber(load) or 0)
 end
 
@@ -93,11 +110,15 @@ local function getContactPoint(wheel)
     local physics = wheel ~= nil and wheel.physics or nil
     local node = wheel ~= nil and wheel.node or nil
     local shape = physics ~= nil and physics.wheelShape or nil
-    if node == nil or shape == nil or getWheelShapeContactPoint == nil then
+    if not isLiveNode(node) or type(shape) ~= "number" or shape < 0
+        or physics.wheelShapeCreated == false
+        or type(getWheelShapeContactPoint) ~= "function" then
         return nil
     end
-    local ok, x, y, z = pcall(getWheelShapeContactPoint, node, shape)
-    if not ok or x == nil then return nil end
+    local x, y, z = getWheelShapeContactPoint(node, shape)
+    if x == nil then
+        return nil
+    end
     -- Use the same synchronized local wheel position that Vanilla uses for
     -- visuals and tire tracks. The contact-point return value is deliberately
     -- used only as a ground-contact test because its coordinate convention is
@@ -107,35 +128,35 @@ local function getContactPoint(wheel)
         return localToWorld(node, netInfo.x, netInfo.y or 0, netInfo.z)
     end
     local positionNode = wheel.driveNode or wheel.repr
-    if positionNode ~= nil then return getWorldTranslation(positionNode) end
+    if isLiveNode(positionNode) then
+        return getWorldTranslation(positionNode)
+    end
     return nil
 end
 
 local function getRawSlip(wheel)
     local physics = wheel ~= nil and wheel.physics or nil
-    return clamp01(physics ~= nil and physics.netInfo ~= nil
-        and physics.netInfo.slip or 0)
+    return clamp01(physics ~= nil and physics.netInfo ~= nil and physics.netInfo.slip or 0)
 end
 
 local function getWheelRuntimeIdentity(wheel, wheelIndex)
     local reprName = "wheel"
-    if wheel ~= nil and wheel.repr ~= nil and getName ~= nil then
-        local ok, value = pcall(getName, wheel.repr)
-        if ok and value ~= nil and value ~= "" then
+    if wheel ~= nil and wheel.repr ~= nil and type(getName) == "function" then
+        local value = getName(wheel.repr)
+        if value ~= nil and value ~= "" then
             reprName = tostring(value)
         end
     end
     local xmlObject = wheel ~= nil and wheel.xmlObject or nil
-    local externalFilename = xmlObject ~= nil
-        and tostring(xmlObject.externalFilename or "") or ""
+    local externalFilename = xmlObject ~= nil and tostring(xmlObject.externalFilename or "") or ""
     local physics = wheel ~= nil and wheel.physics or {}
     return {
-        index=tonumber(wheelIndex) or 0,
-        reprName=reprName,
-        externalFilename=externalFilename,
-        visualCount=wheel ~= nil and #(wheel.visualWheels or {}) or 0,
-        restLoadT=tonumber(physics.restLoad) or 0,
-        supportsWheelSink=physics.supportsWheelSink == true
+        index = tonumber(wheelIndex) or 0,
+        reprName = reprName,
+        externalFilename = externalFilename,
+        visualCount = wheel ~= nil and #(wheel.visualWheels or {}) or 0,
+        restLoadT = tonumber(physics.restLoad) or 0,
+        supportsWheelSink = physics.supportsWheelSink == true,
     }
 end
 
@@ -145,39 +166,39 @@ end
 -- lower result preserves real wheel spin but rejects ordinary cornering.
 local function getCorrectedSlip(wheel, wheelState, x, z, now)
     local rawSlip = getRawSlip(wheel)
-    if wheelState == nil or wheelState.x == nil or wheelState.z == nil
-        or wheelState.sampleTime == nil then return 0, rawSlip end
-    local elapsedSeconds = math.max(
-        ((tonumber(now) or 0) - wheelState.sampleTime) * 0.001, 0)
-    if elapsedSeconds < 0.02 then return 0, rawSlip end
+    if wheelState == nil or wheelState.x == nil or wheelState.z == nil or wheelState.sampleTime == nil then
+        return 0, rawSlip
+    end
+    local elapsedSeconds = math.max(((tonumber(now) or 0) - wheelState.sampleTime) * 0.001, 0)
+    if elapsedSeconds < 0.02 then
+        return 0, rawSlip
+    end
     local dx, dz = x - wheelState.x, z - wheelState.z
     local contactSpeed = math.sqrt(dx * dx + dz * dz) / elapsedSeconds
     local physics = wheel ~= nil and wheel.physics or nil
-    local wheelSpeed = math.abs(tonumber(physics ~= nil
-        and physics.netInfo ~= nil and physics.netInfo.lastSpeedSmoothed) or 0)
-    local kinematicSlip = clamp01(
-        wheelSpeed / math.max(contactSpeed, 0.05) - 1)
+    local wheelSpeed =
+        math.abs(tonumber(physics ~= nil and physics.netInfo ~= nil and physics.netInfo.lastSpeedSmoothed) or 0)
+    local kinematicSlip = clamp01(wheelSpeed / math.max(contactSpeed, 0.05) - 1)
     return math.min(rawSlip, kinematicSlip), rawSlip
 end
 
-local function resetDiscontinuousWheelSample(
-        wheelState, x, z, now, speedKph)
-    if wheelState == nil or wheelState.x == nil or wheelState.z == nil
-        or wheelState.sampleTime == nil then return false end
-    local elapsedMs = math.max(
-        (tonumber(now) or 0) - (tonumber(wheelState.sampleTime) or 0), 0)
-    local dx, dz = x-wheelState.x, z-wheelState.z
-    local distance = math.sqrt(dx*dx + dz*dz)
-    local elapsedSeconds = elapsedMs*0.001
-    local expectedDistance = math.max(tonumber(speedKph) or 0, 0)
-        / 3.6 * elapsedSeconds
-    local allowedDistance = math.min(math.max(
-        expectedDistance*2.5 + 2, 4),
-        TerraLogicWheelCompactionManager.MAX_CONTINUOUS_SAMPLE_DISTANCE_M)
-    local maximumInterval =
-        TerraLogicWheelCompactionManager.MAX_CONTINUOUS_SAMPLE_INTERVAL_MS
-    if elapsedMs <= maximumInterval
-        and distance <= allowedDistance then return false end
+local function resetDiscontinuousWheelSample(wheelState, x, z, now, speedKph)
+    if wheelState == nil or wheelState.x == nil or wheelState.z == nil or wheelState.sampleTime == nil then
+        return false
+    end
+    local elapsedMs = math.max((tonumber(now) or 0) - (tonumber(wheelState.sampleTime) or 0), 0)
+    local dx, dz = x - wheelState.x, z - wheelState.z
+    local distance = math.sqrt(dx * dx + dz * dz)
+    local elapsedSeconds = elapsedMs * 0.001
+    local expectedDistance = math.max(tonumber(speedKph) or 0, 0) / 3.6 * elapsedSeconds
+    local allowedDistance = math.min(
+        math.max(expectedDistance * 2.5 + 2, 4),
+        TerraLogicWheelCompactionManager.MAX_CONTINUOUS_SAMPLE_DISTANCE_M
+    )
+    local maximumInterval = TerraLogicWheelCompactionManager.MAX_CONTINUOUS_SAMPLE_INTERVAL_MS
+    if elapsedMs <= maximumInterval and distance <= allowedDistance then
+        return false
+    end
     wheelState.surfaceCellKey = nil
     wheelState.structureCellKey = nil
     wheelState.deepCellKey = nil
@@ -187,19 +208,20 @@ end
 
 local function getIsOnField(wheel)
     local physics = wheel ~= nil and wheel.physics or nil
-    if physics == nil or physics.getIsOnField == nil then return false end
-    local ok, result = pcall(physics.getIsOnField, physics)
-    return ok and result == true
+    if physics == nil or type(physics.getIsOnField) ~= "function" then
+        return false
+    end
+    local result = physics.getIsOnField(physics)
+    return result == true
 end
 
 local function getRubberWidth(wheel)
     local width = 0
     local count = 0
     for _, visualWheel in ipairs(wheel.visualWheels or {}) do
-        if visualWheel.getWidthAndOffset ~= nil then
-            local ok, visualWidth = pcall(
-                visualWheel.getWidthAndOffset, visualWheel)
-            if ok and tonumber(visualWidth) ~= nil and visualWidth > 0 then
+        if type(visualWheel.getWidthAndOffset) == "function" then
+            local visualWidth = visualWheel.getWidthAndOffset(visualWheel)
+            if tonumber(visualWidth) ~= nil and visualWidth > 0 then
                 width = width + visualWidth
                 count = count + 1
             end
@@ -207,8 +229,7 @@ local function getRubberWidth(wheel)
     end
     local physics = wheel.physics or {}
     if width <= 0 then
-        width = tonumber(physics.width)
-            or tonumber(physics.wheelShapeWidth) or 0.45
+        width = tonumber(physics.width) or tonumber(physics.wheelShapeWidth) or 0.45
         count = 1
     end
     return math.max(width, 0.12), math.max(count, 1)
@@ -228,9 +249,7 @@ local function getFootprint(wheel, loadT)
     local loadRatio = clamp(loadT / referenceLoad, 0.25, 2.5)
     local lengthFactor = crawler and 0.72 or 0.34
     local contactLength = diameter * lengthFactor * loadRatio ^ 0.22
-    contactLength = clamp(contactLength,
-        diameter * (crawler and 0.48 or 0.22),
-        diameter * (crawler and 1.05 or 0.48))
+    contactLength = clamp(contactLength, diameter * (crawler and 0.48 or 0.22), diameter * (crawler and 1.05 or 0.48))
     local efficiency = tireCount > 1 and 0.92 or 1
     local area = math.max(width * contactLength * efficiency, 0.035)
     local pressureKPa = loadT * 9.81 / area
@@ -241,19 +260,20 @@ end
 -- not moved inside the vehicle.  Axle grouping must therefore use the stable
 -- wheel carrier position, never the current ground-contact position.  The
 -- fallback keeps unusual third-party wheel implementations supported.
-local function getStableWheelLocalPosition(rootNode, wheel, fallbackX,
-        fallbackY, fallbackZ)
-    local node = wheel ~= nil
-        and (wheel.driveNode or wheel.repr or wheel.node) or nil
+local function getStableWheelLocalPosition(rootNode, wheel, fallbackX, fallbackY, fallbackZ)
+    local node = wheel ~= nil and (wheel.driveNode or wheel.repr or wheel.node) or nil
     local x, y, z = fallbackX, fallbackY, fallbackZ
-    if node ~= nil and getWorldTranslation ~= nil then
-        local ok, nodeX, nodeY, nodeZ = pcall(getWorldTranslation, node)
-        if ok and nodeX ~= nil then x, y, z = nodeX, nodeY, nodeZ end
+    if isLiveNode(node) and type(getWorldTranslation) == "function" then
+        local nodeX, nodeY, nodeZ = getWorldTranslation(node)
+        if nodeX ~= nil then
+            x, y, z = nodeX, nodeY, nodeZ
+        end
     end
-    if rootNode == nil or x == nil or worldToLocal == nil then return 0, 0 end
-    local ok, localX, localY, localZ = pcall(
-        worldToLocal, rootNode, x, y or 0, z or 0)
-    if not ok then return 0, 0 end
+    if not isLiveNode(rootNode) or x == nil or type(worldToLocal) ~= "function" then
+        return 0, 0
+    end
+    local localX, localY, localZ = worldToLocal(rootNode, x, y or 0, z or 0)
+
     return tonumber(localX) or 0, tonumber(localZ) or 0
 end
 
@@ -272,9 +292,10 @@ local function buildCrawlerModules(observations)
     end
     table.sort(crawlerObservations, function(a, b)
         local ax, bx = tonumber(a.localX) or 0, tonumber(b.localX) or 0
-        if math.abs(ax - bx) > 0.001 then return ax < bx end
-        return (tonumber(a.axleLocalZ) or 0)
-            < (tonumber(b.axleLocalZ) or 0)
+        if math.abs(ax - bx) > 0.001 then
+            return ax < bx
+        end
+        return (tonumber(a.axleLocalZ) or 0) < (tonumber(b.axleLocalZ) or 0)
     end)
 
     local used, modules = {}, {}
@@ -282,29 +303,26 @@ local function buildCrawlerModules(observations)
     for index, first in ipairs(crawlerObservations) do
         if not used[first] then
             local best, bestScore = nil, math.huge
-            for candidateIndex=index+1,#crawlerObservations do
+            for candidateIndex = index + 1, #crawlerObservations do
                 local second = crawlerObservations[candidateIndex]
                 if not used[second] then
                     local firstX = tonumber(first.localX) or 0
                     local secondX = tonumber(second.localX) or 0
-                    local lateralDistance = math.abs(firstX-secondX)
-                    local longitudinalDistance = math.abs(
-                        (tonumber(first.axleLocalZ) or 0)
-                            - (tonumber(second.axleLocalZ) or 0))
-                    local sameSide = firstX == 0 or secondX == 0
-                        or firstX * secondX > 0
+                    local lateralDistance = math.abs(firstX - secondX)
+                    local longitudinalDistance =
+                        math.abs((tonumber(first.axleLocalZ) or 0) - (tonumber(second.axleLocalZ) or 0))
+                    local sameSide = firstX == 0 or secondX == 0 or firstX * secondX > 0
                     local lateralTolerance = math.max(
                         manager.CRAWLER_PAIR_LATERAL_TOLERANCE_M,
-                        math.max(tonumber(first.width) or 0,
-                            tonumber(second.width) or 0) * 0.75)
-                    if sameSide
+                        math.max(tonumber(first.width) or 0, tonumber(second.width) or 0) * 0.75
+                    )
+                    if
+                        sameSide
                         and lateralDistance <= lateralTolerance
-                        and longitudinalDistance
-                            >= manager.CRAWLER_PAIR_MIN_DISTANCE_M
-                        and longitudinalDistance
-                            <= manager.CRAWLER_PAIR_MAX_DISTANCE_M then
-                        local score = longitudinalDistance
-                            + lateralDistance * 4
+                        and longitudinalDistance >= manager.CRAWLER_PAIR_MIN_DISTANCE_M
+                        and longitudinalDistance <= manager.CRAWLER_PAIR_MAX_DISTANCE_M
+                    then
+                        local score = longitudinalDistance + lateralDistance * 4
                         if score < bestScore then
                             best, bestScore = second, score
                         end
@@ -313,49 +331,43 @@ local function buildCrawlerModules(observations)
             end
             if best ~= nil then
                 used[first], used[best] = true, true
-                local firstId = tonumber(first.identity
-                    and first.identity.index) or index
-                local secondId = tonumber(best.identity
-                    and best.identity.index) or (index+1)
-                local lowId, highId = math.min(firstId, secondId),
-                    math.max(firstId, secondId)
-                local dx = (tonumber(first.localX) or 0)
-                    - (tonumber(best.localX) or 0)
-                local dz = (tonumber(first.axleLocalZ) or 0)
-                    - (tonumber(best.axleLocalZ) or 0)
-                local contactSpacing = math.sqrt(dx*dx + dz*dz)
+                local firstId = tonumber(first.identity and first.identity.index) or index
+                local secondId = tonumber(best.identity and best.identity.index) or (index + 1)
+                local lowId, highId = math.min(firstId, secondId), math.max(firstId, secondId)
+                local dx = (tonumber(first.localX) or 0) - (tonumber(best.localX) or 0)
+                local dz = (tonumber(first.axleLocalZ) or 0) - (tonumber(best.axleLocalZ) or 0)
+                local contactSpacing = math.sqrt(dx * dx + dz * dz)
                 -- The two crawler shapes sit at the ends of the flat lower
                 -- belt run. Their stable centre distance therefore describes
                 -- the supported ground length; adding two tyre-like contact
                 -- patches would count the curved, lifted belt ends as soil
                 -- contact and make tracks unrealistically pressure-free.
                 local fallbackLength = 0.5
-                    * ((tonumber(first.contactLength) or 0)
-                        + (tonumber(best.contactLength) or 0))
+                    * ((tonumber(first.contactLength) or 0) + (tonumber(best.contactLength) or 0))
                 local length = math.max(contactSpacing, fallbackLength, 0.35)
-                local width = math.max(tonumber(first.width) or 0.12,
-                    tonumber(best.width) or 0.12)
-                local loadT = math.max(tonumber(first.loadT) or 0, 0)
-                    + math.max(tonumber(best.loadT) or 0, 0)
+                local width = math.max(tonumber(first.width) or 0.12, tonumber(best.width) or 0.12)
+                local loadT = math.max(tonumber(first.loadT) or 0, 0) + math.max(tonumber(best.loadT) or 0, 0)
                 local area = math.max(width * length, 0.035)
                 local module = {
-                    key="crawler:" .. tostring(lowId) .. ":" .. tostring(highId),
-                    first=first, second=best, members={first, best},
-                    crawler=true, loadT=loadT, width=width,
-                    contactLength=length, contactSpacing=contactSpacing,
-                    area=area, pressure=loadT * 9.81 / area,
-                    diameter=((tonumber(first.diameter) or 0)
-                        + (tonumber(best.diameter) or 0)) * 0.5,
-                    tireCount=1,
-                    x=((tonumber(first.x) or 0)+(tonumber(best.x) or 0))*0.5,
-                    z=((tonumber(first.z) or 0)+(tonumber(best.z) or 0))*0.5,
-                    localX=((tonumber(first.localX) or 0)
-                        +(tonumber(best.localX) or 0))*0.5,
-                    axleLocalZ=((tonumber(first.axleLocalZ) or 0)
-                        +(tonumber(best.axleLocalZ) or 0))*0.5,
-                    fieldConfirmed=first.fieldConfirmed == true
-                        or best.fieldConfirmed == true,
-                    identity=first.identity
+                    key = "crawler:" .. tostring(lowId) .. ":" .. tostring(highId),
+                    first = first,
+                    second = best,
+                    members = { first, best },
+                    crawler = true,
+                    loadT = loadT,
+                    width = width,
+                    contactLength = length,
+                    contactSpacing = contactSpacing,
+                    area = area,
+                    pressure = loadT * 9.81 / area,
+                    diameter = ((tonumber(first.diameter) or 0) + (tonumber(best.diameter) or 0)) * 0.5,
+                    tireCount = 1,
+                    x = ((tonumber(first.x) or 0) + (tonumber(best.x) or 0)) * 0.5,
+                    z = ((tonumber(first.z) or 0) + (tonumber(best.z) or 0)) * 0.5,
+                    localX = ((tonumber(first.localX) or 0) + (tonumber(best.localX) or 0)) * 0.5,
+                    axleLocalZ = ((tonumber(first.axleLocalZ) or 0) + (tonumber(best.axleLocalZ) or 0)) * 0.5,
+                    fieldConfirmed = first.fieldConfirmed == true or best.fieldConfirmed == true,
+                    identity = first.identity,
                 }
                 modules[#modules + 1] = module
             end
@@ -370,10 +382,11 @@ end
 -- them together while preserving genuinely separate tandem axles.
 local function buildAxleGroups(samples)
     local ordered = {}
-    for _, sample in ipairs(samples or {}) do ordered[#ordered + 1] = sample end
+    for _, sample in ipairs(samples or {}) do
+        ordered[#ordered + 1] = sample
+    end
     table.sort(ordered, function(a, b)
-        return (tonumber(a.axleLocalZ) or 0)
-            < (tonumber(b.axleLocalZ) or 0)
+        return (tonumber(a.axleLocalZ) or 0) < (tonumber(b.axleLocalZ) or 0)
     end)
     local groups = {}
     for _, sample in ipairs(ordered) do
@@ -381,27 +394,28 @@ local function buildAxleGroups(samples)
         local bestIndex, bestDistance = nil, math.huge
         for index, group in ipairs(groups) do
             local distance = math.abs(localZ - group.localZ)
-            if distance <= TerraLogicWheelCompactionManager.AXLE_GROUP_DISTANCE_M
-                and distance < bestDistance then
+            if distance <= TerraLogicWheelCompactionManager.AXLE_GROUP_DISTANCE_M and distance < bestDistance then
                 bestIndex, bestDistance = index, distance
             end
         end
         if bestIndex == nil then
             bestIndex = #groups + 1
             groups[bestIndex] = {
-                loadT=0, crawler=false, fieldConfirmed=false,
-                localZ=localZ, sampleCount=0, minLocalZ=localZ,
-                maxLocalZ=localZ
+                loadT = 0,
+                crawler = false,
+                fieldConfirmed = false,
+                localZ = localZ,
+                sampleCount = 0,
+                minLocalZ = localZ,
+                maxLocalZ = localZ,
             }
         end
         local group = groups[bestIndex]
         group.loadT = group.loadT + math.max(tonumber(sample.loadT) or 0, 0)
         group.crawler = group.crawler or sample.crawler == true
-        group.fieldConfirmed = group.fieldConfirmed == true
-            or sample.fieldConfirmed == true
+        group.fieldConfirmed = group.fieldConfirmed == true or sample.fieldConfirmed == true
         group.sampleCount = group.sampleCount + 1
-        group.localZ = group.localZ
-            + (localZ - group.localZ) / group.sampleCount
+        group.localZ = group.localZ + (localZ - group.localZ) / group.sampleCount
         group.minLocalZ = math.min(group.minLocalZ, localZ)
         group.maxLocalZ = math.max(group.maxLocalZ, localZ)
         sample.axleKey = bestIndex
@@ -431,21 +445,17 @@ local function getSurfaceImpact(pressureKPa, slip)
     -- game vehicles instead of an artificial 46 t stress test. The geometric
     -- move-to-target response still gives the largest change on the first
     -- passes and progressively smaller changes afterwards.
-    local target = 0.34 + 0.54 * compactionDriver
-        + 0.06 * slipSeverity
-    local strength = 0.34 + 0.18 * compactionDriver
-        + 0.08 * slipSeverity
+    local target = 0.34 + 0.54 * compactionDriver + 0.06 * slipSeverity
+    local strength = 0.34 + 0.18 * compactionDriver + 0.08 * slipSeverity
     -- Very light contacts remain predominantly elastic. There is deliberately
     -- no hard 50 kPa threshold, but their first-pass impulse is reduced while
     -- retaining sub-raster accumulation over repeated traffic.
     local lowPressureResponse = pressureKPa < 50
     if lowPressureResponse and slipSeverity <= 0 then
         local responseAt50 = smoothstep(0, 200, 50 * 1.30)
-        strength = strength * math.max(
-            compactionDriver / math.max(responseAt50, 0.0001), 0.04)
+        strength = strength * math.max(compactionDriver / math.max(responseAt50, 0.0001), 0.04)
     end
-    return clamp01(target), clamp01(strength), slipSeverity, pressureDriver,
-        lowPressureResponse
+    return clamp01(target), clamp01(strength), slipSeverity, pressureDriver, lowPressureResponse
 end
 
 local function getCell(x, z, size)
@@ -462,7 +472,7 @@ local function mergeImpact(impacts, ix, iz, cellSize, discriminator)
     end
     local impact = impacts[key]
     if impact == nil then
-        impact = {ix=ix, iz=iz, cellSize=cellSize, slipSeverity=0}
+        impact = { ix = ix, iz = iz, cellSize = cellSize, slipSeverity = 0 }
         impacts[key] = impact
     end
     return impact
@@ -471,10 +481,8 @@ end
 local function getDeepStressWidth(width)
     local rubberWidth = math.max(tonumber(width) or 0.12, 0.12)
     local manager = TerraLogicWheelCompactionManager
-    local spread = manager.DEEP_REFERENCE_DEPTH_M
-        * manager.DEEP_WIDTH_SPREAD_PER_DEPTH
-    return clamp(rubberWidth + spread, rubberWidth,
-        manager.DEEP_CELL_SIZE_M)
+    local spread = manager.DEEP_REFERENCE_DEPTH_M * manager.DEEP_WIDTH_SPREAD_PER_DEPTH
+    return clamp(rubberWidth + spread, rubberWidth, manager.DEEP_CELL_SIZE_M)
 end
 
 -- A diagonal line crosses more raster cells per travelled metre. Dividing by
@@ -483,34 +491,30 @@ end
 -- cell-entry state; both sides still use their combined physical axle load.
 local function getDeepProjectedCellWidth(lateralX, lateralZ)
     local cellSize = TerraLogicWheelCompactionManager.DEEP_CELL_SIZE_M
-    local projectedWidth = cellSize
-        * (math.abs(lateralX) + math.abs(lateralZ))
+    local projectedWidth = cellSize * (math.abs(lateralX) + math.abs(lateralZ))
     return math.max(projectedWidth, 0.0001)
 end
 
 local function getProjectedCellWidth(cellSize, lateralX, lateralZ)
     local projectedWidth = math.max(tonumber(cellSize) or 1, 0.01)
-        * (math.abs(tonumber(lateralX) or 0)
-            + math.abs(tonumber(lateralZ) or 0))
+        * (math.abs(tonumber(lateralX) or 0) + math.abs(tonumber(lateralZ) or 0))
     return math.max(projectedWidth, 0.0001)
 end
 
 local function getSegmentCells(fromX, fromZ, toX, toZ, cellSize)
     local result, seen = {}, {}
-    local dx, dz = (toX or 0) - (fromX or toX or 0),
-        (toZ or 0) - (fromZ or toZ or 0)
+    local dx, dz = (toX or 0) - (fromX or toX or 0), (toZ or 0) - (fromZ or toZ or 0)
     local distance = math.sqrt(dx * dx + dz * dz)
     local steps = math.max(1, math.ceil(distance / (cellSize * 0.5)))
-    local firstStep = fromX ~= nil and fromZ ~= nil
-        and distance > 0.0001 and 1 or 0
-    for index=firstStep,steps do
+    local firstStep = fromX ~= nil and fromZ ~= nil and distance > 0.0001 and 1 or 0
+    for index = firstStep, steps do
         local t = index / steps
         local x = (fromX or toX) + dx * t
         local z = (fromZ or toZ) + dz * t
         local ix, iz, key = getCell(x, z, cellSize)
         if not seen[key] then
             seen[key] = true
-            result[#result + 1] = {ix=ix, iz=iz, key=key}
+            result[#result + 1] = { ix = ix, iz = iz, key = key }
         end
     end
     return result
@@ -525,10 +529,12 @@ end
 local function getDeepSegmentCells(fromX, fromZ, toX, toZ, cellSize)
     local endIx, endIz, endKey = getCell(toX, toZ, cellSize)
     if fromX == nil or fromZ == nil then
-        return {{ix=endIx, iz=endIz, key=endKey}}
+        return { { ix = endIx, iz = endIz, key = endKey } }
     end
     local ix, iz = getCell(fromX, fromZ, cellSize)
-    if ix == endIx and iz == endIz then return {} end
+    if ix == endIx and iz == endIz then
+        return {}
+    end
     local dx, dz = toX - fromX, toZ - fromZ
     local stepX = dx > 0 and 1 or (dx < 0 and -1 or 0)
     local stepZ = dz > 0 and 1 or (dz < 0 and -1 or 0)
@@ -554,7 +560,9 @@ local function getDeepSegmentCells(fromX, fromZ, toX, toZ, cellSize)
             nextX, nextZ = nextX + deltaX, nextZ + deltaZ
         end
         result[#result + 1] = {
-            ix=ix, iz=iz, key=tostring(ix) .. ":" .. tostring(iz)
+            ix = ix,
+            iz = iz,
+            key = tostring(ix) .. ":" .. tostring(iz),
         }
     end
     return result
@@ -566,27 +574,33 @@ end
 -- diagonally or sampling the same axle through two wheels can never multiply
 -- the full-cell strength. The weighted cell areas equal the swept stress-band
 -- area to within the finite strip sampling error.
-local function getDeepBandCells(
-        fromX, fromZ, toX, toZ, effectiveWidth, lateralX, lateralZ)
+local function getDeepBandCells(fromX, fromZ, toX, toZ, effectiveWidth, lateralX, lateralZ)
     local width = math.max(tonumber(effectiveWidth) or 0, 0)
-    if width <= 0 then return {} end
+    if width <= 0 then
+        return {}
+    end
     local cellSize = TerraLogicWheelCompactionManager.DEEP_CELL_SIZE_M
-    local stripCount = math.max(1, math.min(
-        math.ceil(width / 0.25), 8))
+    local stripCount = math.max(1, math.min(math.ceil(width / 0.25), 8))
     local stripWidth = width / stripCount
-    local contribution = stripWidth
-        / getDeepProjectedCellWidth(lateralX, lateralZ)
+    local contribution = stripWidth / getDeepProjectedCellWidth(lateralX, lateralZ)
     local cellsByKey = {}
-    for strip=1,stripCount do
+    for strip = 1, stripCount do
         local offset = ((strip - 0.5) / stripCount - 0.5) * width
         local offsetX, offsetZ = lateralX * offset, lateralZ * offset
-        for _, cell in ipairs(getDeepSegmentCells(
-                fromX ~= nil and fromX + offsetX or nil,
-                fromZ ~= nil and fromZ + offsetZ or nil,
-                toX + offsetX, toZ + offsetZ, cellSize)) do
+        for _, cell in
+            ipairs(
+                getDeepSegmentCells(
+                    fromX ~= nil and fromX + offsetX or nil,
+                    fromZ ~= nil and fromZ + offsetZ or nil,
+                    toX + offsetX,
+                    toZ + offsetZ,
+                    cellSize
+                )
+            )
+        do
             local entry = cellsByKey[cell.key]
             if entry == nil then
-                entry = {ix=cell.ix, iz=cell.iz, coverage=0}
+                entry = { ix = cell.ix, iz = cell.iz, coverage = 0 }
                 cellsByKey[cell.key] = entry
             end
             entry.coverage = clamp01(entry.coverage + contribution)
@@ -604,28 +618,36 @@ end
 -- actual rubber/belt width. A 0.32 m support wheel can still have a severe
 -- local pressure target; it simply contributes roughly 32% of a straight
 -- one-metre cell instead of treating the complete cell as wheel track.
-local function getSurfaceBandCells(
-        fromX, fromZ, toX, toZ, effectiveWidth, lateralX, lateralZ)
+local function getSurfaceBandCells(fromX, fromZ, toX, toZ, effectiveWidth, lateralX, lateralZ)
     local width = math.max(tonumber(effectiveWidth) or 0, 0)
-    if width <= 0 then return {} end
-    local cellSize = TerraLogicSoilManager ~= nil
-        and (TerraLogicSoilManager.WHEEL_CELL_SIZE or 1) or 1
+    if width <= 0 then
+        return {}
+    end
+    local cellSize = TerraLogicSoilManager ~= nil and (TerraLogicSoilManager.WHEEL_CELL_SIZE or 1) or 1
     local stripCount = math.max(2, math.min(math.ceil(width / 0.10), 24))
-    if stripCount % 2 ~= 0 then stripCount = math.min(stripCount + 1, 24) end
+    if stripCount % 2 ~= 0 then
+        stripCount = math.min(stripCount + 1, 24)
+    end
     local stripWidth = width / stripCount
-    local contribution = stripWidth
-        / getProjectedCellWidth(cellSize, lateralX, lateralZ)
+    local contribution = stripWidth / getProjectedCellWidth(cellSize, lateralX, lateralZ)
     local cellsByKey = {}
-    for strip=1,stripCount do
+    for strip = 1, stripCount do
         local offset = ((strip - 0.5) / stripCount - 0.5) * width
         local offsetX, offsetZ = lateralX * offset, lateralZ * offset
-        for _, cell in ipairs(getDeepSegmentCells(
-                fromX ~= nil and fromX + offsetX or nil,
-                fromZ ~= nil and fromZ + offsetZ or nil,
-                toX + offsetX, toZ + offsetZ, cellSize)) do
+        for _, cell in
+            ipairs(
+                getDeepSegmentCells(
+                    fromX ~= nil and fromX + offsetX or nil,
+                    fromZ ~= nil and fromZ + offsetZ or nil,
+                    toX + offsetX,
+                    toZ + offsetZ,
+                    cellSize
+                )
+            )
+        do
             local entry = cellsByKey[cell.key]
             if entry == nil then
-                entry = {ix=cell.ix, iz=cell.iz, coverage=0}
+                entry = { ix = cell.ix, iz = cell.iz, coverage = 0 }
                 cellsByKey[cell.key] = entry
             end
             entry.coverage = clamp01(entry.coverage + contribution)
@@ -640,9 +662,11 @@ end
 
 local function getBooleanCall(object, functionName, ...)
     local func = object ~= nil and object[functionName] or nil
-    if func == nil then return nil, false end
-    local ok, value = pcall(func, object, ...)
-    if not ok then return nil, false end
+    if type(func) ~= "function" then
+        return nil, false
+    end
+    local value = func(object, ...)
+
     return value == true, true
 end
 
@@ -650,77 +674,76 @@ end
 -- These values are diagnostic only and never decide whether soil is changed.
 local function getImplementRuntimeState(vehicle, now)
     local result = {
-        lowered=nil, loweredAvailable=false,
-        chainLowered=nil, chainLoweredAvailable=false,
-        foldAnimTime=nil, foldMoveDirection=nil,
-        foldWorkPosition=nil,
-        workAreaActiveCount=0, workAreaCount=0,
-        workAreaQueryAvailable=false,
-        groundReferenceActiveCount=0, groundReferenceCount=0,
-        groundReferenceKnownCount=0,
-        groundReferenceSource="unavailable",
-        lastWorkAreaActive=nil, lastWorkAreaActiveAgeMs=nil,
-        lastWorkAreaFunctionName="unknown",
-        lastWorkAreaOnlyActiveWhenLowered=nil,
-        lastCultivatorCallbackAgeMs=nil,
-        lastCultivatorProcessingAgeMs=nil,
-        lastCultivatorChangedAgeMs=nil,
-        lastCultivatorChangedArea=0,
-        lastCultivatorTotalArea=0,
-        workDetectionSource="inactive"
+        lowered = nil,
+        loweredAvailable = false,
+        chainLowered = nil,
+        chainLoweredAvailable = false,
+        foldAnimTime = nil,
+        foldMoveDirection = nil,
+        foldWorkPosition = nil,
+        workAreaActiveCount = 0,
+        workAreaCount = 0,
+        workAreaQueryAvailable = false,
+        groundReferenceActiveCount = 0,
+        groundReferenceCount = 0,
+        groundReferenceKnownCount = 0,
+        groundReferenceSource = "unavailable",
+        lastWorkAreaActive = nil,
+        lastWorkAreaActiveAgeMs = nil,
+        lastWorkAreaFunctionName = "unknown",
+        lastWorkAreaOnlyActiveWhenLowered = nil,
+        lastCultivatorCallbackAgeMs = nil,
+        lastCultivatorProcessingAgeMs = nil,
+        lastCultivatorChangedAgeMs = nil,
+        lastCultivatorChangedArea = 0,
+        lastCultivatorTotalArea = 0,
+        workDetectionSource = "inactive",
     }
 
-    result.lowered, result.loweredAvailable =
-        getBooleanCall(vehicle, "getIsLowered")
-    result.chainLowered, result.chainLoweredAvailable =
-        getBooleanCall(vehicle, "getIsImplementChainLowered", true)
+    result.lowered, result.loweredAvailable = getBooleanCall(vehicle, "getIsLowered")
+    result.chainLowered, result.chainLoweredAvailable = getBooleanCall(vehicle, "getIsImplementChainLowered", true)
 
-    if vehicle ~= nil and vehicle.getFoldAnimTime ~= nil then
-        local ok, value = pcall(vehicle.getFoldAnimTime, vehicle)
-        if ok then result.foldAnimTime = tonumber(value) end
+    if vehicle ~= nil and type(vehicle.getFoldAnimTime) == "function" then
+        local value = vehicle.getFoldAnimTime(vehicle)
+        do
+            result.foldAnimTime = tonumber(value)
+        end
     end
     local foldable = vehicle ~= nil and vehicle.spec_foldable or nil
     if foldable ~= nil then
-        result.foldMoveDirection = tonumber(foldable.foldMoveDirection)
-            or tonumber(foldable.foldDirection)
+        result.foldMoveDirection = tonumber(foldable.foldMoveDirection) or tonumber(foldable.foldDirection)
     end
-    if TerraLogic ~= nil
-        and TerraLogic.getIsOverSpeedWorkAreaInWorkPosition ~= nil then
-        local ok, value = pcall(
-            TerraLogic.getIsOverSpeedWorkAreaInWorkPosition, vehicle)
-        if ok then result.foldWorkPosition = value == true end
+    if TerraLogic ~= nil and type(TerraLogic.getIsOverSpeedWorkAreaInWorkPosition) == "function" then
+        local value = TerraLogic.getIsOverSpeedWorkAreaInWorkPosition(vehicle)
+        do
+            result.foldWorkPosition = value == true
+        end
     end
 
     local workAreaSpec = vehicle ~= nil and vehicle.spec_workArea or nil
     local workAreas = workAreaSpec ~= nil and workAreaSpec.workAreas or nil
     if workAreas ~= nil then
         result.workAreaCount = #workAreas
-        if vehicle.getIsWorkAreaActive ~= nil then
+        if type(vehicle.getIsWorkAreaActive) == "function" then
             result.workAreaQueryAvailable = true
             for _, workArea in ipairs(workAreas) do
-                local ok, active = pcall(
-                    vehicle.getIsWorkAreaActive, vehicle, workArea)
-                if ok and active == true then
-                    result.workAreaActiveCount =
-                        result.workAreaActiveCount + 1
+                local active = vehicle.getIsWorkAreaActive(vehicle, workArea)
+                if active == true then
+                    result.workAreaActiveCount = result.workAreaActiveCount + 1
                 end
             end
         end
     end
 
-    local groundSpec = vehicle ~= nil
-        and vehicle.spec_groundReferenceNodes or nil
-    local groundReferences = groundSpec ~= nil
-        and groundSpec.groundReferenceNodes or nil
+    local groundSpec = vehicle ~= nil and vehicle.spec_groundReferenceNodes or nil
+    local groundReferences = groundSpec ~= nil and groundSpec.groundReferenceNodes or nil
     if groundReferences ~= nil then
         result.groundReferenceCount = #groundReferences
         for _, reference in ipairs(groundReferences) do
             local known, active = false, false
-            if vehicle.getIsGroundReferenceNodeActive ~= nil then
-                local ok, value = pcall(
-                    vehicle.getIsGroundReferenceNodeActive,
-                    vehicle, reference)
-                if ok then
+            if type(vehicle.getIsGroundReferenceNodeActive) == "function" then
+                local value = vehicle.getIsGroundReferenceNodeActive(vehicle, reference)
+                do
                     known, active = true, value == true
                     result.groundReferenceSource = "engine query"
                 end
@@ -735,11 +758,9 @@ local function getImplementRuntimeState(vehicle, now)
                 end
             end
             if known then
-                result.groundReferenceKnownCount =
-                    result.groundReferenceKnownCount + 1
+                result.groundReferenceKnownCount = result.groundReferenceKnownCount + 1
                 if active then
-                    result.groundReferenceActiveCount =
-                        result.groundReferenceActiveCount + 1
+                    result.groundReferenceActiveCount = result.groundReferenceActiveCount + 1
                 end
             end
         end
@@ -747,41 +768,33 @@ local function getImplementRuntimeState(vehicle, now)
 
     local spec = vehicle ~= nil and vehicle.spec_terraLogic or nil
     if spec ~= nil then
-        result.workDetectionSource = tostring(
-            spec.workDetectionSource or "inactive")
+        result.workDetectionSource = tostring(spec.workDetectionSource or "inactive")
         result.lastWorkAreaActive = spec.lastWorkAreaActive
-        result.lastWorkAreaFunctionName = tostring(
-            spec.lastWorkAreaFunctionName or "unknown")
-        result.lastWorkAreaOnlyActiveWhenLowered =
-            spec.lastWorkAreaOnlyActiveWhenLowered
+        result.lastWorkAreaFunctionName = tostring(spec.lastWorkAreaFunctionName or "unknown")
+        result.lastWorkAreaOnlyActiveWhenLowered = spec.lastWorkAreaOnlyActiveWhenLowered
         if spec.lastWorkAreaActiveTime ~= nil then
-            result.lastWorkAreaActiveAgeMs = math.max(
-                now - (tonumber(spec.lastWorkAreaActiveTime) or now), 0)
+            result.lastWorkAreaActiveAgeMs = math.max(now - (tonumber(spec.lastWorkAreaActiveTime) or now), 0)
         end
         if spec.lastCultivatorCallbackTime ~= nil then
-            result.lastCultivatorCallbackAgeMs = math.max(
-                now - (tonumber(spec.lastCultivatorCallbackTime) or now), 0)
+            result.lastCultivatorCallbackAgeMs = math.max(now - (tonumber(spec.lastCultivatorCallbackTime) or now), 0)
         end
         if spec.lastCultivatorProcessingTime ~= nil then
-            result.lastCultivatorProcessingAgeMs = math.max(
-                now - (tonumber(spec.lastCultivatorProcessingTime) or now), 0)
+            result.lastCultivatorProcessingAgeMs =
+                math.max(now - (tonumber(spec.lastCultivatorProcessingTime) or now), 0)
         end
         if spec.lastCultivatorChangedTime ~= nil then
-            result.lastCultivatorChangedAgeMs = math.max(
-                now - (tonumber(spec.lastCultivatorChangedTime) or now), 0)
+            result.lastCultivatorChangedAgeMs = math.max(now - (tonumber(spec.lastCultivatorChangedTime) or now), 0)
         end
-        result.lastCultivatorChangedArea = tonumber(
-            spec.lastCultivatorCallbackChangedArea) or 0
-        result.lastCultivatorTotalArea = tonumber(
-            spec.lastCultivatorCallbackTotalArea) or 0
+        result.lastCultivatorChangedArea = tonumber(spec.lastCultivatorCallbackChangedArea) or 0
+        result.lastCultivatorTotalArea = tonumber(spec.lastCultivatorCallbackTotalArea) or 0
     end
     return result
 end
 
 function TerraLogicWheelCompactionManager:load()
     self.updateAccumulator = 0
-    self.vehicleStates = setmetatable({}, {__mode="k"})
-    self.diagnostics = setmetatable({}, {__mode="k"})
+    self.vehicleStates = setmetatable({}, { __mode = "k" })
+    self.diagnostics = setmetatable({}, { __mode = "k" })
     self.lastDiagnostic = nil
     self.lastDiagnosticVehicle = nil
 end
@@ -797,21 +810,33 @@ end
 -- uses GIANTS' solved tire loads, so mounted tools, fill and folded geometry
 -- are represented without inventing a second mass-distribution model.
 function TerraLogicWheelCompactionManager:getLoadPreview(vehicle)
-    local wheels = vehicle ~= nil and vehicle.spec_wheels ~= nil
-        and vehicle.spec_wheels.wheels or nil
+    local wheels = vehicle ~= nil and vehicle.spec_wheels ~= nil and vehicle.spec_wheels.wheels or nil
     local rootNode = getVehicleNode(vehicle)
-    local result = {massT=0, supportedLoadT=0, wheelCount=0, axleCount=0,
-        maxWheelLoadT=0, maxAxleLoadT=0, meanPressureKPa=0,
-        maxPressureKPa=0}
-    if vehicle ~= nil and vehicle.getTotalMass ~= nil then
+    local result = {
+        massT = 0,
+        supportedLoadT = 0,
+        wheelCount = 0,
+        axleCount = 0,
+        maxWheelLoadT = 0,
+        maxAxleLoadT = 0,
+        meanPressureKPa = 0,
+        maxPressureKPa = 0,
+    }
+    if vehicle ~= nil and type(vehicle.getTotalMass) == "function" then
         -- AttacherJoints:getTotalMass() includes the complete child train when
         -- the optional argument is omitted. The planner sums every object in
         -- that train itself, so request this object's own mass explicitly.
-        local ok, value = pcall(vehicle.getTotalMass, vehicle, true)
-        if ok then result.massT = math.max(tonumber(value) or 0, 0) end
-        if result.massT > 100 then result.massT = result.massT / 1000 end
+        local value = vehicle.getTotalMass(vehicle, true)
+        do
+            result.massT = math.max(tonumber(value) or 0, 0)
+        end
+        if result.massT > 100 then
+            result.massT = result.massT / 1000
+        end
     end
-    if wheels == nil or rootNode == nil then return result end
+    if wheels == nil or rootNode == nil then
+        return result
+    end
     local footprintSamples = {}
     for wheelIndex, wheel in pairs(wheels) do
         local loadT = getTireLoad(wheel)
@@ -821,19 +846,23 @@ function TerraLogicWheelCompactionManager:getLoadPreview(vehicle)
             if node ~= nil then
                 x, y, z = getWorldTranslation(node)
             end
-            local localX, localZ = getStableWheelLocalPosition(
-                rootNode, wheel, x, y, z)
-            local pressure, width, contactLength, tireCount, crawler,
-                diameter = getFootprint(wheel, loadT)
+            local localX, localZ = getStableWheelLocalPosition(rootNode, wheel, x, y, z)
+            local pressure, width, contactLength, tireCount, crawler, diameter = getFootprint(wheel, loadT)
             local sample = {
-                wheel=wheel,
-                identity=getWheelRuntimeIdentity(wheel, wheelIndex),
-                x=x or 0, z=z or 0, localX=localX,
-                loadT=loadT, axleLocalZ=localZ,
-                crawler=crawler, fieldConfirmed=false,
-                pressure=pressure, width=width,
-                contactLength=contactLength, tireCount=tireCount,
-                diameter=diameter
+                wheel = wheel,
+                identity = getWheelRuntimeIdentity(wheel, wheelIndex),
+                x = x or 0,
+                z = z or 0,
+                localX = localX,
+                loadT = loadT,
+                axleLocalZ = localZ,
+                crawler = crawler,
+                fieldConfirmed = false,
+                pressure = pressure,
+                width = width,
+                contactLength = contactLength,
+                tireCount = tireCount,
+                diameter = diameter,
             }
             footprintSamples[#footprintSamples + 1] = sample
             result.supportedLoadT = result.supportedLoadT + loadT
@@ -853,17 +882,14 @@ function TerraLogicWheelCompactionManager:getLoadPreview(vehicle)
     end
     local pressureSum = 0
     for _, footprint in ipairs(effectiveFootprints) do
-        result.maxPressureKPa = math.max(result.maxPressureKPa,
-            tonumber(footprint.pressure) or 0)
+        result.maxPressureKPa = math.max(result.maxPressureKPa, tonumber(footprint.pressure) or 0)
         pressureSum = pressureSum + (tonumber(footprint.pressure) or 0)
     end
     for _, axle in ipairs(buildAxleGroups(effectiveFootprints)) do
         result.axleCount = result.axleCount + 1
-        result.maxAxleLoadT = math.max(
-            result.maxAxleLoadT, axle.loadT or 0)
+        result.maxAxleLoadT = math.max(result.maxAxleLoadT, axle.loadT or 0)
     end
-    result.meanPressureKPa = #effectiveFootprints > 0
-        and pressureSum / #effectiveFootprints or 0
+    result.meanPressureKPa = #effectiveFootprints > 0 and pressureSum / #effectiveFootprints or 0
     result.crawlerModuleCount = #modules
     result.effectiveFootprintCount = #effectiveFootprints
     return result
@@ -874,19 +900,22 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
     local wheels = wheelSpec ~= nil and wheelSpec.wheels or nil
     local rootNode = getVehicleNode(vehicle)
     local speed = getVehicleSpeed(vehicle)
-    if wheels == nil or rootNode == nil or speed < self.MIN_SPEED_KMH then return end
+    if wheels == nil or rootNode == nil or speed < self.MIN_SPEED_KMH then
+        return
+    end
 
     local vehicleState = self.vehicleStates[vehicle]
     if vehicleState == nil then
         vehicleState = {
-            wheels=setmetatable({}, {__mode="k"}),
-            deepWheels=setmetatable({}, {__mode="k"}), deepModules={},
-            trackModules={}, axles={}
+            wheels = setmetatable({}, { __mode = "k" }),
+            deepWheels = setmetatable({}, { __mode = "k" }),
+            deepModules = {},
+            trackModules = {},
+            axles = {},
         }
         self.vehicleStates[vehicle] = vehicleState
     end
-    vehicleState.deepWheels = vehicleState.deepWheels
-        or setmetatable({}, {__mode="k"})
+    vehicleState.deepWheels = vehicleState.deepWheels or setmetatable({}, { __mode = "k" })
     vehicleState.deepModules = vehicleState.deepModules or {}
     vehicleState.trackModules = vehicleState.trackModules or {}
 
@@ -899,11 +928,13 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
     -- deep axle-load stress always remains active.
     local workingImplementSurfaceSuppressed = false
     local terraLogicSpec = vehicle.spec_terraLogic
-    if terraLogicSpec ~= nil and terraLogicSpec.isGroundTool == true
-        and vehicle.getIsOverSpeedGroundContactActive ~= nil then
-        local ok, active = pcall(
-            vehicle.getIsOverSpeedGroundContactActive, vehicle)
-        workingImplementSurfaceSuppressed = ok and active == true
+    if
+        terraLogicSpec ~= nil
+        and terraLogicSpec.isGroundTool == true
+        and type(vehicle.getIsOverSpeedGroundContactActive) == "function"
+    then
+        local active = vehicle.getIsOverSpeedGroundContactActive(vehicle)
+        workingImplementSurfaceSuppressed = active == true
     end
     local implementRuntimeState = getImplementRuntimeState(vehicle, now)
 
@@ -928,13 +959,17 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
     local deepStressWidthSum = 0
     local firstX, firstZ = nil, nil
     local vehicleMass = 0
-    if vehicle.getTotalMass ~= nil then
-        local ok, value = pcall(vehicle.getTotalMass, vehicle)
-        if ok then vehicleMass = math.max(tonumber(value) or 0, 0) end
+    if type(vehicle.getTotalMass) == "function" then
+        local value = vehicle.getTotalMass(vehicle)
+        do
+            vehicleMass = math.max(tonumber(value) or 0, 0)
+        end
     end
     -- Base-game and third-party vehicle implementations expose this value in
     -- either tonnes or kilograms. WheelPhysics loads are normalized to tonnes.
-    if vehicleMass > 100 then vehicleMass = vehicleMass / 1000 end
+    if vehicleMass > 100 then
+        vehicleMass = vehicleMass / 1000
+    end
     local lateralX, _, lateralZ = localDirectionToWorld(rootNode, 1, 0, 0)
     local lateralLength = math.sqrt(lateralX * lateralX + lateralZ * lateralZ)
     if lateralLength > 0.0001 then
@@ -948,40 +983,45 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
         if loadT >= self.MIN_WHEEL_LOAD_T then
             local x, y, z = getContactPoint(wheel)
             if x ~= nil and z ~= nil then
-                local pressure, width, length, tireCount, crawler, diameter =
-                    getFootprint(wheel, loadT)
+                local pressure, width, length, tireCount, crawler, diameter = getFootprint(wheel, loadT)
                 local fieldConfirmed = getIsOnField(wheel)
-                local surfaceIx, surfaceIz, surfaceCellKey = getCell(
-                    x, z, TerraLogicSoilManager.WHEEL_CELL_SIZE or 1)
-                local structureIx, structureIz, structureCellKey = getCell(
-                    x, z, self.STRUCTURE_CELL_SIZE_M)
-                local localX, axleLocalZ = getStableWheelLocalPosition(
-                    rootNode, wheel, x, y, z)
+                local surfaceIx, surfaceIz, surfaceCellKey = getCell(x, z, TerraLogicSoilManager.WHEEL_CELL_SIZE or 1)
+                local structureIx, structureIz, structureCellKey = getCell(x, z, self.STRUCTURE_CELL_SIZE_M)
+                local localX, axleLocalZ = getStableWheelLocalPosition(rootNode, wheel, x, y, z)
                 local deepStressWidth = getDeepStressWidth(width)
-                local deepIx, deepIz, deepCellKey = getCell(
-                    x, z, self.DEEP_CELL_SIZE_M)
+                local deepIx, deepIz, deepCellKey = getCell(x, z, self.DEEP_CELL_SIZE_M)
                 observations[#observations + 1] = {
-                    wheel=wheel,
-                    identity=getWheelRuntimeIdentity(wheel, wheelIndex),
-                    x=x, z=z,
-                    surfaceIx=surfaceIx, surfaceIz=surfaceIz,
-                    surfaceCellKey=surfaceCellKey,
-                    structureIx=structureIx, structureIz=structureIz,
-                    structureCellKey=structureCellKey,
-                    pressure=pressure, crawler=crawler,
-                    loadT=loadT, width=width, diameter=diameter,
-                    contactLength=length,
-                    deepStressWidth=deepStressWidth,
-                    deepIx=deepIx, deepIz=deepIz,
-                    deepCellKey=deepCellKey, axleLocalZ=axleLocalZ,
-                    localX=localX,
-                    tireCount=tireCount,
-                    fieldConfirmed=fieldConfirmed
+                    wheel = wheel,
+                    identity = getWheelRuntimeIdentity(wheel, wheelIndex),
+                    x = x,
+                    z = z,
+                    surfaceIx = surfaceIx,
+                    surfaceIz = surfaceIz,
+                    surfaceCellKey = surfaceCellKey,
+                    structureIx = structureIx,
+                    structureIz = structureIz,
+                    structureCellKey = structureCellKey,
+                    pressure = pressure,
+                    crawler = crawler,
+                    loadT = loadT,
+                    width = width,
+                    diameter = diameter,
+                    contactLength = length,
+                    deepStressWidth = deepStressWidth,
+                    deepIx = deepIx,
+                    deepIz = deepIz,
+                    deepCellKey = deepCellKey,
+                    axleLocalZ = axleLocalZ,
+                    localX = localX,
+                    tireCount = tireCount,
+                    fieldConfirmed = fieldConfirmed,
                 }
                 totalLoad = totalLoad + loadT
                 minimumWheelLoad = math.min(minimumWheelLoad, loadT)
                 maximumWheelLoad = math.max(maximumWheelLoad, loadT)
-                if crawler then crawlerCount = crawlerCount + 1 end
+                if crawler then
+                    crawlerCount = crawlerCount + 1
+                end
                 if fieldConfirmed then
                     fieldContactCount = fieldContactCount + 1
                 end
@@ -989,26 +1029,24 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
             end
         end
     end
-    if #observations == 0 then return end
+    if #observations == 0 then
+        return
+    end
 
-    local crawlerModules, pairedCrawlerObservations =
-        buildCrawlerModules(observations)
+    local crawlerModules, pairedCrawlerObservations = buildCrawlerModules(observations)
     local surfaceObservations = {}
     for _, observation in ipairs(observations) do
-        if observation.crawler ~= true
-            or not pairedCrawlerObservations[observation] then
+        if observation.crawler ~= true or not pairedCrawlerObservations[observation] then
             surfaceObservations[#surfaceObservations + 1] = observation
         end
     end
     for _, module in ipairs(crawlerModules) do
-        module.surfaceIx, module.surfaceIz, module.surfaceCellKey = getCell(
-            module.x, module.z, TerraLogicSoilManager.WHEEL_CELL_SIZE or 1)
-        module.structureIx, module.structureIz,
-            module.structureCellKey = getCell(
-                module.x, module.z, self.STRUCTURE_CELL_SIZE_M)
+        module.surfaceIx, module.surfaceIz, module.surfaceCellKey =
+            getCell(module.x, module.z, TerraLogicSoilManager.WHEEL_CELL_SIZE or 1)
+        module.structureIx, module.structureIz, module.structureCellKey =
+            getCell(module.x, module.z, self.STRUCTURE_CELL_SIZE_M)
         module.deepStressWidth = getDeepStressWidth(module.width)
-        module.deepIx, module.deepIz, module.deepCellKey = getCell(
-            module.x, module.z, self.DEEP_CELL_SIZE_M)
+        module.deepIx, module.deepIz, module.deepCellKey = getCell(module.x, module.z, self.DEEP_CELL_SIZE_M)
         surfaceObservations[#surfaceObservations + 1] = module
     end
     local unmatchedCrawlerCount = 0
@@ -1018,10 +1056,8 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
         widthSum = widthSum + observation.width
         diameterSum = diameterSum + observation.diameter
         contactLengthSum = contactLengthSum + observation.contactLength
-        deepStressWidthSum = deepStressWidthSum
-            + observation.deepStressWidth
-        physicalTireCount = physicalTireCount
-            + (observation.tireCount or 1)
+        deepStressWidthSum = deepStressWidthSum + observation.deepStressWidth
+        physicalTireCount = physicalTireCount + (observation.tireCount or 1)
         if observation.crawler == true and observation.members == nil then
             unmatchedCrawlerCount = unmatchedCrawlerCount + 1
         end
@@ -1038,17 +1074,14 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
     local axleLoads, axleLocalPositions, axlePositionSpreads = {}, {}, {}
     for axleIndex, axle in ipairs(axles) do
         axleCount = axleCount + 1
-        axle.deepTarget, axle.deepStrength, axle.deepStressKPa,
-            axle.deepEquivalentAxleT = TerraLogicDeepStress:getGroupImpact(
-                axleIndex, surfaceObservations, getFootprint)
+        axle.deepTarget, axle.deepStrength, axle.deepStressKPa, axle.deepEquivalentAxleT =
+            TerraLogicDeepStress:getGroupImpact(axleIndex, surfaceObservations, getFootprint)
         maxAxleLoad = math.max(maxAxleLoad, axle.loadT)
         maxDeepTarget = math.max(maxDeepTarget, axle.deepTarget or 0)
         maxDeepStrength = math.max(maxDeepStrength, axle.deepStrength or 0)
         axleLoads[axleIndex] = axle.loadT
         axleLocalPositions[axleIndex] = axle.localZ
-        axlePositionSpreads[axleIndex] = math.max(
-            (axle.maxLocalZ or axle.localZ)
-                - (axle.minLocalZ or axle.localZ), 0)
+        axlePositionSpreads[axleIndex] = math.max((axle.maxLocalZ or axle.localZ) - (axle.minLocalZ or axle.localZ), 0)
     end
 
     local impacts = {}
@@ -1065,9 +1098,13 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
         end
         if wheelState == nil then
             wheelState = {
-                surfaceCellKey=nil, structureCellKey=nil,
-                deepCellKey=nil,
-                lastSlipTime=-100000, sampleTime=nil, x=nil, z=nil
+                surfaceCellKey = nil,
+                structureCellKey = nil,
+                deepCellKey = nil,
+                lastSlipTime = -100000,
+                sampleTime = nil,
+                x = nil,
+                z = nil,
             }
             if observation.members ~= nil then
                 vehicleState.trackModules[observation.key] = wheelState
@@ -1075,68 +1112,63 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
                 vehicleState.wheels[observation.wheel] = wheelState
             end
         end
-        resetDiscontinuousWheelSample(wheelState,
-            observation.x, observation.z, now, speed)
+        resetDiscontinuousWheelSample(wheelState, observation.x, observation.z, now, speed)
         local slip, rawSlip = 0, 0
         if observation.members ~= nil then
             for _, member in ipairs(observation.members) do
                 local memberState = vehicleState.wheels[member.wheel]
                 if memberState == nil then
-                    memberState = {lastSlipTime=-100000, sampleTime=nil,
-                        x=nil, z=nil}
+                    memberState = { lastSlipTime = -100000, sampleTime = nil, x = nil, z = nil }
                     vehicleState.wheels[member.wheel] = memberState
                 end
-                resetDiscontinuousWheelSample(memberState,
-                    member.x, member.z, now, speed)
-                local memberSlip, memberRawSlip = getCorrectedSlip(
-                    member.wheel, memberState, member.x, member.z, now)
+                resetDiscontinuousWheelSample(memberState, member.x, member.z, now, speed)
+                local memberSlip, memberRawSlip = getCorrectedSlip(member.wheel, memberState, member.x, member.z, now)
                 slip = math.max(slip, memberSlip)
                 rawSlip = math.max(rawSlip, memberRawSlip or 0)
                 memberState.x, memberState.z = member.x, member.z
                 memberState.sampleTime = now
             end
         else
-            slip, rawSlip = getCorrectedSlip(
-                observation.wheel, wheelState,
-                observation.x, observation.z, now)
+            slip, rawSlip = getCorrectedSlip(observation.wheel, wheelState, observation.x, observation.z, now)
         end
-        local target, strength, slipSeverity, pressureDriver,
-            lowPressureResponse = getSurfaceImpact(observation.pressure, slip)
+        local target, strength, slipSeverity, pressureDriver, lowPressureResponse =
+            getSurfaceImpact(observation.pressure, slip)
         maxSlip = math.max(maxSlip, slip)
         maxRawSlip = math.max(maxRawSlip, rawSlip or 0)
-        local enteredStructure = wheelState.structureCellKey
-            ~= observation.structureCellKey
-        local spinningAgain = slipSeverity > 0.05
-            and now - wheelState.lastSlipTime >= self.SLIP_REPEAT_MS
+        local enteredStructure = wheelState.structureCellKey ~= observation.structureCellKey
+        local spinningAgain = slipSeverity > 0.05 and now - wheelState.lastSlipTime >= self.SLIP_REPEAT_MS
         if target ~= nil then
             local cellSize = TerraLogicSoilManager.WHEEL_CELL_SIZE or 1
-            for _, cell in ipairs(getSurfaceBandCells(
-                    wheelState.x, wheelState.z,
-                    observation.x, observation.z, observation.width,
-                    lateralX, lateralZ)) do
-                local impact = mergeImpact(impacts,
-                    cell.ix, cell.iz, cellSize)
-                impact.surfaceCoverage = clamp01(
-                    (tonumber(impact.surfaceCoverage) or 0)
-                        + clamp01(cell.coverage))
+            for _, cell in
+                ipairs(
+                    getSurfaceBandCells(
+                        wheelState.x,
+                        wheelState.z,
+                        observation.x,
+                        observation.z,
+                        observation.width,
+                        lateralX,
+                        lateralZ
+                    )
+                )
+            do
+                local impact = mergeImpact(impacts, cell.ix, cell.iz, cellSize)
+                impact.surfaceCoverage = clamp01((tonumber(impact.surfaceCoverage) or 0) + clamp01(cell.coverage))
                 if workingImplementSurfaceSuppressed then
                     impact.workingImplementSurfaceSuppressed = true
-                    impact.suppressedSurfaceTarget = math.max(
-                        tonumber(impact.suppressedSurfaceTarget) or 0,
-                        target)
-                    impact.suppressedSurfaceStrength = math.max(
-                        tonumber(impact.suppressedSurfaceStrength) or 0,
-                        strength)
-                elseif impact.surfaceTarget == nil
-                        or target > impact.surfaceTarget
-                        or (math.abs(target-impact.surfaceTarget) < 0.000001
-                            and strength > (impact.surfaceStrength or 0)) then
+                    impact.suppressedSurfaceTarget = math.max(tonumber(impact.suppressedSurfaceTarget) or 0, target)
+                    impact.suppressedSurfaceStrength =
+                        math.max(tonumber(impact.suppressedSurfaceStrength) or 0, strength)
+                elseif
+                    impact.surfaceTarget == nil
+                    or target > impact.surfaceTarget
+                    or (math.abs(target - impact.surfaceTarget) < 0.000001 and strength > (impact.surfaceStrength or 0))
+                then
                     impact.surfaceTarget = target
                     impact.surfaceStrength = strength
                     impact.surfaceLowPressureResponse = lowPressureResponse
                 end
-                if impact.surfacePressureKPa == nil
-                        or observation.pressure > impact.surfacePressureKPa then
+                if impact.surfacePressureKPa == nil or observation.pressure > impact.surfacePressureKPa then
                     local identity = observation.identity or {}
                     impact.surfacePressureKPa = observation.pressure
                     impact.surfaceWheelLoadT = observation.loadT
@@ -1147,8 +1179,7 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
                     impact.surfaceCrawler = observation.crawler
                     impact.surfaceWheelIndex = identity.index
                     impact.surfaceWheelNodeName = identity.reprName
-                    impact.surfaceWheelExternalFilename =
-                        identity.externalFilename
+                    impact.surfaceWheelExternalFilename = identity.externalFilename
                     impact.surfaceWheelVisualCount = identity.visualCount
                     impact.surfaceWheelRestLoadT = identity.restLoadT
                 end
@@ -1157,9 +1188,11 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
                 -- their own centre in the soil manager, otherwise a contact
                 -- near a field edge can draw thin soil-map hairs outside it.
                 impact.fieldConfirmed = impact.fieldConfirmed == true
-                    or (cell.ix == observation.surfaceIx
+                    or (
+                        cell.ix == observation.surfaceIx
                         and cell.iz == observation.surfaceIz
-                        and observation.fieldConfirmed == true)
+                        and observation.fieldConfirmed == true
+                    )
             end
             if workingImplementSurfaceSuppressed then
                 suppressedSurfaceContacts = suppressedSurfaceContacts + 1
@@ -1175,18 +1208,26 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
         -- Merge every wheel belonging to the same two-metre structural cell.
         -- The soil manager therefore applies Tilth/Evenness once per physical
         -- passage instead of once for each one-metre contact sample.
-        if enteredStructure and target ~= nil
+        if
+            enteredStructure
+            and target ~= nil
             and (pressureDriver > 0 or slipSeverity > 0)
-            and not workingImplementSurfaceSuppressed then
-            for _, cell in ipairs(getSegmentCells(
-                    wheelState.x, wheelState.z,
-                    observation.x, observation.z,
-                    self.STRUCTURE_CELL_SIZE_M)) do
-                local impact = mergeImpact(impacts,
-                    cell.ix, cell.iz, self.STRUCTURE_CELL_SIZE_M)
+            and not workingImplementSurfaceSuppressed
+        then
+            for _, cell in
+                ipairs(
+                    getSegmentCells(
+                        wheelState.x,
+                        wheelState.z,
+                        observation.x,
+                        observation.z,
+                        self.STRUCTURE_CELL_SIZE_M
+                    )
+                )
+            do
+                local impact = mergeImpact(impacts, cell.ix, cell.iz, self.STRUCTURE_CELL_SIZE_M)
                 impact.structurePass = true
-                if impact.structurePressureDriver == nil
-                        or pressureDriver > impact.structurePressureDriver then
+                if impact.structurePressureDriver == nil or pressureDriver > impact.structurePressureDriver then
                     impact.structurePressureDriver = pressureDriver
                     impact.structurePressureKPa = observation.pressure
                     impact.structureSurfaceStrength = strength
@@ -1198,29 +1239,35 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
                     impact.structureCrawler = observation.crawler
                 end
                 impact.fieldConfirmed = impact.fieldConfirmed == true
-                    or (cell.ix == observation.structureIx
+                    or (
+                        cell.ix == observation.structureIx
                         and cell.iz == observation.structureIz
-                        and observation.fieldConfirmed == true)
+                        and observation.fieldConfirmed == true
+                    )
             end
         end
-        if slipSeverity > 0 and (enteredStructure or spinningAgain)
-            and not workingImplementSurfaceSuppressed then
-            for _, cell in ipairs(getSegmentCells(
-                    wheelState.x, wheelState.z,
-                    observation.x, observation.z,
-                    self.STRUCTURE_CELL_SIZE_M)) do
-                local impact = mergeImpact(impacts,
-                    cell.ix, cell.iz, self.STRUCTURE_CELL_SIZE_M)
-                impact.slipSeverity = math.max(
-                    impact.slipSeverity or 0, slipSeverity)
-                impact.correctedSlip = math.max(
-                    impact.correctedSlip or 0, slip)
-                impact.rawSlip = math.max(
-                    impact.rawSlip or 0, rawSlip or 0)
+        if slipSeverity > 0 and (enteredStructure or spinningAgain) and not workingImplementSurfaceSuppressed then
+            for _, cell in
+                ipairs(
+                    getSegmentCells(
+                        wheelState.x,
+                        wheelState.z,
+                        observation.x,
+                        observation.z,
+                        self.STRUCTURE_CELL_SIZE_M
+                    )
+                )
+            do
+                local impact = mergeImpact(impacts, cell.ix, cell.iz, self.STRUCTURE_CELL_SIZE_M)
+                impact.slipSeverity = math.max(impact.slipSeverity or 0, slipSeverity)
+                impact.correctedSlip = math.max(impact.correctedSlip or 0, slip)
+                impact.rawSlip = math.max(impact.rawSlip or 0, rawSlip or 0)
                 impact.fieldConfirmed = impact.fieldConfirmed == true
-                    or (cell.ix == observation.structureIx
+                    or (
+                        cell.ix == observation.structureIx
                         and cell.iz == observation.structureIz
-                        and observation.fieldConfirmed == true)
+                        and observation.fieldConfirmed == true
+                    )
             end
             wheelState.lastSlipTime = now
         end
@@ -1234,49 +1281,52 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
     -- stress profile retains support peaks in TerraLogicDeepStress. One belt
     -- crossing must not generate two independent compacting axle passages.
     for _, observation in ipairs(surfaceObservations) do
-        local states = observation.members ~= nil and vehicleState.deepModules
-            or vehicleState.deepWheels
-        local stateKey = observation.members ~= nil and observation.key
-            or observation.wheel
+        local states = observation.members ~= nil and vehicleState.deepModules or vehicleState.deepWheels
+        local stateKey = observation.members ~= nil and observation.key or observation.wheel
         local deepState = states[stateKey]
         if deepState == nil then
-            deepState = {deepCellKey=nil, sampleTime=nil, x=nil, z=nil}
+            deepState = { deepCellKey = nil, sampleTime = nil, x = nil, z = nil }
             states[stateKey] = deepState
         end
-        resetDiscontinuousWheelSample(deepState,
-            observation.x, observation.z, now, speed)
-        local enteredDeep = deepState.deepCellKey
-            ~= observation.deepCellKey
+        resetDiscontinuousWheelSample(deepState, observation.x, observation.z, now, speed)
+        local enteredDeep = deepState.deepCellKey ~= observation.deepCellKey
         local axle = axles[observation.axleKey]
         if enteredDeep and axle ~= nil and axle.deepTarget ~= nil then
-            for _, deepCell in ipairs(getDeepBandCells(
-                    deepState.x, deepState.z,
-                    observation.x, observation.z,
-                    observation.deepStressWidth,
-                    lateralX, lateralZ)) do
+            for _, deepCell in
+                ipairs(
+                    getDeepBandCells(
+                        deepState.x,
+                        deepState.z,
+                        observation.x,
+                        observation.z,
+                        observation.deepStressWidth,
+                        lateralX,
+                        lateralZ
+                    )
+                )
+            do
                 local coverage = clamp01(deepCell.coverage)
-                local impact = mergeImpact(impacts,
-                    deepCell.ix, deepCell.iz,
+                local impact = mergeImpact(
+                    impacts,
+                    deepCell.ix,
+                    deepCell.iz,
                     self.DEEP_CELL_SIZE_M,
-                    "deepAxle" .. tostring(observation.axleKey))
+                    "deepAxle" .. tostring(observation.axleKey)
+                )
                 impact.deepTarget = axle.deepTarget
                 impact.deepStrength = axle.deepStrength
                 impact.deepStressModel = true
                 impact.deepStressKPa = axle.deepStressKPa
                 impact.deepEquivalentAxleT = axle.deepEquivalentAxleT
-                impact.deepCoverage = clamp01(
-                    (tonumber(impact.deepCoverage) or 0) + coverage)
-                impact.deepCoveredWidthM = math.max(
-                    tonumber(impact.deepCoveredWidthM) or 0,
-                    observation.deepStressWidth)
+                impact.deepCoverage = clamp01((tonumber(impact.deepCoverage) or 0) + coverage)
+                impact.deepCoveredWidthM =
+                    math.max(tonumber(impact.deepCoveredWidthM) or 0, observation.deepStressWidth)
                 impact.fieldConfirmed = false
-                maximumDeepCoverage = math.max(
-                    maximumDeepCoverage, impact.deepCoverage)
+                maximumDeepCoverage = math.max(maximumDeepCoverage, impact.deepCoverage)
                 deepCoverageSum = deepCoverageSum + coverage
                 deepCoverageCount = deepCoverageCount + 1
                 vehicleState.lastDeepCoverage = impact.deepCoverage
-                vehicleState.lastDeepStressWidth =
-                    observation.deepStressWidth
+                vehicleState.lastDeepStressWidth = observation.deepStressWidth
                 vehicleState.lastDeepCoverageTime = now
             end
         end
@@ -1295,16 +1345,25 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
     local changedCells, impactCount, structureImpactCount = 0, 0, 0
     local impactCountBySize = {}
     local changedByLayer = {
-        surfaceCompaction=0, deepCompaction=0, aggregateSize=0,
-        roughness=0, resilience=0
+        surfaceCompaction = 0,
+        deepCompaction = 0,
+        aggregateSize = 0,
+        roughness = 0,
+        resilience = 0,
     }
     local deltaByLayer = {
-        surfaceCompaction=0, deepCompaction=0, aggregateSize=0,
-        roughness=0, resilience=0
+        surfaceCompaction = 0,
+        deepCompaction = 0,
+        aggregateSize = 0,
+        roughness = 0,
+        resilience = 0,
     }
     local maximumDeltaByLayer = {
-        surfaceCompaction=0, deepCompaction=0, aggregateSize=0,
-        roughness=0, resilience=0
+        surfaceCompaction = 0,
+        deepCompaction = 0,
+        aggregateSize = 0,
+        roughness = 0,
+        resilience = 0,
     }
     local maxSurfaceTargetApplied, maxSurfaceStrengthApplied = 0, 0
     local maxDeepStrengthApplied = 0
@@ -1314,8 +1373,7 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
     local trafficWarningLevel = 0
     local trafficStatus = TerraLogicTrafficWarnings:newStatus()
     for _, impact in pairs(impacts) do
-        impact.workingImplementSurfaceSuppressed =
-            workingImplementSurfaceSuppressed
+        impact.workingImplementSurfaceSuppressed = workingImplementSurfaceSuppressed
         impact.suppressedSurfaceContacts = suppressedSurfaceContacts
         impact.maxSuppressedSurfaceTarget = maxSuppressedTarget
         impact.maxSuppressedSurfaceStrength = maxSuppressedStrength
@@ -1324,14 +1382,10 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
         impact.implementRuntimeState = implementRuntimeState
         if maxSuppressedIdentity ~= nil then
             impact.maxSuppressedWheelIndex = maxSuppressedIdentity.index
-            impact.maxSuppressedWheelNodeName =
-                maxSuppressedIdentity.reprName
-            impact.maxSuppressedWheelExternalFilename =
-                maxSuppressedIdentity.externalFilename
-            impact.maxSuppressedWheelRestLoadT =
-                maxSuppressedIdentity.restLoadT
-            impact.maxSuppressedWheelVisualCount =
-                maxSuppressedIdentity.visualCount
+            impact.maxSuppressedWheelNodeName = maxSuppressedIdentity.reprName
+            impact.maxSuppressedWheelExternalFilename = maxSuppressedIdentity.externalFilename
+            impact.maxSuppressedWheelRestLoadT = maxSuppressedIdentity.restLoadT
+            impact.maxSuppressedWheelVisualCount = maxSuppressedIdentity.visualCount
         end
         -- Preserve causal data on every accepted cell impact. The soil-process
         -- panel/logger can now distinguish tractor, trailed implement and any
@@ -1343,10 +1397,8 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
         impact.sourceWheelCount = #observations
         impact.sourceAxleCount = axleCount
         impact.sourceMaxAxleLoadT = maxAxleLoad
-        impact.sourceMeanAxleLoadT = axleCount > 0
-            and totalLoad / axleCount or 0
-        impact.sourceMeanPressureKPa = #surfaceObservations > 0
-            and pressureSum / #surfaceObservations or 0
+        impact.sourceMeanAxleLoadT = axleCount > 0 and totalLoad / axleCount or 0
+        impact.sourceMeanPressureKPa = #surfaceObservations > 0 and pressureSum / #surfaceObservations or 0
         impact.sourceMaxPressureKPa = maxPressure
         impactCount = impactCount + 1
         local sizeKey = tonumber(impact.cellSize) or 0
@@ -1354,50 +1406,42 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
         if impact.structurePass == true or (impact.slipSeverity or 0) > 0 then
             structureImpactCount = structureImpactCount + 1
         end
-        local changed, detail = TerraLogicSoilManager:applyWheelCompactionCell(
-            impact.ix, impact.iz, impact)
+        local changed, detail = TerraLogicSoilManager:applyWheelCompactionCell(impact.ix, impact.iz, impact)
         if detail ~= nil then
             TerraLogicTrafficWarnings:accumulateReference(trafficStatus, detail, vehicle, now)
-            if lastImpact == nil
+            if
+                lastImpact == nil
                 or detail.workingImplementSurfaceSuppressed == true
                 or detail.structurePass == true
-                or (detail.slipSeverity or 0) > 0 then
+                or (detail.slipSeverity or 0) > 0
+            then
                 lastImpact = detail
             end
-            local surfaceDelta = math.abs(detail.delta ~= nil
-                and tonumber(detail.delta.surfaceCompaction) or 0)
+            local surfaceDelta = math.abs(detail.delta ~= nil and tonumber(detail.delta.surfaceCompaction) or 0)
             if (tonumber(detail.surfaceTarget) or 0) > 0 then
-                local score = surfaceDelta * 10
-                    + (tonumber(detail.surfaceTarget) or 0)
+                local score = surfaceDelta * 10 + (tonumber(detail.surfaceTarget) or 0)
                 if score > representativeSurfaceScore then
                     representativeSurfaceImpact = detail
                     representativeSurfaceScore = score
                 end
             end
-            local deepDelta = math.abs(detail.delta ~= nil
-                and tonumber(detail.delta.deepCompaction) or 0)
+            local deepDelta = math.abs(detail.delta ~= nil and tonumber(detail.delta.deepCompaction) or 0)
             if (tonumber(detail.deepTarget) or 0) > 0 then
-                local score = deepDelta * 10
-                    + (tonumber(detail.deepTarget) or 0)
+                local score = deepDelta * 10 + (tonumber(detail.deepTarget) or 0)
                 if score > representativeDeepScore then
                     representativeDeepImpact = detail
                     representativeDeepScore = score
                 end
             end
-            maxSurfaceTargetApplied = math.max(maxSurfaceTargetApplied,
-                tonumber(detail.surfaceTarget) or 0)
-            maxSurfaceStrengthApplied = math.max(maxSurfaceStrengthApplied,
-                tonumber(detail.surfaceAppliedStrength) or 0)
-            maxDeepStrengthApplied = math.max(maxDeepStrengthApplied,
-                tonumber(detail.deepAppliedStrength) or 0)
+            maxSurfaceTargetApplied = math.max(maxSurfaceTargetApplied, tonumber(detail.surfaceTarget) or 0)
+            maxSurfaceStrengthApplied =
+                math.max(maxSurfaceStrengthApplied, tonumber(detail.surfaceAppliedStrength) or 0)
+            maxDeepStrengthApplied = math.max(maxDeepStrengthApplied, tonumber(detail.deepAppliedStrength) or 0)
             for layerId in pairs(changedByLayer) do
-                local delta = detail.delta ~= nil
-                    and tonumber(detail.delta[layerId]) or 0
+                local delta = detail.delta ~= nil and tonumber(detail.delta[layerId]) or 0
                 deltaByLayer[layerId] = deltaByLayer[layerId] + delta
-                maximumDeltaByLayer[layerId] = math.max(
-                    maximumDeltaByLayer[layerId], math.abs(delta))
-                if detail.changedLayers ~= nil
-                    and detail.changedLayers[layerId] == true then
+                maximumDeltaByLayer[layerId] = math.max(maximumDeltaByLayer[layerId], math.abs(delta))
+                if detail.changedLayers ~= nil and detail.changedLayers[layerId] == true then
                     changedByLayer[layerId] = changedByLayer[layerId] + 1
                 end
             end
@@ -1409,25 +1453,18 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
     -- Do not reuse the diagnostic fallback to older representative impacts:
     -- warnings must describe this pass, including a fresh zero on leaving soil.
     TerraLogicTrafficWarnings:record(vehicle, trafficWarningLevel, now, trafficStatus)
-    vehicleState.totalChangedCells = (vehicleState.totalChangedCells or 0)
-        + changedCells
-    vehicleState.totalImpactCells = (vehicleState.totalImpactCells or 0)
-        + impactCount
-    vehicleState.totalStructureCells =
-        (vehicleState.totalStructureCells or 0) + structureImpactCount
+    vehicleState.totalChangedCells = (vehicleState.totalChangedCells or 0) + changedCells
+    vehicleState.totalImpactCells = (vehicleState.totalImpactCells or 0) + impactCount
+    vehicleState.totalStructureCells = (vehicleState.totalStructureCells or 0) + structureImpactCount
     vehicleState.totalChangedByLayer = vehicleState.totalChangedByLayer or {}
     vehicleState.totalDeltaByLayer = vehicleState.totalDeltaByLayer or {}
-    vehicleState.maximumDeltaByLayer =
-        vehicleState.maximumDeltaByLayer or {}
+    vehicleState.maximumDeltaByLayer = vehicleState.maximumDeltaByLayer or {}
     for layerId, count in pairs(changedByLayer) do
-        vehicleState.totalChangedByLayer[layerId] =
-            (vehicleState.totalChangedByLayer[layerId] or 0) + count
-        vehicleState.totalDeltaByLayer[layerId] =
-            (vehicleState.totalDeltaByLayer[layerId] or 0)
+        vehicleState.totalChangedByLayer[layerId] = (vehicleState.totalChangedByLayer[layerId] or 0) + count
+        vehicleState.totalDeltaByLayer[layerId] = (vehicleState.totalDeltaByLayer[layerId] or 0)
             + (deltaByLayer[layerId] or 0)
-        vehicleState.maximumDeltaByLayer[layerId] = math.max(
-            vehicleState.maximumDeltaByLayer[layerId] or 0,
-            maximumDeltaByLayer[layerId] or 0)
+        vehicleState.maximumDeltaByLayer[layerId] =
+            math.max(vehicleState.maximumDeltaByLayer[layerId] or 0, maximumDeltaByLayer[layerId] or 0)
     end
     if representativeSurfaceImpact ~= nil then
         vehicleState.lastSurfaceImpact = representativeSurfaceImpact
@@ -1453,84 +1490,83 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
         crawlerModuleLocalZ[index] = module.axleLocalZ
     end
     local diagnostic = {
-        vehicle=vehicle, vehicleName=sourceVehicleName,
-        configFileName=sourceConfigFileName,
-        time=now, speed=speed, wheelCount=#observations,
-        vehicleMass=vehicleMass,
-        supportedLoadRatio=vehicleMass > 0 and totalLoad / vehicleMass or 0,
-        totalLoad=totalLoad, maxPressure=maxPressure, maxSlip=maxSlip,
-        maxRawSlip=maxRawSlip,
-        minWheelLoad=minimumWheelLoad < math.huge and minimumWheelLoad or 0,
-        maxWheelLoad=maximumWheelLoad,
-        meanWheelLoad=#observations > 0 and totalLoad / #observations or 0,
-        effectiveFootprintCount=#surfaceObservations,
-        meanPressure=#surfaceObservations > 0
-            and pressureSum / #surfaceObservations or 0,
-        meanWidth=#surfaceObservations > 0
-            and widthSum / #surfaceObservations or 0,
-        meanDiameter=#surfaceObservations > 0
-            and diameterSum / #surfaceObservations or 0,
-        meanContactLength=#surfaceObservations > 0
-            and contactLengthSum / #surfaceObservations or 0,
-        meanDeepStressWidth=#surfaceObservations > 0
-            and deepStressWidthSum / #surfaceObservations or 0,
-        physicalTireCount=physicalTireCount,
-        crawlerCount=crawlerCount,
-        crawlerModuleCount=#crawlerModules,
-        unmatchedCrawlerCount=unmatchedCrawlerCount,
-        crawlerModuleLoads=crawlerModuleLoads,
-        crawlerModuleWidths=crawlerModuleWidths,
-        crawlerModuleContactSpacings=crawlerModuleSpacings,
-        crawlerModuleContactLengths=crawlerModuleLengths,
-        crawlerModulePressures=crawlerModulePressures,
-        crawlerModuleLocalX=crawlerModuleLocalX,
-        crawlerModuleLocalZ=crawlerModuleLocalZ,
-        changedCells=changedCells,
-        fieldContactCount=fieldContactCount,
-        axleCount=axleCount, maxAxleLoad=maxAxleLoad,
-        meanAxleLoad=axleCount > 0 and totalLoad / axleCount or 0,
-        axleLoads=axleLoads,
-        axleLocalPositions=axleLocalPositions,
-        axlePositionSpreads=axlePositionSpreads,
-        maxDeepTarget=maxDeepTarget,
-        maxDeepStrength=maxDeepStrength,
-        maximumDeepCoverage=maximumDeepCoverage,
-        meanDeepCoverage=deepCoverageCount > 0
-            and deepCoverageSum / deepCoverageCount or 0,
-        deepCoverageSamples=deepCoverageCount,
-        lastDeepCoverage=vehicleState.lastDeepCoverage or 0,
-        lastDeepStressWidth=vehicleState.lastDeepStressWidth or 0,
-        lastDeepCoverageTime=vehicleState.lastDeepCoverageTime,
-        maxSurfaceTargetApplied=maxSurfaceTargetApplied,
-        maxSurfaceStrengthApplied=maxSurfaceStrengthApplied,
-        maxDeepStrengthApplied=maxDeepStrengthApplied,
-        totalChangedCells=vehicleState.totalChangedCells,
-        impactCount=impactCount, structureImpactCount=structureImpactCount,
-        impactCountBySize=impactCountBySize,
-        totalImpactCells=vehicleState.totalImpactCells,
-        totalStructureCells=vehicleState.totalStructureCells,
-        changedByLayer=changedByLayer,
-        totalChangedByLayer=vehicleState.totalChangedByLayer,
-        totalDeltaByLayer=vehicleState.totalDeltaByLayer,
-        sessionMaximumDeltaByLayer=vehicleState.maximumDeltaByLayer,
-        deltaByLayer=deltaByLayer,
-        maximumDeltaByLayer=maximumDeltaByLayer,
-        workingImplementSurfaceSuppressed=
-            workingImplementSurfaceSuppressed,
-        suppressedSurfaceContacts=suppressedSurfaceContacts,
-        maxSuppressedSurfaceTarget=maxSuppressedTarget,
-        maxSuppressedSurfaceStrength=maxSuppressedStrength,
-        maxSuppressedPressureKPa=maxSuppressedPressure,
-        maxSuppressedWheelLoadT=maxSuppressedLoad,
-        maxSuppressedWheelIndex=maxSuppressedIdentity ~= nil
-            and maxSuppressedIdentity.index or 0,
-        maxSuppressedWheelNodeName=maxSuppressedIdentity ~= nil
-            and maxSuppressedIdentity.reprName or "",
-        implementRuntimeState=implementRuntimeState,
-        lastImpact=lastImpact,
-        representativeSurfaceImpact=representativeSurfaceImpact,
-        representativeDeepImpact=representativeDeepImpact,
-        firstX=firstX, firstZ=firstZ
+        vehicle = vehicle,
+        vehicleName = sourceVehicleName,
+        configFileName = sourceConfigFileName,
+        time = now,
+        speed = speed,
+        wheelCount = #observations,
+        vehicleMass = vehicleMass,
+        supportedLoadRatio = vehicleMass > 0 and totalLoad / vehicleMass or 0,
+        totalLoad = totalLoad,
+        maxPressure = maxPressure,
+        maxSlip = maxSlip,
+        maxRawSlip = maxRawSlip,
+        minWheelLoad = minimumWheelLoad < math.huge and minimumWheelLoad or 0,
+        maxWheelLoad = maximumWheelLoad,
+        meanWheelLoad = #observations > 0 and totalLoad / #observations or 0,
+        effectiveFootprintCount = #surfaceObservations,
+        meanPressure = #surfaceObservations > 0 and pressureSum / #surfaceObservations or 0,
+        meanWidth = #surfaceObservations > 0 and widthSum / #surfaceObservations or 0,
+        meanDiameter = #surfaceObservations > 0 and diameterSum / #surfaceObservations or 0,
+        meanContactLength = #surfaceObservations > 0 and contactLengthSum / #surfaceObservations or 0,
+        meanDeepStressWidth = #surfaceObservations > 0 and deepStressWidthSum / #surfaceObservations or 0,
+        physicalTireCount = physicalTireCount,
+        crawlerCount = crawlerCount,
+        crawlerModuleCount = #crawlerModules,
+        unmatchedCrawlerCount = unmatchedCrawlerCount,
+        crawlerModuleLoads = crawlerModuleLoads,
+        crawlerModuleWidths = crawlerModuleWidths,
+        crawlerModuleContactSpacings = crawlerModuleSpacings,
+        crawlerModuleContactLengths = crawlerModuleLengths,
+        crawlerModulePressures = crawlerModulePressures,
+        crawlerModuleLocalX = crawlerModuleLocalX,
+        crawlerModuleLocalZ = crawlerModuleLocalZ,
+        changedCells = changedCells,
+        fieldContactCount = fieldContactCount,
+        axleCount = axleCount,
+        maxAxleLoad = maxAxleLoad,
+        meanAxleLoad = axleCount > 0 and totalLoad / axleCount or 0,
+        axleLoads = axleLoads,
+        axleLocalPositions = axleLocalPositions,
+        axlePositionSpreads = axlePositionSpreads,
+        maxDeepTarget = maxDeepTarget,
+        maxDeepStrength = maxDeepStrength,
+        maximumDeepCoverage = maximumDeepCoverage,
+        meanDeepCoverage = deepCoverageCount > 0 and deepCoverageSum / deepCoverageCount or 0,
+        deepCoverageSamples = deepCoverageCount,
+        lastDeepCoverage = vehicleState.lastDeepCoverage or 0,
+        lastDeepStressWidth = vehicleState.lastDeepStressWidth or 0,
+        lastDeepCoverageTime = vehicleState.lastDeepCoverageTime,
+        maxSurfaceTargetApplied = maxSurfaceTargetApplied,
+        maxSurfaceStrengthApplied = maxSurfaceStrengthApplied,
+        maxDeepStrengthApplied = maxDeepStrengthApplied,
+        totalChangedCells = vehicleState.totalChangedCells,
+        impactCount = impactCount,
+        structureImpactCount = structureImpactCount,
+        impactCountBySize = impactCountBySize,
+        totalImpactCells = vehicleState.totalImpactCells,
+        totalStructureCells = vehicleState.totalStructureCells,
+        changedByLayer = changedByLayer,
+        totalChangedByLayer = vehicleState.totalChangedByLayer,
+        totalDeltaByLayer = vehicleState.totalDeltaByLayer,
+        sessionMaximumDeltaByLayer = vehicleState.maximumDeltaByLayer,
+        deltaByLayer = deltaByLayer,
+        maximumDeltaByLayer = maximumDeltaByLayer,
+        workingImplementSurfaceSuppressed = workingImplementSurfaceSuppressed,
+        suppressedSurfaceContacts = suppressedSurfaceContacts,
+        maxSuppressedSurfaceTarget = maxSuppressedTarget,
+        maxSuppressedSurfaceStrength = maxSuppressedStrength,
+        maxSuppressedPressureKPa = maxSuppressedPressure,
+        maxSuppressedWheelLoadT = maxSuppressedLoad,
+        maxSuppressedWheelIndex = maxSuppressedIdentity ~= nil and maxSuppressedIdentity.index or 0,
+        maxSuppressedWheelNodeName = maxSuppressedIdentity ~= nil and maxSuppressedIdentity.reprName or "",
+        implementRuntimeState = implementRuntimeState,
+        lastImpact = lastImpact,
+        representativeSurfaceImpact = representativeSurfaceImpact,
+        representativeDeepImpact = representativeDeepImpact,
+        firstX = firstX,
+        firstZ = firstZ,
     }
     self.diagnostics[vehicle] = diagnostic
     self.lastDiagnostic = diagnostic
@@ -1538,10 +1574,13 @@ function TerraLogicWheelCompactionManager:processVehicle(vehicle, now)
 end
 
 function TerraLogicWheelCompactionManager:update(dt)
-    if g_server == nil or TerraLogicSoilManager == nil
-        or self.vehicleStates == nil then return end
+    if g_server == nil or TerraLogicSoilManager == nil or self.vehicleStates == nil then
+        return
+    end
     self.updateAccumulator = self.updateAccumulator + (tonumber(dt) or 0)
-    if self.updateAccumulator < self.UPDATE_INTERVAL_MS then return end
+    if self.updateAccumulator < self.UPDATE_INTERVAL_MS then
+        return
+    end
     self.updateAccumulator = self.updateAccumulator % self.UPDATE_INTERVAL_MS
     local now = g_currentMission ~= nil and g_currentMission.time or 0
     for _, vehicle in pairs(getVehicles()) do
@@ -1556,48 +1595,67 @@ function TerraLogicWheelCompactionManager:getEligibilityAudit(vehicle)
     local function add(key, value)
         lines[#lines + 1] = key .. "=" .. tostring(value)
     end
-    local wheels = vehicle ~= nil and vehicle.spec_wheels ~= nil
-        and vehicle.spec_wheels.wheels or nil
+    local wheels = vehicle ~= nil and vehicle.spec_wheels ~= nil and vehicle.spec_wheels.wheels or nil
     local speed = getVehicleSpeed(vehicle)
     local root = getVehicleNode(vehicle)
     local listed = false
     for _, object in pairs(getVehicles()) do
-        if object == vehicle then listed = true; break end
+        if object == vehicle then
+            listed = true
+            break
+        end
     end
     add("listed_for_traffic", listed)
     add("speed_kph", string.format("%.3f", speed))
-    add("speed_method", vehicle ~= nil and vehicle.getLastSpeed ~= nil)
+    add("speed_method", vehicle ~= nil and type(vehicle.getLastSpeed) == "function")
     local reason = "eligible_now"
-    if g_server == nil then reason = "server_only"
-    elseif not listed then reason = "not_in_vehicle_list"
-    elseif wheels == nil then reason = "no_wheels_table"
-    elseif root == nil then reason = "no_root_node"
-    elseif speed < self.MIN_SPEED_KMH then reason = "below_min_speed" end
+    if g_server == nil then
+        reason = "server_only"
+    elseif not listed then
+        reason = "not_in_vehicle_list"
+    elseif wheels == nil then
+        reason = "no_wheels_table"
+    elseif root == nil then
+        reason = "no_root_node"
+    elseif speed < self.MIN_SPEED_KMH then
+        reason = "below_min_speed"
+    end
     local count, eligible = 0, 0
     for index, wheel in pairs(wheels or {}) do
         count = count + 1
         local physics = wheel.physics
         local load = getTireLoad(wheel)
         local why = "eligible"
-        if physics == nil then why = "no_physics"
-        elseif physics.getTireLoad == nil then why = "no_load_method"
+        if physics == nil then
+            why = "no_physics"
+        elseif type(physics.getTireLoad) ~= "function" then
+            why = "no_load_method"
         else
-            local ok, value = pcall(physics.getTireLoad, physics)
-            if not ok or tonumber(value) == nil then why = "load_read_failed"
-            elseif load < self.MIN_WHEEL_LOAD_T then why = "below_100kg"
-            elseif wheel.node == nil then why = "no_wheel_node"
-            elseif physics.wheelShape == nil then why = "no_wheel_shape"
-            elseif getWheelShapeContactPoint == nil then why = "no_contact_api"
+            local value = physics.getTireLoad(physics)
+            if tonumber(value) == nil then
+                why = "load_read_failed"
+            elseif load < self.MIN_WHEEL_LOAD_T then
+                why = "below_100kg"
+            elseif wheel.node == nil then
+                why = "no_wheel_node"
+            elseif physics.wheelShape == nil then
+                why = "no_wheel_shape"
+            elseif type(getWheelShapeContactPoint) ~= "function" then
+                why = "no_contact_api"
             else
-                local okContact, x, _, z = pcall(getContactPoint, wheel)
-                if not okContact then why = "contact_read_failed"
-                elseif x == nil or z == nil then why = "no_contact_position"
-                else eligible = eligible + 1 end
+                local x, _, z = getContactPoint(wheel)
+                if x == nil or z == nil then
+                    why = "no_contact_position"
+                else
+                    eligible = eligible + 1
+                end
             end
         end
         add("wheel_" .. tostring(index), string.format("load_t:%.4f | %s", load, why))
     end
-    if reason == "eligible_now" and eligible == 0 then reason = "no_eligible_wheels" end
+    if reason == "eligible_now" and eligible == 0 then
+        reason = "no_eligible_wheels"
+    end
     add("wheel_count", count)
     add("eligible_wheels", eligible)
     add("current_gate", reason)
@@ -1606,7 +1664,9 @@ end
 
 function TerraLogicWheelCompactionManager:getDiagnostic(vehicle)
     if vehicle ~= nil then
-        if self.diagnostics ~= nil then return self.diagnostics[vehicle] end
+        if self.diagnostics ~= nil then
+            return self.diagnostics[vehicle]
+        end
         return nil
     end
     return self.lastDiagnostic
@@ -1622,32 +1682,45 @@ function TerraLogicWheelCompactionManager:getDiagnosticText(vehicle)
         return "TerraLogic wheels: no moving wheel sample recorded"
     end
     local moistureText = "moisture unavailable"
-    if TerraLogicSoilMoistureManager ~= nil
-        and TerraLogicSoilManager ~= nil then
-        local soilType = TerraLogicSoilManager:getPFSoilTypeAtWorldPosition(
-            diagnostic.firstX or 0, diagnostic.firstZ or 0)
-        local moisture = TerraLogicSoilMoistureManager:getStateAtWorldPosition(
-            diagnostic.firstX or 0, diagnostic.firstZ or 0)
+    if TerraLogicSoilMoistureManager ~= nil and TerraLogicSoilManager ~= nil then
+        local soilType =
+            TerraLogicSoilManager:getPFSoilTypeAtWorldPosition(diagnostic.firstX or 0, diagnostic.firstZ or 0)
+        local moisture =
+            TerraLogicSoilMoistureManager:getStateAtWorldPosition(diagnostic.firstX or 0, diagnostic.firstZ or 0)
         local surfaceMultiplier, deepMultiplier =
             TerraLogicSoilMoistureManager:getTrafficMultipliers(soilType, diagnostic.firstX, diagnostic.firstZ)
-        moistureText = string.format("%s %.1f/%.1f %% -> traffic x%.3f/x%.3f",
-            moisture.profileName, moisture.surface * 100,
-            moisture.subsoil * 100, surfaceMultiplier, deepMultiplier)
+        moistureText = string.format(
+            "%s %.1f/%.1f %% -> traffic x%.3f/x%.3f",
+            moisture.profileName,
+            moisture.surface * 100,
+            moisture.subsoil * 100,
+            surfaceMultiplier,
+            deepMultiplier
+        )
     end
     return string.format(
-        "TerraLogic wheels | %s | speed %.1f km/h | contacts %d (field %d) | supported %.2f t | max axle %.2f t | peak %.0f kPa | deep target/strength %.1f/%.1f %% coverage mean/max %.1f/%.1f %% | drive slip %.1f %% | moisture %s | crawler contacts/modules/fallback %d/%d/%d | changed now/total %d/%d | first wheel %.1f %.1f",
+        "TerraLogic wheels | %s | speed %.1f km/h | contacts %d (field %d) | supported %.2f t | max axle %.2f t | peak %.0f kPa "
+            .. "| deep target/strength %.1f/%.1f %% coverage mean/max %.1f/%.1f %% | drive slip %.1f %% | moisture %s | crawler "
+            .. "contacts/modules/fallback %d/%d/%d | changed now/total %d/%d | first wheel %.1f %.1f",
         diagnostic.vehicleName or "vehicle",
-        diagnostic.speed, diagnostic.wheelCount,
-        diagnostic.fieldContactCount or 0, diagnostic.totalLoad,
-        diagnostic.maxAxleLoad or 0, diagnostic.maxPressure,
+        diagnostic.speed,
+        diagnostic.wheelCount,
+        diagnostic.fieldContactCount or 0,
+        diagnostic.totalLoad,
+        diagnostic.maxAxleLoad or 0,
+        diagnostic.maxPressure,
         (diagnostic.maxDeepTarget or 0) * 100,
         (diagnostic.maxDeepStrength or 0) * 100,
         (diagnostic.meanDeepCoverage or 0) * 100,
         (diagnostic.maximumDeepCoverage or 0) * 100,
         diagnostic.maxSlip * 100,
         moistureText,
-        diagnostic.crawlerCount, diagnostic.crawlerModuleCount or 0,
-        diagnostic.unmatchedCrawlerCount or 0, diagnostic.changedCells,
+        diagnostic.crawlerCount,
+        diagnostic.crawlerModuleCount or 0,
+        diagnostic.unmatchedCrawlerCount or 0,
+        diagnostic.changedCells,
         diagnostic.totalChangedCells or 0,
-        diagnostic.firstX or 0, diagnostic.firstZ or 0)
+        diagnostic.firstX or 0,
+        diagnostic.firstZ or 0
+    )
 end

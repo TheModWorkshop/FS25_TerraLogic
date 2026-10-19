@@ -140,8 +140,12 @@ function M:toggleCursor()
         self:ensureCameraGuards()
     end
 end
+function M:isLessonAvailable(id)
+    return id~="moistureSystem" or (TerraLogicMoistureSystemAdapter~=nil
+        and TerraLogicMoistureSystemAdapter:isAvailable())
+end
 function M:open(id,library)
-    local item=self.byId[id]; if not item then return false end
+    local item=self.byId[id]; if not item or not self:isLessonAvailable(id) then return false end
     self.current,self.library,self.pending,self.layout=item,library==true,nil,nil
     self.libraryIndex=false; self.buttons=nil
     self.rightGesture=nil
@@ -248,7 +252,9 @@ function M:resolveLesson(id)
 end
 -- One recent candidate, not a queue. Refresh only while its context still applies.
 function M:offer(id,priority,actor)
+    if not self:isLessonAvailable(id) then return end
     id=self:resolveLesson(id)
+    if not self:isLessonAvailable(id) then return end
     if not self:enabled() or self.current or self.libraryIndex or self.clock<self.cooldown
         or self.seen[id] or (self.snoozed[id] or 0)>self.clock or not self.byId[id] then return end
     if TerraLogicSettings.tutorialMode=="context" and (id=="welcome" or id=="firstMap" or id=="mapControls") then return end
@@ -582,7 +588,7 @@ function M:draw()
         drawFilledRect(x+.115,y+.068,.0007,h-.155,1,1,1,.18)
         local items,read={},0
         for _,item in ipairs(TerraLogicTutorialLessons) do
-            if item.group==self.libraryGroup then
+            if item.group==self.libraryGroup and self:isLessonAvailable(item.id) then
                 items[#items+1]=item
                 if self.seen[item.id] then read=read+1 end
             end

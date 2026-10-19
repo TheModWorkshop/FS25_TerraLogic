@@ -26,24 +26,40 @@ TerraLogicSoilManager = {
     PF_MINIMAP_TRANSITION_MS = 550,
     MAX_OVERLAY_RESOLUTION = 2048,
     layers = {
-        {id="surfaceCompaction", cellSize=1,
-            file="terraLogicSoilSurface.grle",
-            visualFile="terraLogicSoilSurfaceMask.grle"},
-        {id="deepCompaction", cellSize=2,
-            file="terraLogicSoilDeep.grle",
-            visualFile="terraLogicSoilDeepMask.grle"},
-        {id="aggregateSize", cellSize=2,
-            file="terraLogicSoilAggregate.grle",
-            visualFile="terraLogicSoilAggregateMask.grle"},
-        {id="roughness", cellSize=2,
-            file="terraLogicSoilRoughness.grle",
-            visualFile="terraLogicSoilRoughnessMask.grle"},
-        {id="resilience", cellSize=8, channels=8,
+        {
+            id = "surfaceCompaction",
+            cellSize = 1,
+            file = "terraLogicSoilSurface.grle",
+            visualFile = "terraLogicSoilSurfaceMask.grle",
+        },
+        {
+            id = "deepCompaction",
+            cellSize = 2,
+            file = "terraLogicSoilDeep.grle",
+            visualFile = "terraLogicSoilDeepMask.grle",
+        },
+        {
+            id = "aggregateSize",
+            cellSize = 2,
+            file = "terraLogicSoilAggregate.grle",
+            visualFile = "terraLogicSoilAggregateMask.grle",
+        },
+        {
+            id = "roughness",
+            cellSize = 2,
+            file = "terraLogicSoilRoughness.grle",
+            visualFile = "terraLogicSoilRoughnessMask.grle",
+        },
+        {
+            id = "resilience",
+            cellSize = 8,
+            channels = 8,
             -- v64 starts a clean 8-bit biology layer. The short-lived v63
             -- prototype used 6-bit quantization and contained no dependable
             -- sub-step history that could be migrated losslessly.
-            file="terraLogicSoilResilience8.grle",
-            visualFile="terraLogicSoilResilienceMask8.grle"}
+            file = "terraLogicSoilResilience8.grle",
+            visualFile = "terraLogicSoilResilienceMask8.grle",
+        },
     },
     maps = {},
     modifiers = {},
@@ -131,7 +147,7 @@ TerraLogicSoilManager = {
     COVERAGE_VISIBLE_MIN_FRACTION = 0.55,
     COVERAGE_AUTHORITY_SAMPLE_M = 0.5,
     COVERAGE_FINE_SAMPLE_GRID = 2,
-    COVERAGE_COARSE_SAMPLE_GRID_MAX = 4
+    COVERAGE_COARSE_SAMPLE_GRID_MAX = 4,
 }
 
 -- The rotation map is not a player-facing soil layer. One byte stores the
@@ -154,8 +170,14 @@ local RECOVERY_AGE_SCALE = 256
 local RECOVERY_AGE_LEGACY_FILE = "terraLogicRecoveryAge.grle"
 
 local CROP_GROUP = {
-    NONE=0, CEREAL=1, LEGUME=2, OILSEED=3, ROOT=4,
-    MAIZE=5, OTHER=6, PERENNIAL=7
+    NONE = 0,
+    CEREAL = 1,
+    LEGUME = 2,
+    OILSEED = 3,
+    ROOT = 4,
+    MAIZE = 5,
+    OTHER = 6,
+    PERENNIAL = 7,
 }
 local COVER_CROP_RESILIENCE_BONUS = 0.004
 
@@ -166,59 +188,108 @@ local COVER_CROP_RESILIENCE_BONUS = 0.004
 -- preset on a new TerraLogic installation/save; NPC fields continue to follow
 -- Vanilla's semantic state until ownership changes.
 local NPC_FIELD_PRESETS = {
-    bare={surfaceCompaction=0.42, deepCompaction=0.28,
-        aggregateSize=0.48, roughness=0.35, resilience=0.45},
-    harvested={surfaceCompaction=0.48, deepCompaction=0.33,
-        aggregateSize=0.55, roughness=0.32, resilience=0.48},
-    shallow={surfaceCompaction=0.38, deepCompaction=0.30,
-        aggregateSize=0.58, roughness=0.14, resilience=0.48},
-    cultivated={surfaceCompaction=0.31, deepCompaction=0.28,
-        aggregateSize=0.58, roughness=0.20, resilience=0.47},
-    subsoiled={surfaceCompaction=0.25, deepCompaction=0.14,
-        aggregateSize=0.32, roughness=0.50, resilience=0.46},
-    plowed={surfaceCompaction=0.16, deepCompaction=0.27,
-        aggregateSize=0.20, roughness=0.75, resilience=0.44},
-    seedbed={surfaceCompaction=0.34, deepCompaction=0.28,
-        aggregateSize=0.54, roughness=0.08, resilience=0.48},
-    sown={surfaceCompaction=0.40, deepCompaction=0.29,
-        aggregateSize=0.52, roughness=0.12, resilience=0.49},
-    directSown={surfaceCompaction=0.43, deepCompaction=0.30,
-        aggregateSize=0.50, roughness=0.18, resilience=0.52},
-    growing={surfaceCompaction=0.43, deepCompaction=0.30,
-        aggregateSize=0.50, roughness=0.22, resilience=0.50},
-    perennial={surfaceCompaction=0.37, deepCompaction=0.24,
-        aggregateSize=0.50, roughness=0.14, resilience=0.64}
+    bare = { surfaceCompaction = 0.42, deepCompaction = 0.28, aggregateSize = 0.48, roughness = 0.35, resilience = 0.45 },
+    harvested = {
+        surfaceCompaction = 0.48,
+        deepCompaction = 0.33,
+        aggregateSize = 0.55,
+        roughness = 0.32,
+        resilience = 0.48,
+    },
+    shallow = {
+        surfaceCompaction = 0.38,
+        deepCompaction = 0.30,
+        aggregateSize = 0.58,
+        roughness = 0.14,
+        resilience = 0.48,
+    },
+    cultivated = {
+        surfaceCompaction = 0.31,
+        deepCompaction = 0.28,
+        aggregateSize = 0.58,
+        roughness = 0.20,
+        resilience = 0.47,
+    },
+    subsoiled = {
+        surfaceCompaction = 0.25,
+        deepCompaction = 0.14,
+        aggregateSize = 0.32,
+        roughness = 0.50,
+        resilience = 0.46,
+    },
+    plowed = {
+        surfaceCompaction = 0.16,
+        deepCompaction = 0.27,
+        aggregateSize = 0.20,
+        roughness = 0.75,
+        resilience = 0.44,
+    },
+    seedbed = {
+        surfaceCompaction = 0.34,
+        deepCompaction = 0.28,
+        aggregateSize = 0.54,
+        roughness = 0.08,
+        resilience = 0.48,
+    },
+    sown = { surfaceCompaction = 0.40, deepCompaction = 0.29, aggregateSize = 0.52, roughness = 0.12, resilience = 0.49 },
+    directSown = {
+        surfaceCompaction = 0.43,
+        deepCompaction = 0.30,
+        aggregateSize = 0.50,
+        roughness = 0.18,
+        resilience = 0.52,
+    },
+    growing = {
+        surfaceCompaction = 0.43,
+        deepCompaction = 0.30,
+        aggregateSize = 0.50,
+        roughness = 0.22,
+        resilience = 0.50,
+    },
+    perennial = {
+        surfaceCompaction = 0.37,
+        deepCompaction = 0.24,
+        aggregateSize = 0.50,
+        roughness = 0.14,
+        resilience = 0.64,
+    },
 }
 
 local NPC_CROP_MODIFIERS = {
-    [CROP_GROUP.CEREAL]={resilience=0.01},
-    [CROP_GROUP.LEGUME]={deepCompaction=-0.015, resilience=0.05},
-    [CROP_GROUP.OILSEED]={deepCompaction=-0.02, resilience=0.035},
-    [CROP_GROUP.ROOT]={surfaceCompaction=0.03,
-        deepCompaction=0.015, roughness=0.03, resilience=-0.005},
-    [CROP_GROUP.MAIZE]={surfaceCompaction=0.02,
-        deepCompaction=0.01, roughness=0.02},
-    [CROP_GROUP.OTHER]={},
-    [CROP_GROUP.PERENNIAL]={surfaceCompaction=-0.02,
-        deepCompaction=-0.02, roughness=-0.02, resilience=0.08}
+    [CROP_GROUP.CEREAL] = { resilience = 0.01 },
+    [CROP_GROUP.LEGUME] = { deepCompaction = -0.015, resilience = 0.05 },
+    [CROP_GROUP.OILSEED] = { deepCompaction = -0.02, resilience = 0.035 },
+    [CROP_GROUP.ROOT] = { surfaceCompaction = 0.03, deepCompaction = 0.015, roughness = 0.03, resilience = -0.005 },
+    [CROP_GROUP.MAIZE] = { surfaceCompaction = 0.02, deepCompaction = 0.01, roughness = 0.02 },
+    [CROP_GROUP.OTHER] = {},
+    [CROP_GROUP.PERENNIAL] = {
+        surfaceCompaction = -0.02,
+        deepCompaction = -0.02,
+        roughness = -0.02,
+        resilience = 0.08,
+    },
 }
 
 local NPC_FIELD_VARIATION = {
-    surfaceCompaction={field=0.012, localValue=0.026, salt=11},
-    deepCompaction={field=0.008, localValue=0.016, salt=23},
-    aggregateSize={field=0.018, localValue=0.035, salt=37},
-    roughness={field=0.018, localValue=0.035, salt=53},
-    resilience={field=0.018, localValue=0.026, salt=71}
+    surfaceCompaction = { field = 0.012, localValue = 0.026, salt = 11 },
+    deepCompaction = { field = 0.008, localValue = 0.016, salt = 23 },
+    aggregateSize = { field = 0.018, localValue = 0.035, salt = 37 },
+    roughness = { field = 0.018, localValue = 0.035, salt = 53 },
+    resilience = { field = 0.018, localValue = 0.026, salt = 71 },
 }
 
 local RESILIENCE_TILLAGE = {
-    plow=-0.014, spader=-0.012, powerHarrow=-0.009,
-    cultivator=-0.006, shallowCultivator=-0.003,
-    discHarrow=-0.006, subsoiler=-0.004,
-    slurryInjector=-0.001,
+    plow = -0.014,
+    spader = -0.012,
+    powerHarrow = -0.009,
+    cultivator = -0.006,
+    shallowCultivator = -0.003,
+    discHarrow = -0.006,
+    subsoiler = -0.004,
+    slurryInjector = -0.001,
     -- Residues are a small positive contribution, not a repeatable direct
     -- yield bonus. Vanilla only reports changed mulch area once.
-    mulcher=0.006
+    mulcher = 0.006,
 }
 
 -- Mechanical disturbance changes biological continuity, not merely the
@@ -226,25 +297,25 @@ local RESILIENCE_TILLAGE = {
 -- strengths describe a complete pass, with partial coverage applied once.
 -- Rolling and ordinary above-ground mulching preserve continuity.
 local RECOVERY_AGE_WORK = {
-    plow={target=0.25, strength=0.95},
-    spader={target=0.35, strength=0.85},
-    cultivator={target=0.45, strength=0.85},
-    powerHarrow={target=0.50, strength=0.85},
-    discHarrow={target=0.60, strength=0.70},
-    subsoiler={target=0.60, strength=0.70},
-    shallowCultivator={target=0.72, strength=0.70},
-    sowingMachine={target=0.90, strength=0.50},
-    precisionPlanter={target=0.90, strength=0.50},
-    directDrill={target=0.97, strength=0.50},
-    precisionDirectDrill={target=0.97, strength=0.50},
-    stonePicker={target=0.90, strength=0.50},
-    hoe={target=0.94, strength=0.50},
-    weeder={target=0.97, strength=0.50},
-    slurryInjector={target=0.97, strength=0.50}
+    plow = { target = 0.25, strength = 0.95 },
+    spader = { target = 0.35, strength = 0.85 },
+    cultivator = { target = 0.45, strength = 0.85 },
+    powerHarrow = { target = 0.50, strength = 0.85 },
+    discHarrow = { target = 0.60, strength = 0.70 },
+    subsoiler = { target = 0.60, strength = 0.70 },
+    shallowCultivator = { target = 0.72, strength = 0.70 },
+    sowingMachine = { target = 0.90, strength = 0.50 },
+    precisionPlanter = { target = 0.90, strength = 0.50 },
+    directDrill = { target = 0.97, strength = 0.50 },
+    precisionDirectDrill = { target = 0.97, strength = 0.50 },
+    stonePicker = { target = 0.90, strength = 0.50 },
+    hoe = { target = 0.94, strength = 0.50 },
+    weeder = { target = 0.97, strength = 0.50 },
+    slurryInjector = { target = 0.97, strength = 0.50 },
 }
 for key, rule in pairs(TerraLogicSpecialImplements.BIOLOGY) do
     RESILIENCE_TILLAGE[key] = rule.resilience
-    RECOVERY_AGE_WORK[key] = {target=rule.target, strength=rule.strength}
+    RECOVERY_AGE_WORK[key] = { target = rule.target, strength = rule.strength }
 end
 
 -- Monthly background recovery. Living-root effects remain in
@@ -253,61 +324,122 @@ end
 -- mechanical tool targets. Tilth targets are covered-soil equilibria, not a
 -- free seedbed pass; bare soil only fragments very coarse clods and can slake.
 local RECOVERY_COVER = {
-    bare={surfaceTarget=0.32, deepTarget=0.30, resilienceCeiling=0.42,
-        activity=0.18, resilienceRate=0.0000, resilienceDecay=0.0030,
-        tilthActivity=0.10, settlingTarget=0.32, settlingActivity=0.55,
-        settlementCompactionFloor=0.30, protection=0.00},
-    sown={surfaceTarget=0.30, deepTarget=0.27, resilienceCeiling=0.48,
-        activity=0.30, resilienceRate=0.0008,
-        tilthTarget=0.50, tilthActivity=0.24,
-        settlingTarget=0.30, settlingActivity=0.38,
-        settlementCompactionFloor=0.27, protection=0.30},
-    residue={surfaceTarget=0.28, deepTarget=0.24, resilienceCeiling=0.60,
-        activity=0.50, resilienceRate=0.0024,
-        tilthTarget=0.49, tilthActivity=0.38,
-        settlingTarget=0.30, settlingActivity=0.28,
-        settlementCompactionFloor=0.25, protection=0.55},
-    annual={surfaceTarget=0.25, deepTarget=0.25, resilienceCeiling=0.64,
-        activity=0.65, resilienceRate=0.0030,
-        tilthTarget=0.50, tilthActivity=0.52,
-        settlingTarget=0.28, settlingActivity=0.24,
-        settlementCompactionFloor=0.23, protection=0.72},
-    rootCrop={surfaceTarget=0.24, deepTarget=0.23,
-        resilienceCeiling=0.68, activity=0.68, resilienceRate=0.0031,
-        tilthTarget=0.50, tilthActivity=0.56,
-        settlingTarget=0.28, settlingActivity=0.23,
-        settlementCompactionFloor=0.22, protection=0.74},
-    deepRoot={surfaceTarget=0.22, deepTarget=0.17, resilienceCeiling=0.74,
-        activity=0.82, resilienceRate=0.0036,
-        tilthTarget=0.50, tilthActivity=0.68,
-        settlingTarget=0.27, settlingActivity=0.20,
-        settlementCompactionFloor=0.21, protection=0.80},
-    perennial={surfaceTarget=0.20, deepTarget=0.21, resilienceCeiling=0.84,
-        activity=1.00, resilienceRate=0.0044,
-        tilthTarget=0.50, tilthActivity=0.78,
-        settlingTarget=0.24, settlingActivity=0.15,
-        settlementCompactionFloor=0.19, protection=0.90},
-    deepPerennial={surfaceTarget=0.19, deepTarget=0.15,
-        resilienceCeiling=0.88, activity=1.00, resilienceRate=0.0048,
-        tilthTarget=0.50, tilthActivity=0.82,
-        settlingTarget=0.24, settlingActivity=0.14,
-        settlementCompactionFloor=0.18, protection=0.92}
+    bare = {
+        surfaceTarget = 0.32,
+        deepTarget = 0.30,
+        resilienceCeiling = 0.42,
+        activity = 0.18,
+        resilienceRate = 0.0000,
+        resilienceDecay = 0.0030,
+        tilthActivity = 0.10,
+        settlingTarget = 0.32,
+        settlingActivity = 0.55,
+        settlementCompactionFloor = 0.30,
+        protection = 0.00,
+    },
+    sown = {
+        surfaceTarget = 0.30,
+        deepTarget = 0.27,
+        resilienceCeiling = 0.48,
+        activity = 0.30,
+        resilienceRate = 0.0008,
+        tilthTarget = 0.50,
+        tilthActivity = 0.24,
+        settlingTarget = 0.30,
+        settlingActivity = 0.38,
+        settlementCompactionFloor = 0.27,
+        protection = 0.30,
+    },
+    residue = {
+        surfaceTarget = 0.28,
+        deepTarget = 0.24,
+        resilienceCeiling = 0.60,
+        activity = 0.50,
+        resilienceRate = 0.0024,
+        tilthTarget = 0.49,
+        tilthActivity = 0.38,
+        settlingTarget = 0.30,
+        settlingActivity = 0.28,
+        settlementCompactionFloor = 0.25,
+        protection = 0.55,
+    },
+    annual = {
+        surfaceTarget = 0.25,
+        deepTarget = 0.25,
+        resilienceCeiling = 0.64,
+        activity = 0.65,
+        resilienceRate = 0.0030,
+        tilthTarget = 0.50,
+        tilthActivity = 0.52,
+        settlingTarget = 0.28,
+        settlingActivity = 0.24,
+        settlementCompactionFloor = 0.23,
+        protection = 0.72,
+    },
+    rootCrop = {
+        surfaceTarget = 0.24,
+        deepTarget = 0.23,
+        resilienceCeiling = 0.68,
+        activity = 0.68,
+        resilienceRate = 0.0031,
+        tilthTarget = 0.50,
+        tilthActivity = 0.56,
+        settlingTarget = 0.28,
+        settlingActivity = 0.23,
+        settlementCompactionFloor = 0.22,
+        protection = 0.74,
+    },
+    deepRoot = {
+        surfaceTarget = 0.22,
+        deepTarget = 0.17,
+        resilienceCeiling = 0.74,
+        activity = 0.82,
+        resilienceRate = 0.0036,
+        tilthTarget = 0.50,
+        tilthActivity = 0.68,
+        settlingTarget = 0.27,
+        settlingActivity = 0.20,
+        settlementCompactionFloor = 0.21,
+        protection = 0.80,
+    },
+    perennial = {
+        surfaceTarget = 0.20,
+        deepTarget = 0.21,
+        resilienceCeiling = 0.84,
+        activity = 1.00,
+        resilienceRate = 0.0044,
+        tilthTarget = 0.50,
+        tilthActivity = 0.78,
+        settlingTarget = 0.24,
+        settlingActivity = 0.15,
+        settlementCompactionFloor = 0.19,
+        protection = 0.90,
+    },
+    deepPerennial = {
+        surfaceTarget = 0.19,
+        deepTarget = 0.15,
+        resilienceCeiling = 0.88,
+        activity = 1.00,
+        resilienceRate = 0.0048,
+        tilthTarget = 0.50,
+        tilthActivity = 0.82,
+        settlingTarget = 0.24,
+        settlingActivity = 0.14,
+        settlementCompactionFloor = 0.18,
+        protection = 0.92,
+    },
 }
 
 local RECOVERY_TEXTURE = {
-    [1]={surface=0.75, deep=0.65, resilience=0.85,
-        tilth=0.78, settling=1.12}, -- Loamy Sand
-    [2]={surface=1.00, deep=1.00, resilience=1.00,
-        tilth=1.00, settling=1.00}, -- Sandy Loam
-    [3]={surface=1.05, deep=1.00, resilience=1.05,
-        tilth=1.08, settling=0.92}, -- Loam
-    [4]={surface=1.15, deep=0.75, resilience=0.90,
-        tilth=1.18, settling=0.82}  -- Silty Clay
+    [1] = { surface = 0.75, deep = 0.65, resilience = 0.85, tilth = 0.78, settling = 1.12 }, -- Loamy Sand
+    [2] = { surface = 1.00, deep = 1.00, resilience = 1.00, tilth = 1.00, settling = 1.00 }, -- Sandy Loam
+    [3] = { surface = 1.05, deep = 1.00, resilience = 1.05, tilth = 1.08, settling = 0.92 }, -- Loam
+    [4] = { surface = 1.15, deep = 0.75, resilience = 0.90, tilth = 1.18, settling = 0.82 }, -- Silty Clay
 }
 
 local DEEP_ROOT_GROUP = {
-    [CROP_GROUP.LEGUME]=true,
-    [CROP_GROUP.OILSEED]=true
+    [CROP_GROUP.LEGUME] = true,
+    [CROP_GROUP.OILSEED] = true,
 }
 
 -- ValueMap requests use the requesting vehicle/tool as their identity. Keep a
@@ -340,21 +472,21 @@ end
 
 local function getLayerDefinition(layerId)
     for _, layer in ipairs(TerraLogicSoilManager.layers) do
-        if layer.id == layerId then return layer end
+        if layer.id == layerId then
+            return layer
+        end
     end
     return nil
 end
 
 local function getLayerCellSize(layerId)
     local layer = getLayerDefinition(layerId)
-    return layer ~= nil and layer.cellSize
-        or TerraLogicSoilManager.LEGACY_CELL_SIZE
+    return layer ~= nil and layer.cellSize or TerraLogicSoilManager.LEGACY_CELL_SIZE
 end
 
 local function getLayerChannels(layerId)
     local layer = getLayerDefinition(layerId)
-    return layer ~= nil and tonumber(layer.channels)
-        or TerraLogicSoilManager.NUM_CHANNELS
+    return layer ~= nil and tonumber(layer.channels) or TerraLogicSoilManager.NUM_CHANNELS
 end
 
 local function smoothStep01(value)
@@ -363,10 +495,8 @@ local function smoothStep01(value)
 end
 
 local function getSoilDevelopmentSpeed()
-    if TerraLogicSettings ~= nil
-        and TerraLogicSettings.getSoilDevelopmentSpeed ~= nil then
-        return math.clamp(tonumber(
-            TerraLogicSettings:getSoilDevelopmentSpeed()) or 4, 1, 8)
+    if TerraLogicSettings ~= nil and TerraLogicSettings.getSoilDevelopmentSpeed ~= nil then
+        return math.clamp(tonumber(TerraLogicSettings:getSoilDevelopmentSpeed()) or 4, 1, 8)
     end
     return 4
 end
@@ -381,52 +511,44 @@ TerraLogicSoilManager.DEEP_TRAFFIC_RATE = 0.85
 local REST_DEVELOPMENT_SPEED = 1
 
 local function getBiologicalContinuityFromAge(age)
-    local restProgress = smoothStep01(
-        math.min((tonumber(age) or 0) * REST_DEVELOPMENT_SPEED, 15) / 12)
+    local restProgress = smoothStep01(math.min((tonumber(age) or 0) * REST_DEVELOPMENT_SPEED, 15) / 12)
     return 0.25 + 0.75 * restProgress
 end
 
 local function getAgeFromBiologicalContinuity(continuity)
     local progress = math.clamp((continuity - 0.25) / 0.75, 0, 1)
     -- Inverse of 3*t*t - 2*t*t*t; retains the existing monthly recovery curve.
-    return 12 * (0.5 - math.sin(math.asin(1 - 2 * progress) / 3))
-        / REST_DEVELOPMENT_SPEED
+    return 12 * (0.5 - math.sin(math.asin(1 - 2 * progress) / 3)) / REST_DEVELOPMENT_SPEED
 end
 
 function TerraLogicSoilManager:applyContinuityRule(continuity, classKey, coverage)
     local rule = RECOVERY_AGE_WORK[classKey]
-    if rule == nil then return continuity end
-    return continuity - rule.strength * clamp01(coverage or 1)
-        * math.max(0, continuity - rule.target)
+    if rule == nil then
+        return continuity
+    end
+    return continuity - rule.strength * clamp01(coverage or 1) * math.max(0, continuity - rule.target)
 end
 
 function TerraLogicSoilManager:getImplementBiologicalImpact(classKey)
     local loss = math.max(0, -(RESILIENCE_TILLAGE[classKey] or 0))
-    local resilience = loss >= 0.009 and "strong"
-        or (loss >= 0.004 and "medium" or (loss > 0 and "low" or "none"))
+    local resilience = loss >= 0.009 and "strong" or (loss >= 0.004 and "medium" or (loss > 0 and "low" or "none"))
     local lossContinuity = 1 - self:applyContinuityRule(1, classKey, 1)
     local continuity = lossContinuity >= 0.40 and "strong"
-        or (lossContinuity >= 0.20 and "medium"
-            or (lossContinuity > 0 and "low" or "none"))
+        or (lossContinuity >= 0.20 and "medium" or (lossContinuity > 0 and "low" or "none"))
     return resilience, continuity
 end
 
 local function getResilienceDevelopmentSpeed(displayedSpeed)
-    if TerraLogicSettings ~= nil
-        and TerraLogicSettings.getResilienceDevelopmentSpeed ~= nil then
-        return math.clamp(tonumber(
-            TerraLogicSettings:getResilienceDevelopmentSpeed(displayedSpeed))
-            or 4, 1, 8)
+    if TerraLogicSettings ~= nil and TerraLogicSettings.getResilienceDevelopmentSpeed ~= nil then
+        return math.clamp(tonumber(TerraLogicSettings:getResilienceDevelopmentSpeed(displayedSpeed)) or 4, 1, 8)
     end
     local speed = tonumber(displayedSpeed) or getSoilDevelopmentSpeed()
     return speed <= 1 and 1 or (speed <= 4 and 4 or 8)
 end
 
 local function getResilienceTillageLossScale()
-    if TerraLogicSettings ~= nil
-        and TerraLogicSettings.getResilienceTillageLossScale ~= nil then
-        return math.clamp(tonumber(
-            TerraLogicSettings:getResilienceTillageLossScale()) or 4, 1, 8)
+    if TerraLogicSettings ~= nil and TerraLogicSettings.getResilienceTillageLossScale ~= nil then
+        return math.clamp(tonumber(TerraLogicSettings:getResilienceTillageLossScale()) or 4, 1, 8)
     end
     local speed = getSoilDevelopmentSpeed()
     return speed <= 1 and 1 or (speed <= 4 and 4 or 8)
@@ -437,29 +559,28 @@ end
 -- 1 - (1 - strength)^N. At 1x it is bit-for-bit the original strength.
 local function scaleSlowStrength(strength, speed)
     local normalized = clamp01(strength)
-    return 1 - (1 - normalized) ^ math.clamp(
-        tonumber(speed) or getSoilDevelopmentSpeed(), 1, 16)
+    return 1 - (1 - normalized) ^ math.clamp(tonumber(speed) or getSoilDevelopmentSpeed(), 1, 16)
 end
 
 -- Applies an explicitly supplied process tier after environmental factors.
 -- Callers choose the fixed physical/root rate or the selected resilience rate;
 -- keeping that choice at each process prevents accidental recoupling.
 local function scaleEnvironmentalStrength(strength, environment, speed)
-    return scaleSlowStrength(clamp01(strength)
-        * math.max(tonumber(environment) or 1, 0), speed)
+    return scaleSlowStrength(clamp01(strength) * math.max(tonumber(environment) or 1, 0), speed)
 end
 
 local function newRecoveryAccumulator()
     return {
-        hours=0, surfaceTemperatureSum=0, subsoilTemperatureSum=0,
-        airTemperatureSum=0, profiles={}
+        hours = 0,
+        surfaceTemperatureSum = 0,
+        subsoilTemperatureSum = 0,
+        airTemperatureSum = 0,
+        profiles = {},
     }
 end
 
 local function getRecoveryProfileOrder()
-    return TerraLogicSoilMoistureManager ~= nil
-        and TerraLogicSoilMoistureManager.PROFILE_ORDER
-        or {0, 1, 2, 3, 4}
+    return TerraLogicSoilMoistureManager ~= nil and TerraLogicSoilMoistureManager.PROFILE_ORDER or { 0, 1, 2, 3, 4 }
 end
 
 local function getSuitabilityFactorScore(value, factor)
@@ -478,17 +599,25 @@ end
 -- Pure single-cell version of the work-area suitability calculation.  The
 -- Field Analysis page uses this to preview real implement behaviour without
 -- creating a WorkArea, mutating the implement, or writing a density map.
-function TerraLogicSoilManager:getSuitabilityAtState(state, soilTypeIndex,
-        classKey, workDepthCm, rawGround, x, z)
-    local profile = TerraLogicSoilProfiles ~= nil
-        and TerraLogicSoilProfiles:getSuitabilityProfile(classKey) or nil
+function TerraLogicSoilManager:getSuitabilityAtState(state, soilTypeIndex, classKey, workDepthCm, rawGround, x, z)
+    local profile = TerraLogicSoilProfiles ~= nil and TerraLogicSoilProfiles:getSuitabilityProfile(classKey) or nil
     if state == nil or profile == nil then
-        return {qualityFactor=1, structuralQualityFactor=1,
-            moistureQualityFactor=1, dropoutFraction=0,
-            structuralDropoutFraction=0, moistureDropoutFraction=0,
-            dropoutRisk=0, safeSpeedRatio=1,
-            soilEffectiveness=1, draftMultiplier=1, frostSeverity=0,
-            penetrationFactor=1, wetSeverity=0, drySeverity=0}
+        return {
+            qualityFactor = 1,
+            structuralQualityFactor = 1,
+            moistureQualityFactor = 1,
+            dropoutFraction = 0,
+            structuralDropoutFraction = 0,
+            moistureDropoutFraction = 0,
+            dropoutRisk = 0,
+            safeSpeedRatio = 1,
+            soilEffectiveness = 1,
+            draftMultiplier = 1,
+            frostSeverity = 0,
+            penetrationFactor = 1,
+            wetSeverity = 0,
+            drySeverity = 0,
+        }
     end
     local qualitySum, qualityWeight, dropoutSum, dropoutWeight = 0, 0, 0, 0
     for layerId, factor in pairs(profile.factors or {}) do
@@ -496,60 +625,53 @@ function TerraLogicSoilManager:getSuitabilityAtState(state, soilTypeIndex,
         local score = getSuitabilityFactorScore(state[layerId], factor)
         local qWeight = math.max(tonumber(factor.qualityWeight) or 0, 0)
         local dWeight = math.max(tonumber(factor.dropoutWeight) or 0, 0)
-        qualitySum, qualityWeight = qualitySum + score * qWeight,
-            qualityWeight + qWeight
-        dropoutSum, dropoutWeight = dropoutSum + score * dWeight,
-            dropoutWeight + dWeight
+        qualitySum, qualityWeight = qualitySum + score * qWeight, qualityWeight + qWeight
+        dropoutSum, dropoutWeight = dropoutSum + score * dWeight, dropoutWeight + dWeight
     end
     local qualityScore = qualityWeight > 0 and qualitySum / qualityWeight or 1
-    local rawQuality = clamp01((profile.qualityFloor or 1)
-        + (1 - (profile.qualityFloor or 1)) * qualityScore)
-    local residual = clamp01(profile.residualQualityShare == nil
-        and 1 or profile.residualQualityShare)
+    local rawQuality = clamp01((profile.qualityFloor or 1) + (1 - (profile.qualityFloor or 1)) * qualityScore)
+    local residual = clamp01(profile.residualQualityShare == nil and 1 or profile.residualQualityShare)
     local structuralQuality = 1 - (1 - rawQuality) * residual
     local dropoutScore = dropoutWeight > 0 and dropoutSum / dropoutWeight or 1
-    local dropoutRisk = clamp01(((1 - clamp01(dropoutScore))
-        - clamp01(profile.dropoutOnset or 0))
-        / math.max(1 - clamp01(profile.dropoutOnset or 0), 0.0001))
+    local dropoutRisk = clamp01(
+        ((1 - clamp01(dropoutScore)) - clamp01(profile.dropoutOnset or 0))
+            / math.max(1 - clamp01(profile.dropoutOnset or 0), 0.0001)
+    )
     local safeMinimumRatio = clamp01(profile.safeSpeedMinimumRatio or 1)
     local safeSpeedRatio = 1 - dropoutRisk * (1 - safeMinimumRatio)
     -- Planner previews use the class reference/shop speed. The same smooth
     -- activation used at runtime therefore predicts zero misses on a healthy
     -- seedbed and an increasing risk when that speed exceeds soil-safe speed.
-    local speedWindowRatio = math.max(
-        tonumber(profile.dropoutSpeedWindowRatio) or 0.30, 0.05)
+    local speedWindowRatio = math.max(tonumber(profile.dropoutSpeedWindowRatio) or 0.30, 0.05)
     local speedT = clamp01((1 - safeSpeedRatio) / speedWindowRatio)
     local speedActivation = speedT * speedT * (3 - 2 * speedT)
-    local structuralDropout = clamp01(
-        (profile.dropoutMax or 0) * dropoutRisk * speedActivation)
+    local structuralDropout = clamp01((profile.dropoutMax or 0) * dropoutRisk * speedActivation)
     local moisture = TerraLogicSoilMoistureManager ~= nil
-        and TerraLogicSoilMoistureManager:getMechanicalResponse(
-            soilTypeIndex, classKey, workDepthCm or 0, x, z) or {}
+            and TerraLogicSoilMoistureManager:getMechanicalResponse(soilTypeIndex, classKey, workDepthCm or 0, x, z)
+        or {}
     local rawMoistureQuality = clamp01(moisture.qualityFactor or 1)
     local moistureQuality = 1 - (1 - rawMoistureQuality) * residual
     local moistureDropout = math.max(
         clamp01(moisture.dropoutFraction or 0) * speedActivation,
-        clamp01(moisture.frostDropoutFraction or 0)
-            * clamp01((clamp01(moisture.frostSeverity or 0)-0.55)/0.35))
+        clamp01(moisture.frostDropoutFraction or 0) * clamp01((clamp01(moisture.frostSeverity or 0) - 0.55) / 0.35)
+    )
     return {
-        qualityFactor=math.min(structuralQuality, moistureQuality),
-        structuralQualityFactor=structuralQuality,
-        moistureQualityFactor=moistureQuality,
-        dropoutFraction=math.max(structuralDropout, moistureDropout),
-        structuralDropoutFraction=structuralDropout,
-        moistureDropoutFraction=moistureDropout,
-        dropoutRisk=dropoutRisk,
-        safeSpeedRatio=safeSpeedRatio,
-        suitabilitySpeedActivation=speedActivation,
-        soilEffectiveness=clamp01(moisture.soilEffectiveness or 1),
-        draftMultiplier=tonumber(moisture.draftMultiplier) or 1,
-        frostDraftMultiplier=tonumber(moisture.frostDraftMultiplier) or 1,
-        frostSeverity=clamp01(moisture.frostSeverity or 0),
-        penetrationFactor=clamp01(moisture.penetrationFactor or 1),
-        wetSeverity=moisture.implementMoistureActive == true
-            and clamp01(moisture.wetSeverity or 0) or 0,
-        drySeverity=moisture.implementMoistureActive == true
-            and clamp01(moisture.drySeverity or 0) or 0
+        qualityFactor = math.min(structuralQuality, moistureQuality),
+        structuralQualityFactor = structuralQuality,
+        moistureQualityFactor = moistureQuality,
+        dropoutFraction = math.max(structuralDropout, moistureDropout),
+        structuralDropoutFraction = structuralDropout,
+        moistureDropoutFraction = moistureDropout,
+        dropoutRisk = dropoutRisk,
+        safeSpeedRatio = safeSpeedRatio,
+        suitabilitySpeedActivation = speedActivation,
+        soilEffectiveness = clamp01(moisture.soilEffectiveness or 1),
+        draftMultiplier = tonumber(moisture.draftMultiplier) or 1,
+        frostDraftMultiplier = tonumber(moisture.frostDraftMultiplier) or 1,
+        frostSeverity = clamp01(moisture.frostSeverity or 0),
+        penetrationFactor = clamp01(moisture.penetrationFactor or 1),
+        wetSeverity = moisture.implementMoistureActive == true and clamp01(moisture.wetSeverity or 0) or 0,
+        drySeverity = moisture.implementMoistureActive == true and clamp01(moisture.drySeverity or 0) or 0,
     }
 end
 
@@ -561,74 +683,84 @@ end
 -- by chance, while compaction, roughness and Work Quality still preserve the
 -- overall cost of working in unsuitable conditions.
 local MOISTURE_TEXTURE_COHESION = {
-    [0]=0.55, [1]=0.10, [2]=0.35, [3]=0.70, [4]=1.00
+    [0] = 0.55,
+    [1] = 0.10,
+    [2] = 0.35,
+    [3] = 0.70,
+    [4] = 1.00,
 }
 
 local MOISTURE_HIGH_SHEAR = {
-    ridgeFormer=true,
-    powerHarrow=true, spader=true, roller=true
+    ridgeFormer = true,
+    powerHarrow = true,
+    spader = true,
+    roller = true,
 }
 
 local MOISTURE_NARROW_SLOT = {
-    vegetablePlanter=true, sugarcanePlanter=true,
-    sowingMachine=true, precisionPlanter=true,
-    directDrill=true, precisionDirectDrill=true,
-    slurryInjector=true
+    vegetablePlanter = true,
+    sugarcanePlanter = true,
+    sowingMachine = true,
+    precisionPlanter = true,
+    directDrill = true,
+    precisionDirectDrill = true,
+    slurryInjector = true,
 }
 
 local function getMoistureAdverseRule(classKey, layerId, response)
-    if response == nil then return nil, 0, 0 end
+    if response == nil then
+        return nil, 0, 0
+    end
     local dry = clamp01(response.drySeverity)
     local wet = clamp01(response.wetSeverity)
     if layerId == "surfaceCompaction" and wet > 0 then
         local targets = {
-            roller=0.82, precisionPlanter=0.58,
-            precisionDirectDrill=0.56, sowingMachine=0.56,
-            directDrill=0.54, plow=0.48, subsoiler=0.46
+            roller = 0.82,
+            precisionPlanter = 0.58,
+            precisionDirectDrill = 0.56,
+            sowingMachine = 0.56,
+            directDrill = 0.54,
+            plow = 0.48,
+            subsoiler = 0.46,
         }
         local strengths = {
-            roller=0.34, precisionPlanter=0.09,
-            precisionDirectDrill=0.07, sowingMachine=0.07,
-            directDrill=0.05, plow=0.10, subsoiler=0.07
+            roller = 0.34,
+            precisionPlanter = 0.09,
+            precisionDirectDrill = 0.07,
+            sowingMachine = 0.07,
+            directDrill = 0.05,
+            plow = 0.10,
+            subsoiler = 0.07,
         }
-        local maximumDelta = classKey == "roller" and 0.10
-            or (MOISTURE_NARROW_SLOT[classKey] and 0.035 or 0.060)
-        return {target=targets[classKey] or 0.58,
-            strength=strengths[classKey] or 0.14,
-            mode="increaseOnly"}, wet, maximumDelta
+        local maximumDelta = classKey == "roller" and 0.10 or (MOISTURE_NARROW_SLOT[classKey] and 0.035 or 0.060)
+        return {
+            target = targets[classKey] or 0.58,
+            strength = strengths[classKey] or 0.14,
+            mode = "increaseOnly",
+        },
+            wet,
+            maximumDelta
     end
     if layerId == "aggregateSize" then
         local texture = tonumber(response.profileIndex) or 0
-        local cohesion = MOISTURE_TEXTURE_COHESION[texture]
-            or MOISTURE_TEXTURE_COHESION[0]
+        local cohesion = MOISTURE_TEXTURE_COHESION[texture] or MOISTURE_TEXTURE_COHESION[0]
         local lightness = 1 - cohesion
         if wet > 0 then
             if MOISTURE_HIGH_SHEAR[classKey] then
-                return {target=0.90,
-                    strength=0.06 + 0.08 * cohesion}, wet,
-                    0.025 + 0.045 * cohesion
+                return { target = 0.90, strength = 0.06 + 0.08 * cohesion }, wet, 0.025 + 0.045 * cohesion
             end
             if MOISTURE_NARROW_SLOT[classKey] then
-                return {target=0.90,
-                    strength=0.015 + 0.025 * cohesion}, wet,
-                    0.010 + 0.020 * cohesion
+                return { target = 0.90, strength = 0.015 + 0.025 * cohesion }, wet, 0.010 + 0.020 * cohesion
             end
-            return {target=0.10,
-                strength=0.035 + 0.065 * cohesion}, wet,
-                0.020 + 0.040 * cohesion
+            return { target = 0.10, strength = 0.035 + 0.065 * cohesion }, wet, 0.020 + 0.040 * cohesion
         elseif dry > 0 then
-            if MOISTURE_HIGH_SHEAR[classKey]
-                or (classKey == "discHarrow" and lightness >= 0.50) then
-                return {target=0.90,
-                    strength=0.035 + 0.045 * lightness}, dry,
-                    0.020 + 0.035 * lightness
+            if MOISTURE_HIGH_SHEAR[classKey] or (classKey == "discHarrow" and lightness >= 0.50) then
+                return { target = 0.90, strength = 0.035 + 0.045 * lightness }, dry, 0.020 + 0.035 * lightness
             end
             -- Dry cohesive horizons fracture into hard clods. On light soil
             -- this reaction is weak and the normal implement target remains
             -- dominant.
-            return {target=0.08,
-                strength=0.030 + 0.060 * cohesion}, dry,
-                0.015 + 0.040 * cohesion
+            return { target = 0.08, strength = 0.030 + 0.060 * cohesion }, dry, 0.015 + 0.040 * cohesion
         end
     end
     return nil, 0, 0
@@ -638,13 +770,13 @@ end
 -- frequent, so their average remains local while avoiding a second density
 -- map.  The same snapshot feeds physical misses, live HUD quality and the
 -- persistent Work Quality ledger.
-function TerraLogicSoilManager:prepareWorkAreaSuitability(
-        implement, workArea, classKey)
+function TerraLogicSoilManager:prepareWorkAreaSuitability(implement, workArea, classKey)
     local spec = implement ~= nil and implement.spec_terraLogic or nil
-    local profile = TerraLogicSoilProfiles ~= nil
-        and TerraLogicSoilProfiles:getSuitabilityProfile(classKey) or nil
+    local profile = TerraLogicSoilProfiles ~= nil and TerraLogicSoilProfiles:getSuitabilityProfile(classKey) or nil
     if spec == nil or profile == nil or TerraLogicQualityManager == nil then
-        if spec ~= nil then spec.soilSuitabilityContext = nil end
+        if spec ~= nil then
+            spec.soilSuitabilityContext = nil
+        end
         return nil
     end
     local touchedCells = TerraLogicQualityManager:getTouchedCells(workArea, false)
@@ -668,44 +800,38 @@ function TerraLogicSoilManager:prepareWorkAreaSuitability(
         -- seedbed cell was both redundant and substantially more expensive.
         local cultivatable, rawGround = self:isCultivatableTerrainAtWorldPosition(x, z)
         if cultivatable == nil then
-            local surface = TerraLogicQualityManager:
-                getSurfaceTypeAtWorldPosition(x, z)
+            local surface = TerraLogicQualityManager:getSurfaceTypeAtWorldPosition(x, z)
             cultivatable = surface == "field" or surface == "grassField"
         end
         if cultivatable == true then
             eligible = eligible + 1
-            eligibleCellKeys[tostring(cell.ix) .. ":"
-                .. tostring(cell.iz)] = true
+            eligibleCellKeys[tostring(cell.ix) .. ":" .. tostring(cell.iz)] = true
             local state = self:getStateAtWorldPosition(x, z)
             local soilTypeIndex = self:getPFSoilTypeAtWorldPosition(x, z)
-            local responseKey = tostring(soilTypeIndex or "default") .. ":" .. tostring(TerraLogicFieldWaterManager and (TerraLogicFieldWaterManager:getField(x,z) or {}).id or 0)
+            local responseKey = tostring(soilTypeIndex or "default")
+                .. ":"
+                .. tostring(TerraLogicFieldWaterManager and (TerraLogicFieldWaterManager:getField(x, z) or {}).id or 0)
             local moisture = mechanicalResponses[responseKey]
             if moisture == nil and TerraLogicSoilMoistureManager ~= nil then
-                moisture = TerraLogicSoilMoistureManager:
-                    getMechanicalResponse(soilTypeIndex, classKey,
-                        spec.workDepthCm or 0, x, z)
+                moisture = TerraLogicSoilMoistureManager:getMechanicalResponse(
+                    soilTypeIndex,
+                    classKey,
+                    spec.workDepthCm or 0,
+                    x,
+                    z
+                )
                 mechanicalResponses[responseKey] = moisture
             end
-            moistureQualitySum = moistureQualitySum
-                + (moisture ~= nil and moisture.qualityFactor or 1)
-            moistureDropoutSum = moistureDropoutSum
-                + (moisture ~= nil and moisture.dropoutFraction or 0)
-            drySeveritySum = drySeveritySum
-                + (moisture ~= nil and moisture.drySeverity or 0)
-            wetSeveritySum = wetSeveritySum
-                + (moisture ~= nil and moisture.wetSeverity or 0)
-            dryQualityLossSum = dryQualityLossSum
-                + (moisture ~= nil and moisture.dryQualityLoss or 0)
-            wetQualityLossSum = wetQualityLossSum
-                + (moisture ~= nil and moisture.wetQualityLoss or 0)
-            frostSeveritySum = frostSeveritySum
-                + (moisture ~= nil and moisture.frostSeverity or 0)
-            frostQualitySum = frostQualitySum
-                + (moisture ~= nil and moisture.frostQualityFactor or 1)
-            frostPenetrationSum = frostPenetrationSum
-                + (moisture ~= nil and moisture.penetrationFactor or 1)
-            frostDropoutSum = frostDropoutSum
-                + (moisture ~= nil and moisture.frostDropoutFraction or 0)
+            moistureQualitySum = moistureQualitySum + (moisture ~= nil and moisture.qualityFactor or 1)
+            moistureDropoutSum = moistureDropoutSum + (moisture ~= nil and moisture.dropoutFraction or 0)
+            drySeveritySum = drySeveritySum + (moisture ~= nil and moisture.drySeverity or 0)
+            wetSeveritySum = wetSeveritySum + (moisture ~= nil and moisture.wetSeverity or 0)
+            dryQualityLossSum = dryQualityLossSum + (moisture ~= nil and moisture.dryQualityLoss or 0)
+            wetQualityLossSum = wetQualityLossSum + (moisture ~= nil and moisture.wetQualityLoss or 0)
+            frostSeveritySum = frostSeveritySum + (moisture ~= nil and moisture.frostSeverity or 0)
+            frostQualitySum = frostQualitySum + (moisture ~= nil and moisture.frostQualityFactor or 1)
+            frostPenetrationSum = frostPenetrationSum + (moisture ~= nil and moisture.penetrationFactor or 1)
+            frostDropoutSum = frostDropoutSum + (moisture ~= nil and moisture.frostDropoutFraction or 0)
             for layerId, factor in pairs(profile.factors or {}) do
                 factor = TerraLogicSpecialImplements.getSuitabilityFactor(classKey, layerId, factor, rawGround)
                 local score = getSuitabilityFactorScore(state[layerId], factor)
@@ -717,12 +843,9 @@ function TerraLogicSoilManager:prepareWorkAreaSuitability(
                 dropoutWeight = dropoutWeight + dWeight
                 -- Attribute warnings from the same samples and weights as
                 -- suitability, not from a second scan or an arbitrary value.
-                qualityDeficits[layerId] = (qualityDeficits[layerId] or 0)
-                    + (1-score)*qWeight
-                dropoutDeficits[layerId] = (dropoutDeficits[layerId] or 0)
-                    + (1-score)*dWeight
-                layerSums[layerId] = (layerSums[layerId] or 0)
-                    + clamp01(state[layerId])
+                qualityDeficits[layerId] = (qualityDeficits[layerId] or 0) + (1 - score) * qWeight
+                dropoutDeficits[layerId] = (dropoutDeficits[layerId] or 0) + (1 - score) * dWeight
+                layerSums[layerId] = (layerSums[layerId] or 0) + clamp01(state[layerId])
             end
         end
     end
@@ -731,32 +854,27 @@ function TerraLogicSoilManager:prepareWorkAreaSuitability(
         return nil
     end
     local qualityScore = qualityWeight > 0 and qualitySum / qualityWeight or 1
-    local rawQualityFactor = clamp01((profile.qualityFloor or 1)
-        + (1 - (profile.qualityFloor or 1)) * qualityScore)
-    local residualShare = clamp01(profile.residualQualityShare == nil
-        and 1 or profile.residualQualityShare)
-    local structuralQualityFactor = 1
-        - (1 - rawQualityFactor) * residualShare
+    local rawQualityFactor = clamp01((profile.qualityFloor or 1) + (1 - (profile.qualityFloor or 1)) * qualityScore)
+    local residualShare = clamp01(profile.residualQualityShare == nil and 1 or profile.residualQualityShare)
+    local structuralQualityFactor = 1 - (1 - rawQualityFactor) * residualShare
     local rawMoistureQualityFactor = moistureQualitySum / eligible
     -- The profile already reserves the complementary share for physical
     -- dropout. Apply that same split to moisture so seed-placement misses and
     -- invisible Work Quality do not charge the full moisture loss twice.
-    local moistureQualityFactor = 1
-        - (1 - rawMoistureQualityFactor) * residualShare
+    local moistureQualityFactor = 1 - (1 - rawMoistureQualityFactor) * residualShare
     local dropoutScore = dropoutWeight > 0 and dropoutSum / dropoutWeight or 1
     local dropoutRisk = 1 - clamp01(dropoutScore)
     local dropoutOnset = clamp01(profile.dropoutOnset or 0)
-    dropoutRisk = clamp01((dropoutRisk - dropoutOnset)
-        / math.max(1 - dropoutOnset, 0.0001))
-    local implementSpeed = implement ~= nil and implement.getLastSpeed ~= nil
-        and math.abs(tonumber(implement:getLastSpeed(true)) or 0) or 0
-    local ratedSpeed = math.max(tonumber(spec.ratedSpeed)
-        or tonumber(spec.optimalSpeed) or 0, 0)
+    dropoutRisk = clamp01((dropoutRisk - dropoutOnset) / math.max(1 - dropoutOnset, 0.0001))
+    local implementSpeed = implement ~= nil
+            and implement.getLastSpeed ~= nil
+            and math.abs(tonumber(implement:getLastSpeed(true)) or 0)
+        or 0
+    local ratedSpeed = math.max(tonumber(spec.ratedSpeed) or tonumber(spec.optimalSpeed) or 0, 0)
     local safeMinimumRatio = clamp01(profile.safeSpeedMinimumRatio or 1)
     local safeSpeedRatio = 1 - dropoutRisk * (1 - safeMinimumRatio)
     local safeSpeedKph = ratedSpeed > 0 and ratedSpeed * safeSpeedRatio or 0
-    local speedWindow = math.max(ratedSpeed
-        * (tonumber(profile.dropoutSpeedWindowRatio) or 0.30), 1)
+    local speedWindow = math.max(ratedSpeed * (tonumber(profile.dropoutSpeedWindowRatio) or 0.30), 1)
     local speedActivation = 0
     if safeSpeedKph > 0 and implementSpeed > safeSpeedKph then
         local speedT = clamp01((implementSpeed - safeSpeedKph) / speedWindow)
@@ -766,13 +884,11 @@ function TerraLogicSoilManager:prepareWorkAreaSuitability(
     -- opener misses.  It recovers most, but not all, placement-quality loss;
     -- the remaining loose/coarse contact deficit is what rolling can repair.
     local slowRecovery = clamp01(profile.slowQualityRecovery or 0)
-    local recoveryProgress = safeSpeedKph > 0 and clamp01(
-        (ratedSpeed - implementSpeed)
-            / math.max(ratedSpeed - safeSpeedKph, 0.01)) or 0
-    structuralQualityFactor = structuralQualityFactor
-        + (1 - structuralQualityFactor) * slowRecovery * recoveryProgress
-    local structuralDropoutFraction = clamp01(
-        (profile.dropoutMax or 0) * dropoutRisk * speedActivation)
+    local recoveryProgress = safeSpeedKph > 0
+            and clamp01((ratedSpeed - implementSpeed) / math.max(ratedSpeed - safeSpeedKph, 0.01))
+        or 0
+    structuralQualityFactor = structuralQualityFactor + (1 - structuralQualityFactor) * slowRecovery * recoveryProgress
+    local structuralDropoutFraction = clamp01((profile.dropoutMax or 0) * dropoutRisk * speedActivation)
     local rawMoistureDropout = clamp01(moistureDropoutSum / eligible)
     local frostDropout = clamp01(frostDropoutSum / eligible)
     -- Unsuitable moisture normally lowers placement/emergence quality rather
@@ -780,20 +896,20 @@ function TerraLogicSoilManager:prepareWorkAreaSuitability(
     -- prevents surface following; severe frost is the physical exception.
     local moistureDropoutFraction = math.max(
         rawMoistureDropout * speedActivation,
-        frostDropout * clamp01((frostSeveritySum / eligible - 0.55) / 0.35))
-    local dropoutFraction = math.max(
-        structuralDropoutFraction, moistureDropoutFraction)
+        frostDropout * clamp01((frostSeveritySum / eligible - 0.55) / 0.35)
+    )
+    local dropoutFraction = math.max(structuralDropoutFraction, moistureDropoutFraction)
     -- A ceiling avoids charging structurally bad and wet/dry soil as two
     -- multiplied versions of the same failed penetration/placement outcome.
-    local qualityFactor = math.min(
-        structuralQualityFactor, moistureQualityFactor)
+    local qualityFactor = math.min(structuralQualityFactor, moistureQualityFactor)
     local averages = {}
-    for layerId, sum in pairs(layerSums) do averages[layerId] = sum / eligible end
+    for layerId, sum in pairs(layerSums) do
+        averages[layerId] = sum / eligible
+    end
     local function dominantFactor(deficits)
         local key, maximum = nil, 0
         for layerId, deficit in pairs(deficits) do
-            if deficit > maximum or (deficit == maximum and deficit > 0
-                and (key == nil or layerId < key)) then
+            if deficit > maximum or (deficit == maximum and deficit > 0 and (key == nil or layerId < key)) then
                 key, maximum = layerId, deficit
             end
         end
@@ -830,7 +946,7 @@ function TerraLogicSoilManager:prepareWorkAreaSuitability(
         touchedCells = #touchedCells,
         eligibleCellKeys = eligibleCellKeys,
         averages = averages,
-        time = g_currentMission ~= nil and g_currentMission.time or 0
+        time = g_currentMission ~= nil and g_currentMission.time or 0,
     }
     spec.soilSuitabilityContext = context
     spec.soilSuitabilityQuality = qualityFactor
@@ -849,9 +965,10 @@ function TerraLogicSoilManager:getActiveSuitability(implement, classKey)
         return 1, 0, nil
     end
     local now = g_currentMission ~= nil and g_currentMission.time or 0
-    if now - (context.time or now) > 2500 then return 1, 0, nil end
-    return clamp01(context.qualityFactor or 1),
-        clamp01(context.dropoutFraction or 0), context
+    if now - (context.time or now) > 2500 then
+        return 1, 0, nil
+    end
+    return clamp01(context.qualityFactor or 1), clamp01(context.dropoutFraction or 0), context
 end
 
 -- Returns PF's physical texture even on an unpurchased/unsampled field. The
@@ -861,11 +978,13 @@ function TerraLogicSoilManager:getPFSoilTypeAtWorldPosition(x, z)
     if self.auditSoilTypeOverride ~= nil then
         return tonumber(self.auditSoilTypeOverride)
     end
-    if TerraLogicMain == nil
+    if
+        TerraLogicMain == nil
         or TerraLogicMain.isPrecisionFarmingActive == nil
         or not TerraLogicMain:isPrecisionFarmingActive()
         or TerraLogic == nil
-        or TerraLogic.getRawPrecisionFarmingSoilType == nil then
+        or TerraLogic.getRawPrecisionFarmingSoilType == nil
+    then
         return nil
     end
     local soilMap = self.pfSoilMap
@@ -873,24 +992,24 @@ function TerraLogicSoilManager:getPFSoilTypeAtWorldPosition(x, z)
         soilMap = TerraLogicMain:getPrecisionFarmingSoilMap()
         self.pfSoilMap = soilMap
     end
-    if soilMap == nil then return nil end
-    local soilTypeIndex = TerraLogic.getRawPrecisionFarmingSoilType(
-        TerraLogic, x, z, soilMap)
+    if soilMap == nil then
+        return nil
+    end
+    local soilTypeIndex = TerraLogic.getRawPrecisionFarmingSoilType(TerraLogic, x, z, soilMap)
     return tonumber(soilTypeIndex)
 end
 
 local function isMinimapLayout(layout)
-    if layout == nil or layout.isa == nil then return false end
+    if layout == nil or layout.isa == nil then
+        return false
+    end
     return (IngameMapLayoutCircle ~= nil and layout:isa(IngameMapLayoutCircle))
         or (IngameMapLayoutSquare ~= nil and layout:isa(IngameMapLayoutSquare))
-        or (IngameMapLayoutSquareLarge ~= nil
-            and layout:isa(IngameMapLayoutSquareLarge))
+        or (IngameMapLayoutSquareLarge ~= nil and layout:isa(IngameMapLayoutSquareLarge))
 end
 
 local function isRoundMinimapLayout(layout)
-    return layout ~= nil and layout.isa ~= nil
-        and IngameMapLayoutCircle ~= nil
-        and layout:isa(IngameMapLayoutCircle)
+    return layout ~= nil and layout.isa ~= nil and IngameMapLayoutCircle ~= nil and layout:isa(IngameMapLayoutCircle)
 end
 
 local function encode(value, channels)
@@ -900,7 +1019,9 @@ end
 
 local function decode(value, default, channels)
     value = tonumber(value) or 0
-    if value <= 0 then return default end
+    if value <= 0 then
+        return default
+    end
     local steps = math.max(2 ^ (tonumber(channels) or 6) - 2, 1)
     return clamp01((value - 1) / steps)
 end
@@ -930,14 +1051,10 @@ local function resilienceGradient(value)
     value = clamp01(value)
     if value <= 0.5 then
         local t = value * 2
-        return 0.90 + 0.08 * t,
-            0.12 + 0.73 * t,
-            0.08 - 0.03 * t, 0.94
+        return 0.90 + 0.08 * t, 0.12 + 0.73 * t, 0.08 - 0.03 * t, 0.94
     end
     local t = (value - 0.5) * 2
-    return 0.98 - 0.63 * t,
-        0.85 + 0.15 * t,
-        0.05 + 0.10 * t, 0.94
+    return 0.98 - 0.63 * t, 0.85 + 0.15 * t, 0.05 + 0.10 * t, 0.94
 end
 
 -- Tilth uses a directional scale rather than the ordinary bad-to-good scale:
@@ -947,16 +1064,15 @@ end
 local function tilthGradient(value)
     value = clamp01(value)
     local anchors = {
-        {0.00, 0.90, 0.12, 0.10},
-        {0.25, 0.96, 0.78, 0.08},
-        {0.50, 0.15, 0.82, 0.18},
-        {1.00, 0.10, 0.42, 0.96}
+        { 0.00, 0.90, 0.12, 0.10 },
+        { 0.25, 0.96, 0.78, 0.08 },
+        { 0.50, 0.15, 0.82, 0.18 },
+        { 1.00, 0.10, 0.42, 0.96 },
     }
-    for index=1,#anchors-1 do
+    for index = 1, #anchors - 1 do
         local left, right = anchors[index], anchors[index + 1]
         if value <= right[1] then
-            local t = (value - left[1])
-                / math.max(right[1] - left[1], 0.0001)
+            local t = (value - left[1]) / math.max(right[1] - left[1], 0.0001)
             return left[2] + (right[2] - left[2]) * t,
                 left[3] + (right[3] - left[3]) * t,
                 left[4] + (right[4] - left[4]) * t,
@@ -968,15 +1084,19 @@ local function tilthGradient(value)
 end
 
 local SOIL_MAP_LABEL_KEYS = {
-    "terraLogic_soilMapSurface", "terraLogic_soilMapDeep",
-    "terraLogic_soilMapAggregate", "terraLogic_soilMapRoughness",
-    "terraLogic_soilMapResilience"
+    "terraLogic_soilMapSurface",
+    "terraLogic_soilMapDeep",
+    "terraLogic_soilMapAggregate",
+    "terraLogic_soilMapRoughness",
+    "terraLogic_soilMapResilience",
 }
 
 local SOIL_MAP_COMPACT_LABEL_KEYS = {
-    "terraLogic_soilSurface", "terraLogic_soilDeep",
-    "terraLogic_soilAggregate", "terraLogic_soilEvenness",
-    "terraLogic_soilResilience"
+    "terraLogic_soilSurface",
+    "terraLogic_soilDeep",
+    "terraLogic_soilAggregate",
+    "terraLogic_soilEvenness",
+    "terraLogic_soilResilience",
 }
 
 local function getLocalizedSoilMapLabel(mode)
@@ -989,22 +1109,29 @@ end
 
 local function getLocalizedCompactSoilMapLabel(mode)
     local key = SOIL_MAP_COMPACT_LABEL_KEYS[mode]
-    if key ~= nil and g_i18n ~= nil then return g_i18n:getText(key) end
+    if key ~= nil and g_i18n ~= nil then
+        return g_i18n:getText(key)
+    end
     return "Soil"
 end
 
 local function fitTextSize(text, preferredSize, maximumWidth, minimumScale)
     local width = getTextWidth(preferredSize, tostring(text or ""))
-    if width <= maximumWidth or width <= 0 then return preferredSize end
-    return preferredSize * math.max(
-        maximumWidth / width, tonumber(minimumScale) or 0.60)
+    if width <= maximumWidth or width <= 0 then
+        return preferredSize
+    end
+    return preferredSize * math.max(maximumWidth / width, tonumber(minimumScale) or 0.60)
 end
 
 local function getTerrainDataNode()
     local node = g_terrainNode
-    if node ~= nil and node ~= 0 then return node end
+    if node ~= nil and node ~= 0 then
+        return node
+    end
     node = g_currentMission ~= nil and g_currentMission.terrainRootNode or nil
-    if node ~= nil and node ~= 0 then return node end
+    if node ~= nil and node ~= 0 then
+        return node
+    end
     return nil
 end
 
@@ -1014,16 +1141,15 @@ function TerraLogicSoilManager:getMapDimensions()
     -- reads/writes without a Lua error.
     local terrainNode = getTerrainDataNode()
     local terrainSize = nil
-    if terrainNode ~= nil and getTerrainSize ~= nil then
-        local ok, size = pcall(getTerrainSize, terrainNode)
-        if ok and tonumber(size) ~= nil and size > 1 then
+    if terrainNode ~= nil and type(getTerrainSize) == "function" then
+        local size = getTerrainSize(terrainNode)
+        if tonumber(size) ~= nil and size > 1 then
             terrainSize = size
         end
     end
     -- mission.terrainSize is a scale value on FS25 maps, not the size in
     -- metres. Only accept it as a fallback when it is plausibly a world size.
-    local missionSize = g_currentMission ~= nil
-        and tonumber(g_currentMission.terrainSize) or nil
+    local missionSize = g_currentMission ~= nil and tonumber(g_currentMission.terrainSize) or nil
     if terrainSize == nil and missionSize ~= nil and missionSize >= 256 then
         terrainSize = missionSize
     end
@@ -1033,18 +1159,21 @@ function TerraLogicSoilManager:getMapDimensions()
 end
 
 function TerraLogicSoilManager:getLayerMapSize(layerId, terrainSize)
-    return math.max(math.floor((tonumber(terrainSize) or self.terrainSize or 2048)
-        / getLayerCellSize(layerId) + 0.5), 1)
+    return math.max(
+        math.floor((tonumber(terrainSize) or self.terrainSize or 2048) / getLayerCellSize(layerId) + 0.5),
+        1
+    )
 end
 
 function TerraLogicSoilManager:tryInitializeRaster()
-    if self.rasterReady then return true end
+    if self.rasterReady then
+        return true
+    end
     local terrainNode = getTerrainDataNode()
     if DensityMapModifier == nil or terrainNode == nil then
         if TerraLogicLogging.verbose and not self.rasterDeferredLogged then
             self.rasterDeferredLogged = true
-            TerraLogicLogging.debug(
-                "[FS25_TerraLogic] Soil raster deferred until terrain data is ready")
+            TerraLogicLogging.debug("[FS25_TerraLogic] Soil raster deferred until terrain data is ready")
         end
         return false
     end
@@ -1055,28 +1184,32 @@ function TerraLogicSoilManager:tryInitializeRaster()
         if map ~= nil then
             local modifier = self.modifiers[layer.id]
             if modifier == nil then
-                modifier = DensityMapModifier.new(
-                    map, 0, getLayerChannels(layer.id), terrainNode)
+                modifier = DensityMapModifier.new(map, 0, getLayerChannels(layer.id), terrainNode)
                 self.modifiers[layer.id] = modifier
-                if self.mapNeedsDefaults ~= nil
-                    and self.mapNeedsDefaults[layer.id] == true then
+                if self.mapNeedsDefaults ~= nil and self.mapNeedsDefaults[layer.id] == true then
                     self:initializeFieldDefaults(layer.id, self.terrainSize)
                 end
             end
-            if modifier ~= nil then initializedLayers = initializedLayers + 1 end
+            if modifier ~= nil then
+                initializedLayers = initializedLayers + 1
+            end
         end
     end
-    if initializedLayers ~= #self.layers then return false end
+    if initializedLayers ~= #self.layers then
+        return false
+    end
     if self.rotationMap ~= nil and self.rotationModifier == nil then
-        self.rotationModifier = DensityMapModifier.new(
-            self.rotationMap, 0, ROTATION_CHANNELS, terrainNode)
+        self.rotationModifier = DensityMapModifier.new(self.rotationMap, 0, ROTATION_CHANNELS, terrainNode)
     end
     if self.recoveryAgeMap ~= nil and self.recoveryAgeModifier == nil then
-        self.recoveryAgeModifier = DensityMapModifier.new(
-            self.recoveryAgeMap, 0, RECOVERY_AGE_CHANNELS, terrainNode)
+        self.recoveryAgeModifier = DensityMapModifier.new(self.recoveryAgeMap, 0, RECOVERY_AGE_CHANNELS, terrainNode)
     end
-    if self.rotationMap == nil or self.rotationModifier == nil
-        or self.recoveryAgeMap == nil or self.recoveryAgeModifier == nil then
+    if
+        self.rotationMap == nil
+        or self.rotationModifier == nil
+        or self.recoveryAgeMap == nil
+        or self.recoveryAgeModifier == nil
+    then
         return false
     end
 
@@ -1113,16 +1246,21 @@ function TerraLogicSoilManager:tryInitializeRaster()
         self:getRawAtWorldPosition(self.layers[2].id, 0, 0),
         self:getRawAtWorldPosition(self.layers[3].id, 0, 0),
         self:getRawAtWorldPosition(self.layers[4].id, 0, 0),
-        self:getRawAtWorldPosition(self.layers[5].id, 0, 0))
+        self:getRawAtWorldPosition(self.layers[5].id, 0, 0)
+    )
     return true
 end
 
 function TerraLogicSoilManager:createVisualizationMaps()
     local terrainNode = getTerrainDataNode()
-    if terrainNode == nil then return false end
+    if terrainNode == nil then
+        return false
+    end
 
     for _, map in pairs(self.visualizationMaps or {}) do
-        if map ~= nil and delete ~= nil then delete(map) end
+        if map ~= nil and delete ~= nil then
+            delete(map)
+        end
     end
     self.visualizationMaps = {}
     self.visualizationModifiers = {}
@@ -1144,13 +1282,13 @@ function TerraLogicSoilManager:createVisualizationMaps()
         end
     end
     for _, field in pairs(fields or {}) do
-        if field.getPolygonPoints ~= nil then
+        if type(field.getPolygonPoints) == "function" then
             local polygonNodes = field:getPolygonPoints()
             local polygon = {}
             for _, pointNode in ipairs(polygonNodes or {}) do
                 if pointNode ~= nil and pointNode ~= 0 then
                     local x, _, z = getWorldTranslation(pointNode)
-                    polygon[#polygon + 1] = {x=x, z=z}
+                    polygon[#polygon + 1] = { x = x, z = z }
                 end
             end
             if #polygon >= 3 then
@@ -1160,17 +1298,21 @@ function TerraLogicSoilManager:createVisualizationMaps()
         local dimensions = field.fieldDimensions
         if dimensions ~= nil and dimensions ~= 0 then
             local numDimensions = getNumOfChildren(dimensions)
-            for index=0,numDimensions-1 do
+            for index = 0, numDimensions - 1 do
                 local widthNode = getChildAt(dimensions, index)
-                if widthNode ~= nil and widthNode ~= 0
-                    and getNumOfChildren(widthNode) >= 2 then
+                if widthNode ~= nil and widthNode ~= 0 and getNumOfChildren(widthNode) >= 2 then
                     local startNode = getChildAt(widthNode, 0)
                     local heightNode = getChildAt(widthNode, 1)
                     local x, _, z = getWorldTranslation(startNode)
                     local widthX, _, widthZ = getWorldTranslation(widthNode)
                     local heightX, _, heightZ = getWorldTranslation(heightNode)
                     fieldRegions[#fieldRegions + 1] = {
-                        x, z, widthX, widthZ, heightX, heightZ
+                        x,
+                        z,
+                        widthX,
+                        widthZ,
+                        heightX,
+                        heightZ,
                     }
                 end
             end
@@ -1180,33 +1322,25 @@ function TerraLogicSoilManager:createVisualizationMaps()
     local halfSize = self.terrainSize * 0.5
     local directory = getSavegameDirectory()
     for _, layer in ipairs(self.layers) do
-        local storageSize = self.mapSizes[layer.id] ~= nil
-            and self.mapSizes[layer.id].x
+        local storageSize = self.mapSizes[layer.id] ~= nil and self.mapSizes[layer.id].x
             or self:getLayerMapSize(layer.id, self.terrainSize)
         -- This derived map stores only a one-bit field mask. Matching the
         -- authoritative map's dimensions lets the overlay read live soil
         -- values directly without maintaining a second value cache.
         local visualSizeX = storageSize
-        local visualSizeZ = self.mapSizes[layer.id] ~= nil
-            and self.mapSizes[layer.id].z or storageSize
-        local map = createBitVectorMap(
-            "terraLogic_visual_" .. layer.id)
+        local visualSizeZ = self.mapSizes[layer.id] ~= nil and self.mapSizes[layer.id].z or storageSize
+        local map = createBitVectorMap("terraLogic_visual_" .. layer.id)
         local loaded = false
-        local path = directory ~= nil and layer.visualFile ~= nil
-            and (directory .. "/" .. layer.visualFile) or nil
-        if path ~= nil and fileExists(path)
-            and loadBitVectorMapFromFile ~= nil then
+        local path = directory ~= nil and layer.visualFile ~= nil and (directory .. "/" .. layer.visualFile) or nil
+        if path ~= nil and fileExists(path) and loadBitVectorMapFromFile ~= nil then
             loaded = loadBitVectorMapFromFile(map, path, 1)
             if loaded then
                 local loadedX, loadedZ = getBitVectorMapSize(map)
                 loadedZ = tonumber(loadedZ) or tonumber(loadedX)
-                local channels = getBitVectorMapNumChannels ~= nil
-                    and getBitVectorMapNumChannels(map) or 1
-                if loadedX ~= visualSizeX or loadedZ ~= visualSizeZ
-                    or channels ~= 1 then
+                local channels = getBitVectorMapNumChannels ~= nil and getBitVectorMapNumChannels(map) or 1
+                if loadedX ~= visualSizeX or loadedZ ~= visualSizeZ or channels ~= 1 then
                     delete(map)
-                    map = createBitVectorMap(
-                        "terraLogic_visual_" .. layer.id)
+                    map = createBitVectorMap("terraLogic_visual_" .. layer.id)
                     loaded = false
                 end
             end
@@ -1229,8 +1363,14 @@ function TerraLogicSoilManager:createVisualizationMaps()
         if not loaded and #fieldRegions > 0 then
             for _, region in ipairs(fieldRegions) do
                 modifier:setParallelogramWorldCoords(
-                    region[1], region[2], region[3], region[4],
-                    region[5], region[6], DensityCoordType.POINT_POINT_POINT)
+                    region[1],
+                    region[2],
+                    region[3],
+                    region[4],
+                    region[5],
+                    region[6],
+                    DensityCoordType.POINT_POINT_POINT
+                )
                 modifier:executeSet(defaultState)
             end
         elseif not loaded and #fieldPolygons == 0 then
@@ -1238,22 +1378,26 @@ function TerraLogicSoilManager:createVisualizationMaps()
             -- It preserves a usable visualization instead of producing an
             -- entirely transparent overlay.
             modifier:setParallelogramWorldCoords(
-                -halfSize, -halfSize,
-                 halfSize, -halfSize,
-                -halfSize,  halfSize,
-                DensityCoordType.POINT_POINT_POINT)
+                -halfSize,
+                -halfSize,
+                halfSize,
+                -halfSize,
+                -halfSize,
+                halfSize,
+                DensityCoordType.POINT_POINT_POINT
+            )
             modifier:executeSet(defaultState)
         end
         self.visualizationMaps[layer.id] = map
         self.visualizationModifiers[layer.id] = modifier
         self.visualizationMapSizes[layer.id] = {
-            x=visualSizeX, z=visualSizeZ
+            x = visualSizeX,
+            z = visualSizeZ,
         }
     end
     for _, layer in ipairs(self.layers) do
         for _, cell in pairs((self.layerCells or {})[layer.id] or {}) do
-            self:writeVisualizationCell(
-                layer.id, cell.ix, cell.iz, cell.value)
+            self:writeVisualizationCell(layer.id, cell.ix, cell.iz, cell.value)
         end
     end
     for _, legacyCell in ipairs(self.legacyCells or {}) do
@@ -1262,32 +1406,39 @@ function TerraLogicSoilManager:createVisualizationMaps()
         end
     end
     TerraLogicLogging.debug(
-        "[FS25_TerraLogic] Soil visualization masks ready: surface=%d deep=%d tilth=%d evenness=%d resilience=%d fieldPolygons=%d legacyRegions=%d fallback=%s",
+        "[FS25_TerraLogic] Soil visualization masks ready: surface=%d deep=%d tilth=%d evenness=%d resilience=%d "
+            .. "fieldPolygons=%d legacyRegions=%d fallback=%s",
         self.visualizationMapSizes.surfaceCompaction.x,
         self.visualizationMapSizes.deepCompaction.x,
         self.visualizationMapSizes.aggregateSize.x,
         self.visualizationMapSizes.roughness.x,
         self.visualizationMapSizes.resilience.x,
-        #fieldPolygons, #fieldRegions,
-        tostring(#fieldPolygons == 0 and #fieldRegions == 0))
+        #fieldPolygons,
+        #fieldRegions,
+        tostring(#fieldPolygons == 0 and #fieldRegions == 0)
+    )
     return true
 end
 
 function TerraLogicSoilManager:initializeFieldDefaults(layerId, terrainSize)
     local modifier = self.modifiers[layerId]
-    if modifier == nil then return false end
+    if modifier == nil then
+        return false
+    end
 
     local halfSize = terrainSize * 0.5
     modifier:setParallelogramWorldCoords(
-        -halfSize, -halfSize,
-         halfSize, -halfSize,
-        -halfSize,  halfSize,
-        DensityCoordType.POINT_POINT_POINT)
+        -halfSize,
+        -halfSize,
+        halfSize,
+        -halfSize,
+        -halfSize,
+        halfSize,
+        DensityCoordType.POINT_POINT_POINT
+    )
     -- New gameplay maps start at the agronomic defaults. Loaded GRLE maps skip
     -- this step so their persistent values remain intact.
-    modifier:executeSet(encode(
-        TerraLogicSoilProfiles.DEFAULTS[layerId],
-        getLayerChannels(layerId)))
+    modifier:executeSet(encode(TerraLogicSoilProfiles.DEFAULTS[layerId], getLayerChannels(layerId)))
     return true
 end
 
@@ -1308,7 +1459,7 @@ function TerraLogicSoilManager:load()
     self.lastWrite = nil
     self.lastWheelImpactDebug = nil
     self.layerWriteSerial = {}
-    self.continuousTrafficValues = {deepCompaction={}}
+    self.continuousTrafficValues = { deepCompaction = {} }
     self.deepMapMigration = nil
     self.loadedSoilLayerCount = 0
     local _, _, terrainSize = self:getMapDimensions()
@@ -1325,30 +1476,34 @@ function TerraLogicSoilManager:load()
             loaded = loadBitVectorMapFromFile(map, path, expectedChannels)
             if loaded then
                 local loadedSize = getBitVectorMapSize(map)
-                local loadedChannels = getBitVectorMapNumChannels ~= nil
-                    and getBitVectorMapNumChannels(map) or expectedChannels
-                if loadedSize ~= expectedSize
-                    or loadedChannels ~= expectedChannels then
+                local loadedChannels = getBitVectorMapNumChannels ~= nil and getBitVectorMapNumChannels(map)
+                    or expectedChannels
+                if loadedSize ~= expectedSize or loadedChannels ~= expectedChannels then
                     local canUpscaleDeep = layer.id == "deepCompaction"
                         and loadedChannels == expectedChannels
                         and tonumber(loadedSize) ~= nil
                         and loadedSize * 2 == expectedSize
                     if canUpscaleDeep then
                         self.deepMapMigration = {
-                            sourceMap=map,
-                            sourceSize=loadedSize,
-                            sourceChannels=loadedChannels,
-                            index=0,
-                            changedCells=0
+                            sourceMap = map,
+                            sourceSize = loadedSize,
+                            sourceChannels = loadedChannels,
+                            index = 0,
+                            changedCells = 0,
                         }
                         Logging.warning(
                             "[FS25_TerraLogic] Preserving 4 m deep-compaction map for incremental 2 m migration (%d -> %d pixels)",
-                            loadedSize, expectedSize)
+                            loadedSize,
+                            expectedSize
+                        )
                     else
                         Logging.warning(
                             "[FS25_TerraLogic] Reinitializing incompatible soil layer %s from %s to %s pixels (%s channels)",
-                            layer.id, tostring(loadedSize),
-                            tostring(expectedSize), tostring(loadedChannels))
+                            layer.id,
+                            tostring(loadedSize),
+                            tostring(expectedSize),
+                            tostring(loadedChannels)
+                        )
                         delete(map)
                     end
                     map = createBitVectorMap("terraLogic_" .. layer.id)
@@ -1357,11 +1512,10 @@ function TerraLogicSoilManager:load()
             end
         end
         if not loaded then
-            loadBitVectorMapNew(map, expectedSize, expectedSize,
-                expectedChannels, false)
+            loadBitVectorMapNew(map, expectedSize, expectedSize, expectedChannels, false)
         end
         self.maps[layer.id] = map
-        self.mapSizes[layer.id] = {x=expectedSize, z=expectedSize}
+        self.mapSizes[layer.id] = { x = expectedSize, z = expectedSize }
         self.mapNeedsDefaults[layer.id] = not loaded
         if loaded then
             self.loadedSoilLayerCount = self.loadedSoilLayerCount + 1
@@ -1369,24 +1523,18 @@ function TerraLogicSoilManager:load()
         self.mapSizeX = math.max(self.mapSizeX or 0, expectedSize)
         self.mapSizeZ = math.max(self.mapSizeZ or 0, expectedSize)
     end
-    local rotationSize = math.max(math.floor(
-        terrainSize / self.RESILIENCE_CELL_SIZE + 0.5), 1)
+    local rotationSize = math.max(math.floor(terrainSize / self.RESILIENCE_CELL_SIZE + 0.5), 1)
     local rotationMap = createBitVectorMap("terraLogic_cropRotation")
     local rotationLoaded = false
-    local rotationPath = directory ~= nil
-        and (directory .. "/" .. ROTATION_FILE) or nil
-    if rotationPath ~= nil and fileExists(rotationPath)
-        and loadBitVectorMapFromFile ~= nil then
-        rotationLoaded = loadBitVectorMapFromFile(
-            rotationMap, rotationPath, ROTATION_CHANNELS)
+    local rotationPath = directory ~= nil and (directory .. "/" .. ROTATION_FILE) or nil
+    if rotationPath ~= nil and fileExists(rotationPath) and loadBitVectorMapFromFile ~= nil then
+        rotationLoaded = loadBitVectorMapFromFile(rotationMap, rotationPath, ROTATION_CHANNELS)
         if rotationLoaded then
             local loadedX, loadedZ = getBitVectorMapSize(rotationMap)
             loadedZ = tonumber(loadedZ) or tonumber(loadedX)
-            local channels = getBitVectorMapNumChannels ~= nil
-                and getBitVectorMapNumChannels(rotationMap)
+            local channels = getBitVectorMapNumChannels ~= nil and getBitVectorMapNumChannels(rotationMap)
                 or ROTATION_CHANNELS
-            if loadedX ~= rotationSize or loadedZ ~= rotationSize
-                or channels ~= ROTATION_CHANNELS then
+            if loadedX ~= rotationSize or loadedZ ~= rotationSize or channels ~= ROTATION_CHANNELS then
                 delete(rotationMap)
                 rotationMap = createBitVectorMap("terraLogic_cropRotation")
                 rotationLoaded = false
@@ -1394,45 +1542,36 @@ function TerraLogicSoilManager:load()
         end
     end
     if not rotationLoaded then
-        loadBitVectorMapNew(rotationMap, rotationSize, rotationSize,
-            ROTATION_CHANNELS, false)
+        loadBitVectorMapNew(rotationMap, rotationSize, rotationSize, ROTATION_CHANNELS, false)
     end
     self.rotationMap = rotationMap
     self.rotationMapSize = rotationSize
     self.rotationModifier = nil
     local recoveryAgeMap = createBitVectorMap("terraLogic_recoveryAge")
     local recoveryAgeLoaded = false
-    local recoveryAgePath = directory ~= nil
-        and (directory .. "/" .. RECOVERY_AGE_FILE) or nil
-    if recoveryAgePath ~= nil and fileExists(recoveryAgePath)
-        and loadBitVectorMapFromFile ~= nil then
-        recoveryAgeLoaded = loadBitVectorMapFromFile(
-            recoveryAgeMap, recoveryAgePath, RECOVERY_AGE_CHANNELS)
+    local recoveryAgePath = directory ~= nil and (directory .. "/" .. RECOVERY_AGE_FILE) or nil
+    if recoveryAgePath ~= nil and fileExists(recoveryAgePath) and loadBitVectorMapFromFile ~= nil then
+        recoveryAgeLoaded = loadBitVectorMapFromFile(recoveryAgeMap, recoveryAgePath, RECOVERY_AGE_CHANNELS)
         if recoveryAgeLoaded then
             local loadedX, loadedZ = getBitVectorMapSize(recoveryAgeMap)
             loadedZ = tonumber(loadedZ) or tonumber(loadedX)
-            local channels = getBitVectorMapNumChannels ~= nil
-                and getBitVectorMapNumChannels(recoveryAgeMap)
+            local channels = getBitVectorMapNumChannels ~= nil and getBitVectorMapNumChannels(recoveryAgeMap)
                 or RECOVERY_AGE_CHANNELS
-            if loadedX ~= rotationSize or loadedZ ~= rotationSize
-                or channels ~= RECOVERY_AGE_CHANNELS then
+            if loadedX ~= rotationSize or loadedZ ~= rotationSize or channels ~= RECOVERY_AGE_CHANNELS then
                 delete(recoveryAgeMap)
-                recoveryAgeMap = createBitVectorMap(
-                    "terraLogic_recoveryAge")
+                recoveryAgeMap = createBitVectorMap("terraLogic_recoveryAge")
                 recoveryAgeLoaded = false
             end
         end
     end
     if not recoveryAgeLoaded then
-        loadBitVectorMapNew(recoveryAgeMap, rotationSize, rotationSize,
-            RECOVERY_AGE_CHANNELS, false)
+        loadBitVectorMapNew(recoveryAgeMap, rotationSize, rotationSize, RECOVERY_AGE_CHANNELS, false)
     end
     self.recoveryAgeMap = recoveryAgeMap
     self.recoveryAgeMapSize = rotationSize
     -- Lazy migration: untouched cells still read their exact legacy month.
     -- No whole-map conversion or recurring scan is needed.
-    local legacyPath = directory ~= nil
-        and (directory .. "/" .. RECOVERY_AGE_LEGACY_FILE) or nil
+    local legacyPath = directory ~= nil and (directory .. "/" .. RECOVERY_AGE_LEGACY_FILE) or nil
     self.recoveryAgeLegacyMap = nil
     if legacyPath ~= nil and fileExists(legacyPath) then
         local legacy = createBitVectorMap("terraLogic_recoveryAgeLegacy")
@@ -1488,9 +1627,9 @@ function TerraLogicSoilManager:load()
     self.clientNetworkTileViewportSignature = nil
     self.clientNetworkTileVisible = {}
     self.clientNetworkTileFastUntil = 0
-    self.serverNetworkSampleCooldowns = setmetatable({}, {__mode="k"})
-    self.serverNetworkTileCooldowns = setmetatable({}, {__mode="k"})
-    self.serverNetworkTilePending = setmetatable({}, {__mode="k"})
+    self.serverNetworkSampleCooldowns = setmetatable({}, { __mode = "k" })
+    self.serverNetworkTileCooldowns = setmetatable({}, { __mode = "k" })
+    self.serverNetworkTilePending = setmetatable({}, { __mode = "k" })
     self.serverNetworkTileJobs = {}
     self.serverNetworkTileLayerGeneration = {}
     self.serverNetworkTileRevisions = {}
@@ -1503,56 +1642,54 @@ function TerraLogicSoilManager:load()
     self.coverageReconcileNextRequestTime = 0
     self.coverageReconcileLastTileKey = nil
     self.coverageReconcileLastTileTime = 0
-    self.coverageReconcileCooldowns = setmetatable({}, {__mode="k"})
+    self.coverageReconcileCooldowns = setmetatable({}, { __mode = "k" })
     self.constructionCoverageTiles = {}
     self.constructionCoverageHookInstalled = false
     self.networkStats = {
-        samplesReceived=0, tilesQueued=0, tilesSent=0,
-        tilesReceived=0, tilesApplied=0, tileAcksSent=0,
-        tileAcksReceived=0, serverQueuePeak=0
+        samplesReceived = 0,
+        tilesQueued = 0,
+        tilesSent = 0,
+        tilesReceived = 0,
+        tilesApplied = 0,
+        tileAcksSent = 0,
+        tileAcksReceived = 0,
+        serverQueuePeak = 0,
     }
     -- Install before vehicles finish loading so PF requests made by their
     -- specializations are already known when a saved TerraLogic mode is
     -- restored immediately after this load call.
     self:installPrecisionFarmingMinimapHook()
     self:installConstructionCoverageHook()
-    if g_messageCenter ~= nil and MessageType ~= nil
-        and MessageType.PERIOD_CHANGED ~= nil then
-        g_messageCenter:subscribe(MessageType.PERIOD_CHANGED,
-            self.onPeriodChanged, self)
+    if g_messageCenter ~= nil and MessageType ~= nil and MessageType.PERIOD_CHANGED ~= nil then
+        g_messageCenter:subscribe(MessageType.PERIOD_CHANGED, self.onPeriodChanged, self)
     end
-    if g_messageCenter ~= nil and MessageType ~= nil
-        and MessageType.FARMLAND_OWNER_CHANGED ~= nil then
-        g_messageCenter:subscribe(MessageType.FARMLAND_OWNER_CHANGED,
-            self.onFarmlandOwnerChanged, self)
+    if g_messageCenter ~= nil and MessageType ~= nil and MessageType.FARMLAND_OWNER_CHANGED ~= nil then
+        g_messageCenter:subscribe(MessageType.FARMLAND_OWNER_CHANGED, self.onFarmlandOwnerChanged, self)
     end
     self:loadSparseState()
-    if (tonumber(self.ownedPresetInitializationVersion) or 0)
-            >= self.OWNED_PRESET_INITIALIZATION_VERSION then
+    if (tonumber(self.ownedPresetInitializationVersion) or 0) >= self.OWNED_PRESET_INITIALIZATION_VERSION then
         self.ownedPresetInitializationPending = false
-    elseif self.ownedPresetInitializationPending == true
-        or (tonumber(self.loadedSoilLayerCount) or 0) == 0 then
+    elseif self.ownedPresetInitializationPending == true or (tonumber(self.loadedSoilLayerCount) or 0) == 0 then
         -- No TerraLogic layer existed before this load: this is either a new
         -- savegame or the first installation in an existing Vanilla save.
         -- A persisted pending flag resumes safely after an unusually early
         -- save without reinitializing already completed fields.
         self.ownedPresetInitializationPending = true
-        TerraLogicLogging.debug(
-            "[FS25_TerraLogic] One-time owned-field soil preset initialization scheduled")
+        TerraLogicLogging.debug("[FS25_TerraLogic] One-time owned-field soil preset initialization scheduled")
     else
         -- Builds before this marker may already contain months or years of
         -- player-created soil history. Preserve those maps instead of treating
         -- an update as a first installation.
-        self.ownedPresetInitializationVersion =
-            self.OWNED_PRESET_INITIALIZATION_VERSION
+        self.ownedPresetInitializationVersion = self.OWNED_PRESET_INITIALIZATION_VERSION
         self.ownedPresetInitializationPending = false
         self.ownedPresetInitializedFields = {}
         TerraLogicLogging.debug(
-            "[FS25_TerraLogic] Existing TerraLogic soil maps detected; owned-field preset initialization marked complete without overwriting player data")
+            "[FS25_TerraLogic] Existing TerraLogic soil maps detected; owned-field preset initialization marked complete without overwriting player data"
+        )
     end
-    self.recoveryLastIntegratedGameHours =
-        TerraLogicSoilTemperatureManager ~= nil
-        and tonumber(TerraLogicSoilTemperatureManager.simulatedGameHours) or 0
+    self.recoveryLastIntegratedGameHours = TerraLogicSoilTemperatureManager ~= nil
+            and tonumber(TerraLogicSoilTemperatureManager.simulatedGameHours)
+        or 0
     self.recoveryPendingPasses = #(self.recoverySnapshotQueue or {})
     if self.recoveryResumeJob ~= nil then
         self.recoveryJob = self.recoveryResumeJob
@@ -1564,50 +1701,49 @@ function TerraLogicSoilManager:load()
     self:tryInitializeRaster()
     self:queueNpcPresetScan(self.NPC_PRESET_SCAN_DELAY_MS)
     TerraLogicLogging.debug(
-        "[FS25_TerraLogic] Soil model loaded: surface=%d@1m deep=%d@2m tilth=%d@2m evenness=%d@2m resilience=%d@8m recoveryAge=%d@8m/12bit (terrain %.0f m, raster=%s, deepMigration=%s)",
+        "[FS25_TerraLogic] Soil model loaded: surface=%d@1m deep=%d@2m tilth=%d@2m evenness=%d@2m resilience=%d@8m "
+            .. "recoveryAge=%d@8m/12bit (terrain %.0f m, raster=%s, deepMigration=%s)",
         self.mapSizes.surfaceCompaction.x,
         self.mapSizes.deepCompaction.x,
         self.mapSizes.aggregateSize.x,
         self.mapSizes.roughness.x,
-        self.mapSizes.resilience.x, self.recoveryAgeMapSize, terrainSize,
+        self.mapSizes.resilience.x,
+        self.recoveryAgeMapSize,
+        terrainSize,
         self.rasterReady and "ready" or "pending",
-        self.deepMapMigration ~= nil and "active" or "none")
+        self.deepMapMigration ~= nil and "active" or "none"
+    )
 end
 
 function TerraLogicSoilManager:save()
-    if g_currentMission == nil or not g_currentMission:getIsServer() then return end
+    if g_currentMission == nil or not g_currentMission:getIsServer() then
+        return
+    end
     local directory = getSavegameDirectory()
-    if directory == nil then return end
+    if directory == nil then
+        return
+    end
     for _, layer in ipairs(self.layers) do
         local map = self.maps[layer.id]
         -- Until the incremental 4 m -> 2 m conversion is complete, retain
         -- the old deep file on disk. Overwriting it with a partially migrated
         -- map would make an unusually early save destructive.
-        local migrationActive = layer.id == "deepCompaction"
-            and self.deepMapMigration ~= nil
-        if map ~= nil and not migrationActive
-            and saveBitVectorMapToFile ~= nil then
+        local migrationActive = layer.id == "deepCompaction" and self.deepMapMigration ~= nil
+        if map ~= nil and not migrationActive and saveBitVectorMapToFile ~= nil then
             saveBitVectorMapToFile(map, directory .. "/" .. layer.file)
         end
-        local visualMap = self.visualizationMaps ~= nil
-            and self.visualizationMaps[layer.id] or nil
-        if visualMap ~= nil and layer.visualFile ~= nil
-            and not migrationActive
-            and saveBitVectorMapToFile ~= nil then
-            saveBitVectorMapToFile(
-                visualMap, directory .. "/" .. layer.visualFile)
+        local visualMap = self.visualizationMaps ~= nil and self.visualizationMaps[layer.id] or nil
+        if visualMap ~= nil and layer.visualFile ~= nil and not migrationActive and saveBitVectorMapToFile ~= nil then
+            saveBitVectorMapToFile(visualMap, directory .. "/" .. layer.visualFile)
         end
     end
     if self.rotationMap ~= nil and saveBitVectorMapToFile ~= nil then
-        saveBitVectorMapToFile(
-            self.rotationMap, directory .. "/" .. ROTATION_FILE)
+        saveBitVectorMapToFile(self.rotationMap, directory .. "/" .. ROTATION_FILE)
     end
     if self.recoveryAgeMap ~= nil and saveBitVectorMapToFile ~= nil then
-        saveBitVectorMapToFile(
-            self.recoveryAgeMap, directory .. "/" .. RECOVERY_AGE_FILE)
+        saveBitVectorMapToFile(self.recoveryAgeMap, directory .. "/" .. RECOVERY_AGE_FILE)
         if self.recoveryAgeLegacyMap ~= nil then
-            saveBitVectorMapToFile(self.recoveryAgeLegacyMap,
-                directory .. "/" .. RECOVERY_AGE_LEGACY_FILE)
+            saveBitVectorMapToFile(self.recoveryAgeLegacyMap, directory .. "/" .. RECOVERY_AGE_LEGACY_FILE)
         end
     end
     self:saveSparseState()
@@ -1620,78 +1756,75 @@ function TerraLogicSoilManager:getSparseStatePath()
 end
 
 function TerraLogicSoilManager:writeRecoverySnapshot(xml, key, snapshot)
-    if xml == nil or snapshot == nil then return end
-    xml:setInt(key .. "#version", tonumber(snapshot.version)
-        or self.RECOVERY_SNAPSHOT_VERSION)
+    if xml == nil or snapshot == nil then
+        return
+    end
+    xml:setInt(key .. "#version", tonumber(snapshot.version) or self.RECOVERY_SNAPSHOT_VERSION)
     xml:setInt(key .. "#serial", tonumber(snapshot.serial) or 0)
-    if snapshot.moistureSerial then xml:setInt(key.."#moistureSerial",snapshot.moistureSerial) end
+    if snapshot.moistureSerial then
+        xml:setInt(key .. "#moistureSerial", snapshot.moistureSerial)
+    end
     xml:setFloat(key .. "#hours", tonumber(snapshot.hours) or 0)
-    xml:setFloat(key .. "#daysPerPeriod",
-        tonumber(snapshot.daysPerPeriod) or 1)
-    xml:setFloat(key .. "#calendarScale",
-        tonumber(snapshot.calendarScale) or 1)
-    xml:setInt(key .. "#developmentSpeed",
-        math.clamp(tonumber(snapshot.developmentSpeed) or 4, 1, 8))
-    xml:setFloat(key .. "#surfaceTemperatureC",
-        tonumber(snapshot.surfaceTemperatureC) or 10)
-    xml:setFloat(key .. "#subsoilTemperatureC",
-        tonumber(snapshot.subsoilTemperatureC) or 10)
-    xml:setFloat(key .. "#airTemperatureC",
-        tonumber(snapshot.airTemperatureC) or 10)
-    xml:setFloat(key .. "#surfaceThawPulse",
-        tonumber(snapshot.surfaceThawPulse) or 0)
-    xml:setFloat(key .. "#deepThawPulse",
-        tonumber(snapshot.deepThawPulse) or 0)
+    xml:setFloat(key .. "#daysPerPeriod", tonumber(snapshot.daysPerPeriod) or 1)
+    xml:setFloat(key .. "#calendarScale", tonumber(snapshot.calendarScale) or 1)
+    xml:setInt(key .. "#developmentSpeed", math.clamp(tonumber(snapshot.developmentSpeed) or 4, 1, 8))
+    xml:setFloat(key .. "#surfaceTemperatureC", tonumber(snapshot.surfaceTemperatureC) or 10)
+    xml:setFloat(key .. "#subsoilTemperatureC", tonumber(snapshot.subsoilTemperatureC) or 10)
+    xml:setFloat(key .. "#airTemperatureC", tonumber(snapshot.airTemperatureC) or 10)
+    xml:setFloat(key .. "#surfaceThawPulse", tonumber(snapshot.surfaceThawPulse) or 0)
+    xml:setFloat(key .. "#deepThawPulse", tonumber(snapshot.deepThawPulse) or 0)
     xml:setString(key .. "#source", snapshot.source or "periodAverage")
     for listIndex, profileIndex in ipairs(getRecoveryProfileOrder()) do
-        local profile = snapshot.profiles ~= nil
-            and snapshot.profiles[profileIndex] or nil
+        local profile = snapshot.profiles ~= nil and snapshot.profiles[profileIndex] or nil
         if profile ~= nil then
-            local profileKey = string.format("%s.profile(%d)",
-                key, listIndex - 1)
+            local profileKey = string.format("%s.profile(%d)", key, listIndex - 1)
             xml:setInt(profileKey .. "#index", profileIndex)
-            for _, name in ipairs({"moistureFactor", "biologicalFactor",
-                    "physicalSurfaceFactor", "physicalDeepFactor",
-                    "surfaceMoisture", "subsoilMoisture"}) do
-                xml:setFloat(profileKey .. "#" .. name,
-                    tonumber(profile[name]) or 0)
+            for _, name in ipairs({
+                "moistureFactor",
+                "biologicalFactor",
+                "physicalSurfaceFactor",
+                "physicalDeepFactor",
+                "surfaceMoisture",
+                "subsoilMoisture",
+            }) do
+                xml:setFloat(profileKey .. "#" .. name, tonumber(profile[name]) or 0)
             end
         end
     end
 end
 
 function TerraLogicSoilManager:readRecoverySnapshot(xml, key)
-    if xml == nil then return nil end
+    if xml == nil then
+        return nil
+    end
     local snapshot = {
-        version=xml:getInt(key .. "#version", 1),
-        serial=xml:getInt(key .. "#serial", 0),
-        moistureSerial=xml:getInt(key.."#moistureSerial"),
-        hours=math.max(xml:getFloat(key .. "#hours", 0), 0),
-        daysPerPeriod=math.max(xml:getFloat(
-            key .. "#daysPerPeriod", 1), 1),
-        calendarScale=math.max(xml:getFloat(
-            key .. "#calendarScale", 1), 1),
-        developmentSpeed=math.clamp(xml:getInt(
-            key .. "#developmentSpeed", 4), 1, 8),
-        surfaceTemperatureC=xml:getFloat(
-            key .. "#surfaceTemperatureC", 10),
-        subsoilTemperatureC=xml:getFloat(
-            key .. "#subsoilTemperatureC", 10),
-        airTemperatureC=xml:getFloat(key .. "#airTemperatureC", 10),
-        surfaceThawPulse=math.max(xml:getFloat(
-            key .. "#surfaceThawPulse", 0), 0),
-        deepThawPulse=math.max(xml:getFloat(
-            key .. "#deepThawPulse", 0), 0),
-        source=xml:getString(key .. "#source", "savedSnapshot"),
-        profiles={}
+        version = xml:getInt(key .. "#version", 1),
+        serial = xml:getInt(key .. "#serial", 0),
+        moistureSerial = xml:getInt(key .. "#moistureSerial"),
+        hours = math.max(xml:getFloat(key .. "#hours", 0), 0),
+        daysPerPeriod = math.max(xml:getFloat(key .. "#daysPerPeriod", 1), 1),
+        calendarScale = math.max(xml:getFloat(key .. "#calendarScale", 1), 1),
+        developmentSpeed = math.clamp(xml:getInt(key .. "#developmentSpeed", 4), 1, 8),
+        surfaceTemperatureC = xml:getFloat(key .. "#surfaceTemperatureC", 10),
+        subsoilTemperatureC = xml:getFloat(key .. "#subsoilTemperatureC", 10),
+        airTemperatureC = xml:getFloat(key .. "#airTemperatureC", 10),
+        surfaceThawPulse = math.max(xml:getFloat(key .. "#surfaceThawPulse", 0), 0),
+        deepThawPulse = math.max(xml:getFloat(key .. "#deepThawPulse", 0), 0),
+        source = xml:getString(key .. "#source", "savedSnapshot"),
+        profiles = {},
     }
     xml:iterate(key .. ".profile", function(_, profileKey)
         local index = xml:getInt(profileKey .. "#index")
         if index ~= nil then
             local profile = {}
-            for _, name in ipairs({"moistureFactor", "biologicalFactor",
-                    "physicalSurfaceFactor", "physicalDeepFactor",
-                    "surfaceMoisture", "subsoilMoisture"}) do
+            for _, name in ipairs({
+                "moistureFactor",
+                "biologicalFactor",
+                "physicalSurfaceFactor",
+                "physicalDeepFactor",
+                "surfaceMoisture",
+                "subsoilMoisture",
+            }) do
                 profile[name] = xml:getFloat(profileKey .. "#" .. name, 0)
             end
             snapshot.profiles[index] = profile
@@ -1702,26 +1835,26 @@ end
 
 function TerraLogicSoilManager:loadRecoverySchedulerState(xml)
     local root = "terraLogicSoil.recovery"
-    self.recoveryCompletedPeriods = math.max(
-        xml:getInt(root .. "#completedPeriods", 0), 0)
+    self.recoveryCompletedPeriods = math.max(xml:getInt(root .. "#completedPeriods", 0), 0)
     local accumulator = newRecoveryAccumulator()
     accumulator.hours = math.max(xml:getFloat(root .. "#hours", 0), 0)
-    accumulator.surfaceTemperatureSum = xml:getFloat(
-        root .. "#surfaceTemperatureSum", 0)
-    accumulator.subsoilTemperatureSum = xml:getFloat(
-        root .. "#subsoilTemperatureSum", 0)
-    accumulator.airTemperatureSum = xml:getFloat(
-        root .. "#airTemperatureSum", 0)
+    accumulator.surfaceTemperatureSum = xml:getFloat(root .. "#surfaceTemperatureSum", 0)
+    accumulator.subsoilTemperatureSum = xml:getFloat(root .. "#subsoilTemperatureSum", 0)
+    accumulator.airTemperatureSum = xml:getFloat(root .. "#airTemperatureSum", 0)
     accumulator.daysPerPeriod = xml:getFloat(root .. "#daysPerPeriod", 1)
     accumulator.calendarScale = xml:getFloat(root .. "#calendarScale", 1)
     xml:iterate(root .. ".accumulatorProfile", function(_, profileKey)
         local index = xml:getInt(profileKey .. "#index")
         if index ~= nil then
-            local profile = {hours=math.max(
-                xml:getFloat(profileKey .. "#hours", 0), 0)}
-            for _, name in ipairs({"moistureFactor", "biologicalFactor",
-                    "physicalSurfaceFactor", "physicalDeepFactor",
-                    "surfaceMoisture", "subsoilMoisture"}) do
+            local profile = { hours = math.max(xml:getFloat(profileKey .. "#hours", 0), 0) }
+            for _, name in ipairs({
+                "moistureFactor",
+                "biologicalFactor",
+                "physicalSurfaceFactor",
+                "physicalDeepFactor",
+                "surfaceMoisture",
+                "subsoilMoisture",
+            }) do
                 profile[name] = xml:getFloat(profileKey .. "#" .. name, 0)
             end
             accumulator.profiles[index] = profile
@@ -1732,29 +1865,25 @@ function TerraLogicSoilManager:loadRecoverySchedulerState(xml)
     xml:iterate(root .. ".queue.snapshot", function(_, snapshotKey)
         local snapshot = self:readRecoverySnapshot(xml, snapshotKey)
         if snapshot ~= nil then
-            self.recoverySnapshotQueue[#self.recoverySnapshotQueue + 1] =
-                snapshot
+            self.recoverySnapshotQueue[#self.recoverySnapshotQueue + 1] = snapshot
         end
     end)
     local activeKey = root .. ".active"
-    local activeSnapshot = self:readRecoverySnapshot(
-        xml, activeKey .. ".snapshot")
+    local activeSnapshot = self:readRecoverySnapshot(xml, activeKey .. ".snapshot")
     if activeSnapshot ~= nil then
         self.recoveryResumeJob = self:createRecoveryJob(
             activeSnapshot,
             math.max(xml:getInt(activeKey .. "#index", 0), 0),
-            xml:getInt(activeKey .. "#developmentSpeed", 4))
+            xml:getInt(activeKey .. "#developmentSpeed", 4)
+        )
     end
-    self.recoveryLastSnapshot = self:readRecoverySnapshot(
-        xml, root .. ".lastSnapshot")
+    self.recoveryLastSnapshot = self:readRecoverySnapshot(xml, root .. ".lastSnapshot")
     local latestSerial = tonumber(self.recoveryCompletedPeriods) or 0
     if self.recoveryResumeJob ~= nil then
-        latestSerial = math.max(latestSerial,
-            tonumber(self.recoveryResumeJob.serial) or 0)
+        latestSerial = math.max(latestSerial, tonumber(self.recoveryResumeJob.serial) or 0)
     end
     for _, snapshot in ipairs(self.recoverySnapshotQueue) do
-        latestSerial = math.max(latestSerial,
-            tonumber(snapshot.serial) or 0)
+        latestSerial = math.max(latestSerial, tonumber(snapshot.serial) or 0)
     end
     self.recoverySerial = latestSerial
 end
@@ -1762,85 +1891,76 @@ end
 function TerraLogicSoilManager:saveRecoverySchedulerState(xml)
     local root = "terraLogicSoil.recovery"
     xml:setInt(root .. "#version", self.RECOVERY_SNAPSHOT_VERSION)
-    xml:setInt(root .. "#completedPeriods",
-        tonumber(self.recoveryCompletedPeriods) or 0)
-    local accumulator = self.recoveryEnvironmentAccumulator
-        or newRecoveryAccumulator()
+    xml:setInt(root .. "#completedPeriods", tonumber(self.recoveryCompletedPeriods) or 0)
+    local accumulator = self.recoveryEnvironmentAccumulator or newRecoveryAccumulator()
     xml:setFloat(root .. "#hours", tonumber(accumulator.hours) or 0)
-    xml:setFloat(root .. "#surfaceTemperatureSum",
-        tonumber(accumulator.surfaceTemperatureSum) or 0)
-    xml:setFloat(root .. "#subsoilTemperatureSum",
-        tonumber(accumulator.subsoilTemperatureSum) or 0)
-    xml:setFloat(root .. "#airTemperatureSum",
-        tonumber(accumulator.airTemperatureSum) or 0)
-    xml:setFloat(root .. "#daysPerPeriod",
-        tonumber(accumulator.daysPerPeriod) or 1)
-    xml:setFloat(root .. "#calendarScale",
-        tonumber(accumulator.calendarScale) or 1)
+    xml:setFloat(root .. "#surfaceTemperatureSum", tonumber(accumulator.surfaceTemperatureSum) or 0)
+    xml:setFloat(root .. "#subsoilTemperatureSum", tonumber(accumulator.subsoilTemperatureSum) or 0)
+    xml:setFloat(root .. "#airTemperatureSum", tonumber(accumulator.airTemperatureSum) or 0)
+    xml:setFloat(root .. "#daysPerPeriod", tonumber(accumulator.daysPerPeriod) or 1)
+    xml:setFloat(root .. "#calendarScale", tonumber(accumulator.calendarScale) or 1)
     local profileNumber = 0
     for _, profileIndex in ipairs(getRecoveryProfileOrder()) do
         local profile = accumulator.profiles[profileIndex]
         if profile ~= nil then
-            local key = string.format("%s.accumulatorProfile(%d)",
-                root, profileNumber)
+            local key = string.format("%s.accumulatorProfile(%d)", root, profileNumber)
             profileNumber = profileNumber + 1
             xml:setInt(key .. "#index", profileIndex)
             xml:setFloat(key .. "#hours", tonumber(profile.hours) or 0)
-            for _, name in ipairs({"moistureFactor", "biologicalFactor",
-                    "physicalSurfaceFactor", "physicalDeepFactor",
-                    "surfaceMoisture", "subsoilMoisture"}) do
-                xml:setFloat(key .. "#" .. name,
-                    tonumber(profile[name]) or 0)
+            for _, name in ipairs({
+                "moistureFactor",
+                "biologicalFactor",
+                "physicalSurfaceFactor",
+                "physicalDeepFactor",
+                "surfaceMoisture",
+                "subsoilMoisture",
+            }) do
+                xml:setFloat(key .. "#" .. name, tonumber(profile[name]) or 0)
             end
         end
     end
     for index, snapshot in ipairs(self.recoverySnapshotQueue or {}) do
-        self:writeRecoverySnapshot(xml, string.format(
-            "%s.queue.snapshot(%d)", root, index - 1), snapshot)
+        self:writeRecoverySnapshot(xml, string.format("%s.queue.snapshot(%d)", root, index - 1), snapshot)
     end
     if self.recoveryLastSnapshot ~= nil then
-        self:writeRecoverySnapshot(
-            xml, root .. ".lastSnapshot", self.recoveryLastSnapshot)
+        self:writeRecoverySnapshot(xml, root .. ".lastSnapshot", self.recoveryLastSnapshot)
     end
     local job = self.recoveryJob
     if job ~= nil and job.snapshot ~= nil then
         local activeKey = root .. ".active"
         xml:setInt(activeKey .. "#index", tonumber(job.index) or 0)
-        xml:setInt(activeKey .. "#developmentSpeed",
-            tonumber(job.developmentSpeed) or getSoilDevelopmentSpeed())
-        self:writeRecoverySnapshot(
-            xml, activeKey .. ".snapshot", job.snapshot)
+        xml:setInt(activeKey .. "#developmentSpeed", tonumber(job.developmentSpeed) or getSoilDevelopmentSpeed())
+        self:writeRecoverySnapshot(xml, activeKey .. ".snapshot", job.snapshot)
     end
 end
 
 function TerraLogicSoilManager:loadSparseState()
     local path = self:getSparseStatePath()
-    if path == nil or XMLFile == nil or not fileExists(path) then return end
+    if path == nil or XMLFile == nil or not fileExists(path) then
+        return
+    end
     local xml = XMLFile.loadIfExists("terraLogicSoilState", path)
-    if xml == nil then return end
-    TerraLogicMapMaintenance.cursor = math.max(0, xml:getInt(
-        "terraLogicSoil.mapMaintenance#cursor", 0))
-    TerraLogicMapMaintenance.cycles = math.max(0, xml:getInt(
-        "terraLogicSoil.mapMaintenance#cycles", 0))
+    if xml == nil then
+        return
+    end
+    TerraLogicMapMaintenance.cursor = math.max(0, xml:getInt("terraLogicSoil.mapMaintenance#cursor", 0))
+    TerraLogicMapMaintenance.cycles = math.max(0, xml:getInt("terraLogicSoil.mapMaintenance#cycles", 0))
     local sourceCount = 0
     xml:iterate("terraLogicSoil.cell", function(_, key)
         local ix = xml:getInt(key .. "#x")
         local iz = xml:getInt(key .. "#z")
         if ix ~= nil and iz ~= nil then
             local legacyCell = {
-                ix=ix, iz=iz,
-                surfaceCompaction=clamp01(xml:getFloat(
-                    key .. "#surface",
-                    TerraLogicSoilProfiles.DEFAULTS.surfaceCompaction)),
-                deepCompaction=clamp01(xml:getFloat(
-                    key .. "#deep",
-                    TerraLogicSoilProfiles.DEFAULTS.deepCompaction)),
-                aggregateSize=clamp01(xml:getFloat(
-                    key .. "#aggregate",
-                    TerraLogicSoilProfiles.DEFAULTS.aggregateSize)),
-                roughness=clamp01(xml:getFloat(
-                    key .. "#roughness",
-                    TerraLogicSoilProfiles.DEFAULTS.roughness))
+                ix = ix,
+                iz = iz,
+                surfaceCompaction = clamp01(
+                    xml:getFloat(key .. "#surface", TerraLogicSoilProfiles.DEFAULTS.surfaceCompaction)
+                ),
+                deepCompaction = clamp01(xml:getFloat(key .. "#deep", TerraLogicSoilProfiles.DEFAULTS.deepCompaction)),
+                aggregateSize = clamp01(
+                    xml:getFloat(key .. "#aggregate", TerraLogicSoilProfiles.DEFAULTS.aggregateSize)
+                ),
+                roughness = clamp01(xml:getFloat(key .. "#roughness", TerraLogicSoilProfiles.DEFAULTS.roughness)),
             }
             self.legacyCells[#self.legacyCells + 1] = legacyCell
             self.legacyCellLookup[getCellKey(ix, iz)] = legacyCell
@@ -1860,13 +1980,10 @@ function TerraLogicSoilManager:loadSparseState()
         end
     end)
     local ownedRoot = "terraLogicSoil.ownedPresetInitialization"
-    self.ownedPresetInitializationVersion = xml:getInt(
-        ownedRoot .. "#version", 0) or 0
-    self.ownedPresetInitializationPending =
-        (xml:getInt(ownedRoot .. "#pending", 0) or 0) > 0
+    self.ownedPresetInitializationVersion = xml:getInt(ownedRoot .. "#version", 0) or 0
+    self.ownedPresetInitializationPending = (xml:getInt(ownedRoot .. "#pending", 0) or 0) > 0
     self.ownedPresetInitializationStateLoaded = true
-    self.ownedPresetInitializedFields =
-        self.ownedPresetInitializedFields or {}
+    self.ownedPresetInitializedFields = self.ownedPresetInitializedFields or {}
     xml:iterate(ownedRoot .. ".field", function(_, key)
         local fieldKey = xml:getString(key .. "#fieldKey")
         local signature = xml:getString(key .. "#signature")
@@ -1876,18 +1993,19 @@ function TerraLogicSoilManager:loadSparseState()
     end)
     xml:delete()
     if sourceCount > 0 then
-        TerraLogicLogging.debug(
-            "[FS25_TerraLogic] Queued %d legacy 4m soil regions for layer migration",
-            sourceCount)
+        TerraLogicLogging.debug("[FS25_TerraLogic] Queued %d legacy 4m soil regions for layer migration", sourceCount)
     end
 end
 
 function TerraLogicSoilManager:saveSparseState()
     local path = self:getSparseStatePath()
-    if path == nil or XMLFile == nil then return end
-    local xml = XMLFile.create(
-        "terraLogicSoilState", path, "terraLogicSoil")
-    if xml == nil then return end
+    if path == nil or XMLFile == nil then
+        return
+    end
+    local xml = XMLFile.create("terraLogicSoilState", path, "terraLogicSoil")
+    if xml == nil then
+        return
+    end
     -- Version 5 adds a resumable one-time marker for initializing fields that
     -- already belong to a player when TerraLogic first creates its soil maps.
     -- Soil values remain authoritative in the per-layer GRLE maps.
@@ -1895,27 +2013,23 @@ function TerraLogicSoilManager:saveSparseState()
     xml:setInt("terraLogicSoil.mapMaintenance#cursor", TerraLogicMapMaintenance.cursor or 0)
     xml:setInt("terraLogicSoil.mapMaintenance#cycles", TerraLogicMapMaintenance.cycles or 0)
     self:saveRecoverySchedulerState(xml)
-    xml:setInt("terraLogicSoil.npcPresets#version",
-        self.NPC_PRESET_VERSION)
+    xml:setInt("terraLogicSoil.npcPresets#version", self.NPC_PRESET_VERSION)
     local index = 0
     for fieldKey, signature in pairs(self.npcPresetSignatures or {}) do
-        local key = string.format(
-            "terraLogicSoil.npcPresets.field(%d)", index)
+        local key = string.format("terraLogicSoil.npcPresets.field(%d)", index)
         index = index + 1
         xml:setString(key .. "#fieldKey", tostring(fieldKey))
-        xml:setInt(key .. "#farmlandId", tonumber(
-            self.npcPresetFarmlands ~= nil
-                and self.npcPresetFarmlands[fieldKey]) or 0)
+        xml:setInt(
+            key .. "#farmlandId",
+            tonumber(self.npcPresetFarmlands ~= nil and self.npcPresetFarmlands[fieldKey]) or 0
+        )
         xml:setString(key .. "#signature", tostring(signature))
     end
     local ownedRoot = "terraLogicSoil.ownedPresetInitialization"
-    xml:setInt(ownedRoot .. "#version", tonumber(
-        self.ownedPresetInitializationVersion) or 0)
-    xml:setInt(ownedRoot .. "#pending",
-        self.ownedPresetInitializationPending == true and 1 or 0)
+    xml:setInt(ownedRoot .. "#version", tonumber(self.ownedPresetInitializationVersion) or 0)
+    xml:setInt(ownedRoot .. "#pending", self.ownedPresetInitializationPending == true and 1 or 0)
     index = 0
-    for fieldKey, signature in pairs(
-            self.ownedPresetInitializedFields or {}) do
+    for fieldKey, signature in pairs(self.ownedPresetInitializedFields or {}) do
         local key = string.format("%s.field(%d)", ownedRoot, index)
         index = index + 1
         xml:setString(key .. "#fieldKey", tostring(fieldKey))
@@ -1926,21 +2040,28 @@ function TerraLogicSoilManager:saveSparseState()
 end
 
 function TerraLogicSoilManager:delete(saveFirst)
-    if saveFirst == true then self:save() end
-    if g_messageCenter ~= nil then g_messageCenter:unsubscribeAll(self) end
+    if saveFirst == true then
+        self:save()
+    end
+    if g_messageCenter ~= nil then
+        g_messageCenter:unsubscribeAll(self)
+    end
     self:restoreMinimapZoom(self.minimapHookMap)
-    if self.overlay ~= nil and delete ~= nil then delete(self.overlay) end
+    if self.overlay ~= nil and delete ~= nil then
+        delete(self.overlay)
+    end
     self.overlay = nil
     self.overlayResolution = nil
     self.overlayReady = false
     self.overlayPending = false
-    if self.deepMapMigration ~= nil
-        and self.deepMapMigration.sourceMap ~= nil and delete ~= nil then
+    if self.deepMapMigration ~= nil and self.deepMapMigration.sourceMap ~= nil and delete ~= nil then
         delete(self.deepMapMigration.sourceMap)
     end
     self.deepMapMigration = nil
     for id, map in pairs(self.maps or {}) do
-        if map ~= nil and delete ~= nil then delete(map) end
+        if map ~= nil and delete ~= nil then
+            delete(map)
+        end
         self.maps[id] = nil
     end
     if self.rotationMap ~= nil and delete ~= nil then
@@ -1987,7 +2108,9 @@ function TerraLogicSoilManager:delete(saveFirst)
     self.ownedPresetInitializationStateLoaded = false
     self.ownedPresetInitializedFields = {}
     for _, map in pairs(self.visualizationMaps or {}) do
-        if map ~= nil and delete ~= nil then delete(map) end
+        if map ~= nil and delete ~= nil then
+            delete(map)
+        end
     end
     self.visualizationMaps = {}
     self.visualizationModifiers = {}
@@ -2061,38 +2184,45 @@ function TerraLogicSoilManager:delete(saveFirst)
 end
 
 function TerraLogicSoilManager:setModifierToCell(modifier, layerId, ix, iz)
-    if modifier == nil then return false end
+    if modifier == nil then
+        return false
+    end
     local cellSize = getLayerCellSize(layerId)
     local minX = ix * cellSize
     local minZ = iz * cellSize
     modifier:setParallelogramWorldCoords(
-        minX, minZ,
-        minX + cellSize, minZ,
-        minX, minZ + cellSize,
-        DensityCoordType.POINT_POINT_POINT)
+        minX,
+        minZ,
+        minX + cellSize,
+        minZ,
+        minX,
+        minZ + cellSize,
+        DensityCoordType.POINT_POINT_POINT
+    )
     return true
 end
 
-function TerraLogicSoilManager:setModifierToWorldRegion(
-        modifier, minX, minZ, size)
-    if modifier == nil then return false end
+function TerraLogicSoilManager:setModifierToWorldRegion(modifier, minX, minZ, size)
+    if modifier == nil then
+        return false
+    end
     modifier:setParallelogramWorldCoords(
-        minX, minZ,
-        minX + size, minZ,
-        minX, minZ + size,
-        DensityCoordType.POINT_POINT_POINT)
+        minX,
+        minZ,
+        minX + size,
+        minZ,
+        minX,
+        minZ + size,
+        DensityCoordType.POINT_POINT_POINT
+    )
     return true
 end
 
-function TerraLogicSoilManager:writeLegacyRegion(
-        layerId, legacyCell, visualization)
-    local modifier = visualization == true
-        and self.visualizationModifiers[layerId]
-        or self.modifiers[layerId]
+function TerraLogicSoilManager:writeLegacyRegion(layerId, legacyCell, visualization)
+    local modifier = visualization == true and self.visualizationModifiers[layerId] or self.modifiers[layerId]
     local minX = legacyCell.ix * self.LEGACY_CELL_SIZE
     local minZ = legacyCell.iz * self.LEGACY_CELL_SIZE
-    if not self:setModifierToWorldRegion(
-            modifier, minX, minZ, self.LEGACY_CELL_SIZE) then
+    if not self:setModifierToWorldRegion(modifier, minX, minZ, self.LEGACY_CELL_SIZE) then
         return false
     end
     if visualization == true then
@@ -2100,43 +2230,46 @@ function TerraLogicSoilManager:writeLegacyRegion(
         -- were field data, so make their display area visible.
         modifier:executeSet(1)
     else
-        modifier:executeSet(encode(
-            legacyCell[layerId], getLayerChannels(layerId)))
+        modifier:executeSet(encode(legacyCell[layerId], getLayerChannels(layerId)))
     end
     return true
 end
 
-local function getRawFromBitVectorMap(
-        map, channels, terrainSize, x, z, cachedSizeX, cachedSizeZ)
-    if map == nil or getBitVectorMapPoint == nil then return 0 end
+local function getRawFromBitVectorMap(map, channels, terrainSize, x, z, cachedSizeX, cachedSizeZ)
+    if map == nil or type(getBitVectorMapPoint) ~= "function" then
+        return 0
+    end
     local sizeX, sizeZ = tonumber(cachedSizeX), tonumber(cachedSizeZ)
     if sizeX == nil or sizeX <= 0 or sizeZ == nil or sizeZ <= 0 then
         sizeX, sizeZ = getBitVectorMapSize(map)
-        sizeX, sizeZ = tonumber(sizeX) or 0,
-            tonumber(sizeZ) or tonumber(sizeX) or 0
+        sizeX, sizeZ = tonumber(sizeX) or 0, tonumber(sizeZ) or tonumber(sizeX) or 0
     end
-    if sizeX <= 0 or sizeZ <= 0 then return 0 end
+    if sizeX <= 0 or sizeZ <= 0 then
+        return 0
+    end
     terrainSize = tonumber(terrainSize) or 2048
     -- Match GIANTS' world-to-BitVectorMap conversion exactly. Density-map
     -- modifiers address floor(size * normalizedPosition), not a rounded
     -- position on a size-1 interval. The old conversion could therefore read
     -- the neighbouring pixel after writing the correct world-space cell.
-    local px = math.floor(((tonumber(x) or 0) / terrainSize + 0.5)
-        * sizeX)
-    local pz = math.floor(((tonumber(z) or 0) / terrainSize + 0.5)
-        * sizeZ)
+    local px = math.floor(((tonumber(x) or 0) / terrainSize + 0.5) * sizeX)
+    local pz = math.floor(((tonumber(z) or 0) / terrainSize + 0.5) * sizeZ)
     px = math.max(0, math.min(px, sizeX - 1))
     pz = math.max(0, math.min(pz, sizeZ - 1))
-    return tonumber(getBitVectorMapPoint(
-        map, px, pz, 0, channels)) or 0
+    return tonumber(getBitVectorMapPoint(map, px, pz, 0, channels)) or 0
 end
 
 function TerraLogicSoilManager:getRawAtWorldPosition(layerId, x, z)
     local size = self.mapSizes ~= nil and self.mapSizes[layerId] or nil
     return getRawFromBitVectorMap(
-        self.maps[layerId], getLayerChannels(layerId),
-        self.terrainSize, x, z,
-        size ~= nil and size.x or nil, size ~= nil and size.z or nil)
+        self.maps[layerId],
+        getLayerChannels(layerId),
+        self.terrainSize,
+        x,
+        z,
+        size ~= nil and size.x or nil,
+        size ~= nil and size.z or nil
+    )
 end
 
 -- Converts only old pixels that differ from the agronomic default. Zero is a
@@ -2147,34 +2280,37 @@ end
 -- interpolation or loss of the persisted six-bit value.
 function TerraLogicSoilManager:updateDeepMapMigration()
     local job = self.deepMapMigration
-    local modifier = self.modifiers ~= nil
-        and self.modifiers.deepCompaction or nil
-    if job == nil or modifier == nil then return false end
+    local modifier = self.modifiers ~= nil and self.modifiers.deepCompaction or nil
+    if job == nil or modifier == nil then
+        return false
+    end
     local size = tonumber(job.sourceSize) or 0
-    if size <= 0 then return false end
+    if size <= 0 then
+        return false
+    end
     local total = size * size
-    local stop = math.min(job.index
-        + self.DEEP_MIGRATION_SCAN_PER_FRAME, total)
+    local stop = math.min(job.index + self.DEEP_MIGRATION_SCAN_PER_FRAME, total)
     local writesThisFrame = 0
-    local channels = tonumber(job.sourceChannels)
-        or getLayerChannels("deepCompaction")
-    local defaultRaw = encode(
-        TerraLogicSoilProfiles.DEFAULTS.deepCompaction, channels)
+    local channels = tonumber(job.sourceChannels) or getLayerChannels("deepCompaction")
+    local defaultRaw = encode(TerraLogicSoilProfiles.DEFAULTS.deepCompaction, channels)
     local oldCellSize = self.terrainSize / size
     local halfSize = self.terrainSize * 0.5
     while job.index < stop do
         local px = job.index % size
         local pz = math.floor(job.index / size)
-        local raw = tonumber(getBitVectorMapPoint(
-            job.sourceMap, px, pz, 0, channels)) or 0
+        local raw = tonumber(getBitVectorMapPoint(job.sourceMap, px, pz, 0, channels)) or 0
         if raw ~= defaultRaw then
             local minX = -halfSize + px * oldCellSize
             local minZ = -halfSize + pz * oldCellSize
             modifier:setParallelogramWorldCoords(
-                minX, minZ,
-                minX + oldCellSize, minZ,
-                minX, minZ + oldCellSize,
-                DensityCoordType.POINT_POINT_POINT)
+                minX,
+                minZ,
+                minX + oldCellSize,
+                minZ,
+                minX,
+                minZ + oldCellSize,
+                DensityCoordType.POINT_POINT_POINT
+            )
             modifier:executeSet(raw)
             job.changedCells = job.changedCells + 1
             writesThisFrame = writesThisFrame + 1
@@ -2194,13 +2330,13 @@ function TerraLogicSoilManager:updateDeepMapMigration()
         end
         self.deepMapMigration = nil
         self.dirty = true
-        self.visualizationDirty = self.activeMapMode == 2
-            or self.visualizationDirty
+        self.visualizationDirty = self.activeMapMode == 2 or self.visualizationDirty
         self.overlayRefreshTime = 0
         self:invalidateServerNetworkLayer("deepCompaction")
         Logging.info(
             "[FS25_TerraLogic] Deep-compaction migration complete: %d old 4 m cells preserved in the 2 m map",
-            job.changedCells)
+            job.changedCells
+        )
     end
     return true
 end
@@ -2220,39 +2356,48 @@ function TerraLogicSoilManager:getValueAtWorldPosition(layerId, x, z)
         local dz = sample ~= nil and (tonumber(z) or 0) - sample.z or 0
         local maximumAge = self.NETWORK_SAMPLE_MAX_AGE_MS
         local radius = self.NETWORK_SAMPLE_RADIUS_M
-        if sample ~= nil and now - sample.time <= maximumAge
-            and dx*dx + dz*dz <= radius*radius
-            and sample.values[layerId] ~= nil then
+        if
+            sample ~= nil
+            and now - sample.time <= maximumAge
+            and dx * dx + dz * dz <= radius * radius
+            and sample.values[layerId] ~= nil
+        then
             return sample.values[layerId]
         end
     end
-    local continuous = self.continuousTrafficValues ~= nil
-        and self.continuousTrafficValues[layerId] or nil
-    local continuousValue = continuous ~= nil
-        and continuous[getCellKey(ix, iz)] or nil
-    if continuousValue ~= nil then return continuousValue end
+    local continuous = self.continuousTrafficValues ~= nil and self.continuousTrafficValues[layerId] or nil
+    local continuousValue = continuous ~= nil and continuous[getCellKey(ix, iz)] or nil
+    if continuousValue ~= nil then
+        return continuousValue
+    end
     local cached = self.layerCells ~= nil
-        and self.layerCells[layerId] ~= nil
-        and self.layerCells[layerId][getCellKey(ix, iz)] or nil
-    if cached ~= nil then return cached.value end
+            and self.layerCells[layerId] ~= nil
+            and self.layerCells[layerId][getCellKey(ix, iz)]
+        or nil
+    if cached ~= nil then
+        return cached.value
+    end
     if layerId == "deepCompaction" and self.deepMapMigration ~= nil then
         local job = self.deepMapMigration
-        return decode(getRawFromBitVectorMap(
-            job.sourceMap, job.sourceChannels,
-            self.terrainSize, x, z),
+        return decode(
+            getRawFromBitVectorMap(job.sourceMap, job.sourceChannels, self.terrainSize, x, z),
             TerraLogicSoilProfiles.DEFAULTS.deepCompaction,
-            job.sourceChannels)
+            job.sourceChannels
+        )
     end
     if self.rasterReady ~= true and self.legacyCellLookup ~= nil then
         local legacyIx = math.floor((tonumber(x) or 0) / self.LEGACY_CELL_SIZE)
         local legacyIz = math.floor((tonumber(z) or 0) / self.LEGACY_CELL_SIZE)
-        local legacyCell = self.legacyCellLookup[
-            getCellKey(legacyIx, legacyIz)]
-        if legacyCell ~= nil then return legacyCell[layerId] end
+        local legacyCell = self.legacyCellLookup[getCellKey(legacyIx, legacyIz)]
+        if legacyCell ~= nil then
+            return legacyCell[layerId]
+        end
     end
-    return decode(self:getRawAtWorldPosition(layerId, x, z),
+    return decode(
+        self:getRawAtWorldPosition(layerId, x, z),
         TerraLogicSoilProfiles.DEFAULTS[layerId],
-        getLayerChannels(layerId))
+        getLayerChannels(layerId)
+    )
 end
 
 local function normalizeCropName(value)
@@ -2261,58 +2406,80 @@ end
 
 local function containsAny(value, needles)
     for _, needle in ipairs(needles) do
-        if string.find(value, needle, 1, true) ~= nil then return true end
+        if string.find(value, needle, 1, true) ~= nil then
+            return true
+        end
     end
     return false
 end
 
 local function isCoverCropName(name)
     return containsAny(normalizeCropName(name), {
-        "oilseedradish", "covercrop", "catchcrop", "greenmanure"
+        "oilseedradish",
+        "covercrop",
+        "catchcrop",
+        "greenmanure",
     })
 end
 
 function TerraLogicSoilManager:isCoverCrop(fruitTypeIndex)
     fruitTypeIndex = tonumber(fruitTypeIndex)
-    if fruitTypeIndex == nil or g_fruitTypeManager == nil
-        or g_fruitTypeManager.getFruitTypeByIndex == nil then return false end
+    if fruitTypeIndex == nil or g_fruitTypeManager == nil or g_fruitTypeManager.getFruitTypeByIndex == nil then
+        return false
+    end
     local desc = g_fruitTypeManager:getFruitTypeByIndex(fruitTypeIndex)
     return desc ~= nil and isCoverCropName(desc.name or desc.title)
 end
 
 function TerraLogicSoilManager:getCropGroup(fruitTypeIndex)
     fruitTypeIndex = tonumber(fruitTypeIndex)
-    if fruitTypeIndex == nil or g_fruitTypeManager == nil
-        or g_fruitTypeManager.getFruitTypeByIndex == nil then
+    if fruitTypeIndex == nil or g_fruitTypeManager == nil or g_fruitTypeManager.getFruitTypeByIndex == nil then
         return CROP_GROUP.NONE, "unknown"
     end
     local desc = g_fruitTypeManager:getFruitTypeByIndex(fruitTypeIndex)
-    if desc == nil then return CROP_GROUP.NONE, "unknown" end
+    if desc == nil then
+        return CROP_GROUP.NONE, "unknown"
+    end
     local name = normalizeCropName(desc.name or desc.title)
     if isCoverCropName(name) then
         return CROP_GROUP.OILSEED, name
-    elseif containsAny(name, {"grass", "meadow", "alfalfa", "clover"}) then
+    elseif containsAny(name, { "grass", "meadow", "alfalfa", "clover" }) then
         return CROP_GROUP.PERENNIAL, name
-    elseif containsAny(name, {"soybean", "pea", "bean", "lentil", "lupin"}) then
+    elseif containsAny(name, { "soybean", "pea", "bean", "lentil", "lupin" }) then
         return CROP_GROUP.LEGUME, name
-    elseif containsAny(name, {"canola", "rapeseed", "sunflower", "mustard"}) then
+    elseif containsAny(name, { "canola", "rapeseed", "sunflower", "mustard" }) then
         return CROP_GROUP.OILSEED, name
-    elseif containsAny(name, {"potato", "sugarbeet", "beetroot", "carrot", "parsnip"}) then
+    elseif containsAny(name, { "potato", "sugarbeet", "beetroot", "carrot", "parsnip" }) then
         return CROP_GROUP.ROOT, name
-    elseif containsAny(name, {"maize", "corn"}) then
+    elseif containsAny(name, { "maize", "corn" }) then
         return CROP_GROUP.MAIZE, name
-    elseif containsAny(name, {"wheat", "barley", "oat", "rye", "triticale",
-            "sorghum", "millet", "rice", "spelt"}) then
+    elseif
+        containsAny(name, {
+            "wheat",
+            "barley",
+            "oat",
+            "rye",
+            "triticale",
+            "sorghum",
+            "millet",
+            "rice",
+            "spelt",
+        })
+    then
         return CROP_GROUP.CEREAL, name
     end
     return CROP_GROUP.OTHER, name
 end
 
 local function npcGroundIs(groundType, names)
-    if FieldGroundType == nil then return false end
+    if FieldGroundType == nil then
+        return false
+    end
     for _, name in ipairs(names) do
         local value = FieldGroundType[name]
-        if value ~= nil and groundType == value then return true end
+        if value ~= nil and groundType == value then
+            return true
+        end
     end
     return false
 end
@@ -2320,7 +2487,7 @@ end
 local function npcHashString(value)
     local hash = 216613626
     value = tostring(value or "")
-    for index=1,#value do
+    for index = 1, #value do
         hash = (hash * 131 + string.byte(value, index)) % 2147483647
     end
     return hash
@@ -2337,14 +2504,17 @@ local function npcSignedNoise(seed, x, z, salt)
 end
 
 local function npcPointInPolygon(x, z, polygon)
-    if polygon == nil or #polygon < 3 then return false end
+    if polygon == nil or #polygon < 3 then
+        return false
+    end
     local inside = false
     local previous = polygon[#polygon]
     for _, current in ipairs(polygon) do
         if (current.z > z) ~= (previous.z > z) then
-            local edgeX = (previous.x - current.x) * (z - current.z)
-                / (previous.z - current.z) + current.x
-            if x < edgeX then inside = not inside end
+            local edgeX = (previous.x - current.x) * (z - current.z) / (previous.z - current.z) + current.x
+            if x < edgeX then
+                inside = not inside
+            end
         end
         previous = current
     end
@@ -2352,23 +2522,23 @@ local function npcPointInPolygon(x, z, polygon)
 end
 
 local function getNpcFieldId(field, farmlandId)
-    if field ~= nil and field.getId ~= nil then
-        local ok, value = pcall(field.getId, field)
-        if ok and tonumber(value) ~= nil then return tonumber(value) end
+    if field ~= nil and type(field.getId) == "function" then
+        local value = field.getId(field)
+        if tonumber(value) ~= nil then
+            return tonumber(value)
+        end
     end
-    return tonumber(field ~= nil and (field.fieldId or field.id))
-        or tonumber(farmlandId) or -1
+    return tonumber(field ~= nil and (field.fieldId or field.id)) or tonumber(farmlandId) or -1
 end
 
 local function getNpcFieldCenter(field)
-    if field ~= nil and field.getCenterOfFieldWorldPosition ~= nil then
-        local ok, x, z = pcall(field.getCenterOfFieldWorldPosition, field)
-        if ok and tonumber(x) ~= nil and tonumber(z) ~= nil then
+    if field ~= nil and type(field.getCenterOfFieldWorldPosition) == "function" then
+        local x, z = field.getCenterOfFieldWorldPosition(field)
+        if tonumber(x) ~= nil and tonumber(z) ~= nil then
             return tonumber(x), tonumber(z)
         end
     end
-    return tonumber(field ~= nil and field.posX),
-        tonumber(field ~= nil and field.posZ)
+    return tonumber(field ~= nil and field.posX), tonumber(field ~= nil and field.posZ)
 end
 
 local function getNpcFieldKey(field, farmlandId)
@@ -2377,20 +2547,30 @@ local function getNpcFieldKey(field, farmlandId)
         return tostring(fieldId), fieldId
     end
     local x, z = getNpcFieldCenter(field)
-    return string.format("%d:%d:%d", tonumber(farmlandId) or -1,
+    return string.format(
+        "%d:%d:%d",
+        tonumber(farmlandId) or -1,
         math.floor((tonumber(x) or 0) + 0.5),
-        math.floor((tonumber(z) or 0) + 0.5)), fieldId
+        math.floor((tonumber(z) or 0) + 0.5)
+    ),
+        fieldId
 end
 
 local function getNpcFieldPolygon(field)
-    if field == nil then return nil end
+    if field == nil then
+        return nil
+    end
     local source = nil
-    if field.getPolygonPoints ~= nil then
-        local ok, points = pcall(field.getPolygonPoints, field)
-        if ok then source = points end
+    if type(field.getPolygonPoints) == "function" then
+        local points = field.getPolygonPoints(field)
+        do
+            source = points
+        end
     end
     source = source or field.polygonPoints
-    if type(source) ~= "table" then return nil end
+    if type(source) ~= "table" then
+        return nil
+    end
     local polygon = {}
     for _, point in ipairs(source) do
         local x, z = nil, nil
@@ -2401,29 +2581,30 @@ local function getNpcFieldPolygon(field)
             x, _, z = getWorldTranslation(point)
         end
         if x ~= nil and z ~= nil then
-            polygon[#polygon + 1] = {x=x, z=z}
+            polygon[#polygon + 1] = { x = x, z = z }
         end
     end
-    if #polygon < 3 then return nil end
-    local minX, maxX, minZ, maxZ = math.huge, -math.huge,
-        math.huge, -math.huge
+    if #polygon < 3 then
+        return nil
+    end
+    local minX, maxX, minZ, maxZ = math.huge, -math.huge, math.huge, -math.huge
     for _, point in ipairs(polygon) do
         minX, maxX = math.min(minX, point.x), math.max(maxX, point.x)
         minZ, maxZ = math.min(minZ, point.z), math.max(maxZ, point.z)
     end
-    return polygon, {minX=minX, maxX=maxX, minZ=minZ, maxZ=maxZ}
+    return polygon, { minX = minX, maxX = maxX, minZ = minZ, maxZ = maxZ }
 end
 
 function TerraLogicSoilManager:getNpcFieldOwner(field, farmlandId)
-    farmlandId = tonumber(farmlandId)
-        or tonumber(field ~= nil and field.farmland ~= nil
-            and field.farmland.id)
-    if farmlandId == nil or g_farmlandManager == nil then return nil end
-    if g_farmlandManager.getFarmlandOwner ~= nil then
-        local ok, owner = pcall(
-            g_farmlandManager.getFarmlandOwner,
-            g_farmlandManager, farmlandId)
-        if ok then return tonumber(owner) end
+    farmlandId = tonumber(farmlandId) or tonumber(field ~= nil and field.farmland ~= nil and field.farmland.id)
+    if farmlandId == nil or g_farmlandManager == nil then
+        return nil
+    end
+    if type(g_farmlandManager.getFarmlandOwner) == "function" then
+        local owner = g_farmlandManager.getFarmlandOwner(g_farmlandManager, farmlandId)
+        do
+            return tonumber(owner)
+        end
     end
     local farmland = field ~= nil and field.farmland or nil
     return tonumber(farmland ~= nil and farmland.farmId)
@@ -2431,32 +2612,33 @@ end
 
 function TerraLogicSoilManager:getIsNpcField(field, farmlandId)
     local owner = self:getNpcFieldOwner(field, farmlandId)
-    local noOwner = FarmlandManager ~= nil
-        and tonumber(FarmlandManager.NO_OWNER_FARM_ID) or 0
+    local noOwner = FarmlandManager ~= nil and tonumber(FarmlandManager.NO_OWNER_FARM_ID) or 0
     return owner ~= nil and owner == noOwner
 end
 
 function TerraLogicSoilManager:getIsPlayerOwnedField(field, farmlandId)
     local owner = self:getNpcFieldOwner(field, farmlandId)
-    local noOwner = FarmlandManager ~= nil
-        and tonumber(FarmlandManager.NO_OWNER_FARM_ID) or 0
+    local noOwner = FarmlandManager ~= nil and tonumber(FarmlandManager.NO_OWNER_FARM_ID) or 0
     return owner ~= nil and owner ~= noOwner
 end
 
 function TerraLogicSoilManager:getIsNpcFieldMissionActive(field)
-    if field == nil then return false end
+    if field == nil then
+        return false
+    end
     local mission = field.currentMission
-    if mission ~= nil and mission.getIsActive ~= nil then
-        local ok, active = pcall(mission.getIsActive, mission)
-        if ok and active == true then return true end
+    if mission ~= nil and type(mission.getIsActive) == "function" then
+        local active = mission.getIsActive(mission)
+        if active == true then
+            return true
+        end
     end
     local x, z = getNpcFieldCenter(field)
-    if x ~= nil and g_missionManager ~= nil
-        and g_missionManager.getMissionAtWorldPosition ~= nil then
-        local ok, activeMission = pcall(
-            g_missionManager.getMissionAtWorldPosition,
-            g_missionManager, x, z)
-        if ok and activeMission ~= nil then return true end
+    if x ~= nil and g_missionManager ~= nil and type(g_missionManager.getMissionAtWorldPosition) == "function" then
+        local activeMission = g_missionManager.getMissionAtWorldPosition(g_missionManager, x, z)
+        if activeMission ~= nil then
+            return true
+        end
     end
     return false
 end
@@ -2464,35 +2646,30 @@ end
 local function getNpcGrowthPhase(fruitTypeIndex, growthState)
     growthState = math.max(tonumber(growthState) or 0, 0)
     local desc = g_fruitTypeManager ~= nil
-        and g_fruitTypeManager.getFruitTypeByIndex ~= nil
-        and g_fruitTypeManager:getFruitTypeByIndex(fruitTypeIndex) or nil
-    local maximum = desc ~= nil and tonumber(
-        desc.maxHarvestingGrowthState or desc.numGrowthStates) or nil
+            and g_fruitTypeManager.getFruitTypeByIndex ~= nil
+            and g_fruitTypeManager:getFruitTypeByIndex(fruitTypeIndex)
+        or nil
+    local maximum = desc ~= nil and tonumber(desc.maxHarvestingGrowthState or desc.numGrowthStates) or nil
     maximum = math.max(maximum or growthState or 1, 1)
     local harvestable = false
-    if desc ~= nil and desc.getIsHarvestable ~= nil then
-        local ok, result = pcall(desc.getIsHarvestable, desc, growthState)
-        harvestable = ok and result == true
+    if desc ~= nil and type(desc.getIsHarvestable) == "function" then
+        local result = desc.getIsHarvestable(desc, growthState)
+        harvestable = result == true
     elseif desc ~= nil and tonumber(desc.minHarvestingGrowthState) ~= nil then
         harvestable = growthState >= desc.minHarvestingGrowthState
-            and growthState <= (tonumber(desc.maxHarvestingGrowthState)
-                or growthState)
+            and growthState <= (tonumber(desc.maxHarvestingGrowthState) or growthState)
     end
-    if harvestable then return 4 end
+    if harvestable then
+        return 4
+    end
     return math.clamp(math.ceil(growthState / maximum * 4), 1, 4)
 end
 
-local function getPresetKeyFromFieldState(
-        groundType, plowLevel, fruitTypeIndex, growthState, rollerLevel)
-    local unknownFruit = FruitType ~= nil
-        and tonumber(FruitType.UNKNOWN) or 0
-    local hasFruit = fruitTypeIndex ~= nil
-        and fruitTypeIndex ~= unknownFruit and fruitTypeIndex > 0
-    local group = hasFruit
-        and TerraLogicSoilManager:getCropGroup(fruitTypeIndex)
-        or CROP_GROUP.NONE
-    local phase = hasFruit and getNpcGrowthPhase(
-        fruitTypeIndex, growthState) or 0
+local function getPresetKeyFromFieldState(groundType, plowLevel, fruitTypeIndex, growthState, rollerLevel)
+    local unknownFruit = FruitType ~= nil and tonumber(FruitType.UNKNOWN) or 0
+    local hasFruit = fruitTypeIndex ~= nil and fruitTypeIndex ~= unknownFruit and fruitTypeIndex > 0
+    local group = hasFruit and TerraLogicSoilManager:getCropGroup(fruitTypeIndex) or CROP_GROUP.NONE
+    local phase = hasFruit and getNpcGrowthPhase(fruitTypeIndex, growthState) or 0
     local presetKey
     if group == CROP_GROUP.PERENNIAL then
         presetKey = "perennial"
@@ -2500,37 +2677,34 @@ local function getPresetKeyFromFieldState(
     -- flag. This matters especially on player-owned fields whose FieldState is
     -- not guaranteed to follow every density-map operation.
     elseif hasFruit then
-        if phase <= 1 and npcGroundIs(groundType, {"DIRECT_SOWN"}) then
+        if phase <= 1 and npcGroundIs(groundType, { "DIRECT_SOWN" }) then
             presetKey = "directSown"
-        elseif phase <= 1 and npcGroundIs(groundType, {"SOWN"}) then
+        elseif phase <= 1 and npcGroundIs(groundType, { "SOWN" }) then
             presetKey = "sown"
         else
             presetKey = "growing"
         end
-    elseif npcGroundIs(groundType,
-            {"HARVESTED", "GRASS_CUT", "MULCHED"}) then
+    elseif npcGroundIs(groundType, { "HARVESTED", "GRASS_CUT", "MULCHED" }) then
         presetKey = "harvested"
-    elseif npcGroundIs(groundType, {"PLOWED"}) then
+    elseif npcGroundIs(groundType, { "PLOWED" }) then
         presetKey = "plowed"
-    elseif (tonumber(plowLevel) or 0) > 0
-        and (g_currentMission == nil
-            or g_currentMission.missionInfo == nil
-            or g_currentMission.missionInfo.plowingRequiredEnabled ~= false)
-        and npcGroundIs(groundType,
-            {"CULTIVATED", "STUBBLE_TILLAGE"}) then
+    elseif
+        (tonumber(plowLevel) or 0) > 0
+        and (g_currentMission == nil or g_currentMission.missionInfo == nil or g_currentMission.missionInfo.plowingRequiredEnabled ~= false)
+        and npcGroundIs(groundType, { "CULTIVATED", "STUBBLE_TILLAGE" })
+    then
         presetKey = "subsoiled"
-    elseif npcGroundIs(groundType, {"STUBBLE_TILLAGE"}) then
+    elseif npcGroundIs(groundType, { "STUBBLE_TILLAGE" }) then
         presetKey = "shallow"
-    elseif npcGroundIs(groundType, {"CULTIVATED"}) then
+    elseif npcGroundIs(groundType, { "CULTIVATED" }) then
         presetKey = "cultivated"
-    elseif npcGroundIs(groundType, {"SEEDBED", "ROLLED_SEEDBED"})
-        or (tonumber(rollerLevel) or 0) > 0 then
+    elseif npcGroundIs(groundType, { "SEEDBED", "ROLLED_SEEDBED" }) or (tonumber(rollerLevel) or 0) > 0 then
         presetKey = "seedbed"
-    elseif npcGroundIs(groundType, {"DIRECT_SOWN"}) then
+    elseif npcGroundIs(groundType, { "DIRECT_SOWN" }) then
         presetKey = "directSown"
-    elseif npcGroundIs(groundType, {"SOWN"}) then
+    elseif npcGroundIs(groundType, { "SOWN" }) then
         presetKey = "sown"
-    elseif npcGroundIs(groundType, {"GRASS"}) then
+    elseif npcGroundIs(groundType, { "GRASS" }) then
         presetKey = "perennial"
     else
         presetKey = "bare"
@@ -2545,29 +2719,31 @@ end
 -- misses and headland remnants without scanning the full density map.
 function TerraLogicSoilManager:getLiveOwnedFieldState(field)
     local polygon, bounds = getNpcFieldPolygon(field)
-    if polygon == nil or bounds == nil then return nil end
+    if polygon == nil or bounds == nil then
+        return nil
+    end
     local fruitVotes, growthVotes, groundVotes = {}, {}, {}
     local samples = 0
     local function addVote(target, key)
-        if key == nil then return end
+        if key == nil then
+            return
+        end
         target[key] = (target[key] or 0) + 1
     end
     local function sampleAt(x, z)
-        if not npcPointInPolygon(x, z, polygon) then return end
+        if not npcPointInPolygon(x, z, polygon) then
+            return
+        end
         samples = samples + 1
         local fruitTypeIndex, growthState = nil, nil
-        if FSDensityMapUtil ~= nil
-            and FSDensityMapUtil.getFruitTypeIndexAtWorldPos ~= nil then
-            local ok, fruit, growth = pcall(
-                FSDensityMapUtil.getFruitTypeIndexAtWorldPos, x, z)
-            if ok then
+        if FSDensityMapUtil ~= nil and type(FSDensityMapUtil.getFruitTypeIndexAtWorldPos) == "function" then
+            local fruit, growth = FSDensityMapUtil.getFruitTypeIndexAtWorldPos(x, z)
+            do
                 fruitTypeIndex, growthState = tonumber(fruit), tonumber(growth)
             end
         end
-        local unknownFruit = FruitType ~= nil
-            and tonumber(FruitType.UNKNOWN) or 0
-        if fruitTypeIndex ~= nil and fruitTypeIndex > 0
-            and fruitTypeIndex ~= unknownFruit then
+        local unknownFruit = FruitType ~= nil and tonumber(FruitType.UNKNOWN) or 0
+        if fruitTypeIndex ~= nil and fruitTypeIndex > 0 and fruitTypeIndex ~= unknownFruit then
             addVote(fruitVotes, fruitTypeIndex)
             growthVotes[fruitTypeIndex] = growthVotes[fruitTypeIndex] or {}
             addVote(growthVotes[fruitTypeIndex], growthState or 0)
@@ -2576,32 +2752,32 @@ function TerraLogicSoilManager:getLiveOwnedFieldState(field)
         -- already contain IDs; translate only this live-density boundary.
         local rawGround = self:getGroundTypeAtWorldPosition(x, z)
         local groundType = nil
-        if rawGround ~= nil and FieldGroundType ~= nil
-                and FieldGroundType.getTypeByValue ~= nil then
+        if rawGround ~= nil and FieldGroundType ~= nil and type(FieldGroundType.getTypeByValue) == "function" then
             groundType = FieldGroundType.getTypeByValue(rawGround)
         end
         addVote(groundVotes, groundType)
     end
     local grid = 5
-    for iz=0,grid-1 do
-        for ix=0,grid-1 do
+    for iz = 0, grid - 1 do
+        for ix = 0, grid - 1 do
             sampleAt(
-                bounds.minX + (ix + 0.5) / grid
-                    * (bounds.maxX - bounds.minX),
-                bounds.minZ + (iz + 0.5) / grid
-                    * (bounds.maxZ - bounds.minZ))
+                bounds.minX + (ix + 0.5) / grid * (bounds.maxX - bounds.minX),
+                bounds.minZ + (iz + 0.5) / grid * (bounds.maxZ - bounds.minZ)
+            )
         end
     end
     local centerX, centerZ = getNpcFieldCenter(field)
-    if centerX ~= nil then sampleAt(centerX, centerZ) end
-    if samples <= 0 then return nil end
+    if centerX ~= nil then
+        sampleAt(centerX, centerZ)
+    end
+    if samples <= 0 then
+        return nil
+    end
 
     local function dominant(votes)
         local selected, count = nil, -1
         for value, votesForValue in pairs(votes or {}) do
-            if votesForValue > count
-                or (votesForValue == count
-                    and (selected == nil or value < selected)) then
+            if votesForValue > count or (votesForValue == count and (selected == nil or value < selected)) then
                 selected, count = value, votesForValue
             end
         end
@@ -2610,112 +2786,154 @@ function TerraLogicSoilManager:getLiveOwnedFieldState(field)
     local fruitTypeIndex, fruitCount = dominant(fruitVotes)
     -- Requiring two supporting points prevents one volunteer plant from
     -- turning a genuinely bare field into a growing preset.
-    if fruitCount < math.min(2, samples) then fruitTypeIndex = nil end
-    local growthState = fruitTypeIndex ~= nil
-        and dominant(growthVotes[fruitTypeIndex]) or nil
+    if fruitCount < math.min(2, samples) then
+        fruitTypeIndex = nil
+    end
+    local growthState = fruitTypeIndex ~= nil and dominant(growthVotes[fruitTypeIndex]) or nil
     local groundType = dominant(groundVotes)
-    if groundType == nil then return nil end
+    if groundType == nil then
+        return nil
+    end
     return {
-        groundType=groundType, plowLevel=0, rollerLevel=0,
-        fruitTypeIndex=fruitTypeIndex, growthState=growthState,
-        liveSampleCount=samples, liveFruitSampleCount=fruitCount,
-        source="liveDensity"
+        groundType = groundType,
+        plowLevel = 0,
+        rollerLevel = 0,
+        fruitTypeIndex = fruitTypeIndex,
+        growthState = growthState,
+        liveSampleCount = samples,
+        liveFruitSampleCount = fruitCount,
+        source = "liveDensity",
     }
 end
 
-function TerraLogicSoilManager:getNpcFieldDescriptor(
-        field, includeGeometry, useLiveOwnedState)
-    if field == nil then return nil end
+function TerraLogicSoilManager:getNpcFieldDescriptor(field, includeGeometry, useLiveOwnedState)
+    if field == nil then
+        return nil
+    end
     local state = nil
     if useLiveOwnedState == true then
         state = self:getLiveOwnedFieldState(field)
-    elseif field.getFieldState ~= nil then
-        local ok, result = pcall(field.getFieldState, field)
-        if ok then state = result end
+    elseif type(field.getFieldState) == "function" then
+        local result = field.getFieldState(field)
+        do
+            state = result
+        end
     end
     if state == nil and useLiveOwnedState ~= true then
         state = field.fieldState
     end
-    if state == nil or state.isValid == false then return nil end
+    if state == nil or state.isValid == false then
+        return nil
+    end
     local farmlandId = tonumber(field.farmland ~= nil and field.farmland.id)
-    if farmlandId == nil then return nil end
+    if farmlandId == nil then
+        return nil
+    end
     local groundType = tonumber(state.groundType) or 0
     local plowLevel = tonumber(state.plowLevel) or 0
     local rollerLevel = tonumber(state.rollerLevel) or 0
     local fruitTypeIndex = tonumber(state.fruitTypeIndex)
-    local unknownFruit = FruitType ~= nil
-        and tonumber(FruitType.UNKNOWN) or 0
-    local hasFruit = fruitTypeIndex ~= nil
-        and fruitTypeIndex ~= unknownFruit and fruitTypeIndex > 0
+    local unknownFruit = FruitType ~= nil and tonumber(FruitType.UNKNOWN) or 0
+    local hasFruit = fruitTypeIndex ~= nil and fruitTypeIndex ~= unknownFruit and fruitTypeIndex > 0
     local group, cropName = self:getCropGroup(fruitTypeIndex)
-    if not hasFruit then group, cropName = CROP_GROUP.NONE, "none" end
-    local presetKey, _, _, phase = getPresetKeyFromFieldState(
-        groundType, plowLevel, fruitTypeIndex, state.growthState, rollerLevel)
+    if not hasFruit then
+        group, cropName = CROP_GROUP.NONE, "none"
+    end
+    local presetKey, _, _, phase =
+        getPresetKeyFromFieldState(groundType, plowLevel, fruitTypeIndex, state.growthState, rollerLevel)
 
     local base = NPC_FIELD_PRESETS[presetKey] or NPC_FIELD_PRESETS.bare
     local values = {}
-    for layerId, value in pairs(base) do values[layerId] = value end
-    local phaseScale = ({[0]=0, [1]=0.20, [2]=0.45,
-        [3]=0.75, [4]=1.00})[phase] or 1
-    if presetKey == "harvested" then phaseScale = 0.75 end
+    for layerId, value in pairs(base) do
+        values[layerId] = value
+    end
+    local phaseScale = ({ [0] = 0, [1] = 0.20, [2] = 0.45, [3] = 0.75, [4] = 1.00 })[phase] or 1
+    if presetKey == "harvested" then
+        phaseScale = 0.75
+    end
     local cropModifier = NPC_CROP_MODIFIERS[group]
     if cropModifier ~= nil then
         for layerId, offset in pairs(cropModifier) do
-            values[layerId] = clamp01((values[layerId] or 0)
-                + offset * phaseScale)
+            values[layerId] = clamp01((values[layerId] or 0) + offset * phaseScale)
         end
     end
-    local signature = table.concat({tostring(self.NPC_PRESET_VERSION), presetKey,
-        tostring(fruitTypeIndex or 0), tostring(phase),
-        tostring(groundType), tostring(plowLevel > 0 and 1 or 0),
-        tostring(state.source or "fieldState")}, "|")
+    local signature = table.concat(
+        {
+            tostring(self.NPC_PRESET_VERSION),
+            presetKey,
+            tostring(fruitTypeIndex or 0),
+            tostring(phase),
+            tostring(groundType),
+            tostring(plowLevel > 0 and 1 or 0),
+            tostring(state.source or "fieldState"),
+        },
+        "|"
+    )
     if includeGeometry == false then
         local fieldKey, fieldId = getNpcFieldKey(field, farmlandId)
-        return {field=field, fieldKey=fieldKey, fieldId=fieldId,
-            farmlandId=farmlandId,
-            presetKey=presetKey, signature=signature}
+        return {
+            field = field,
+            fieldKey = fieldKey,
+            fieldId = fieldId,
+            farmlandId = farmlandId,
+            presetKey = presetKey,
+            signature = signature,
+        }
     end
     local polygon, bounds = getNpcFieldPolygon(field)
-    if polygon == nil then return nil end
+    if polygon == nil then
+        return nil
+    end
     local fieldKey, fieldId = getNpcFieldKey(field, farmlandId)
     local seed = npcHashString(tostring(farmlandId) .. ":" .. signature)
     for layerId, variation in pairs(NPC_FIELD_VARIATION) do
-        values[layerId] = clamp01((values[layerId] or 0)
-            + npcSignedNoise(seed, 0, 0, variation.salt)
-                * variation.field)
+        values[layerId] = clamp01((values[layerId] or 0) + npcSignedNoise(seed, 0, 0, variation.salt) * variation.field)
     end
     return {
-        field=field, fieldKey=fieldKey, fieldId=fieldId,
-        farmlandId=farmlandId,
-        presetKey=presetKey, fruitTypeIndex=fruitTypeIndex or 0,
-        cropGroup=group, cropName=cropName, growthPhase=phase,
-        groundType=groundType, plowLevel=plowLevel,
-        stateSource=state.source or "fieldState",
-        liveSampleCount=tonumber(state.liveSampleCount) or 0,
-        liveFruitSampleCount=tonumber(state.liveFruitSampleCount) or 0,
-        signature=signature, seed=seed, values=values,
-        polygon=polygon, bounds=bounds
+        field = field,
+        fieldKey = fieldKey,
+        fieldId = fieldId,
+        farmlandId = farmlandId,
+        presetKey = presetKey,
+        fruitTypeIndex = fruitTypeIndex or 0,
+        cropGroup = group,
+        cropName = cropName,
+        growthPhase = phase,
+        groundType = groundType,
+        plowLevel = plowLevel,
+        stateSource = state.source or "fieldState",
+        liveSampleCount = tonumber(state.liveSampleCount) or 0,
+        liveFruitSampleCount = tonumber(state.liveFruitSampleCount) or 0,
+        signature = signature,
+        seed = seed,
+        values = values,
+        polygon = polygon,
+        bounds = bounds,
     }
 end
 
 function TerraLogicSoilManager:queueNpcPresetScan(delayMs)
-    if g_currentMission == nil or not g_currentMission:getIsServer() then return end
+    if g_currentMission == nil or not g_currentMission:getIsServer() then
+        return
+    end
     local wasPending = self.npcPresetScanPending == true
     self.npcPresetScanPending = true
-    local delay = math.max(tonumber(delayMs)
-        or self.NPC_PRESET_SCAN_DELAY_MS, 0)
+    local delay = math.max(tonumber(delayMs) or self.NPC_PRESET_SCAN_DELAY_MS, 0)
     if wasPending then
-        self.npcPresetScanDelayRemaining = math.min(
-            tonumber(self.npcPresetScanDelayRemaining) or delay, delay)
+        self.npcPresetScanDelayRemaining = math.min(tonumber(self.npcPresetScanDelayRemaining) or delay, delay)
     else
         self.npcPresetScanDelayRemaining = delay
     end
 end
 
 function TerraLogicSoilManager:queueNpcPresetDescriptor(descriptor)
-    if descriptor == nil then return false end
+    if descriptor == nil then
+        return false
+    end
     self.npcPresetQueued = self.npcPresetQueued or {}
-    if self.npcPresetQueued[descriptor.fieldKey] == true then return false end
+    if self.npcPresetQueued[descriptor.fieldKey] == true then
+        return false
+    end
     local patchSize = self.NPC_PRESET_PATCH_SIZE_M
     local bounds = descriptor.bounds
     descriptor.patchMinX = math.floor(bounds.minX / patchSize)
@@ -2726,8 +2944,7 @@ function TerraLogicSoilManager:queueNpcPresetDescriptor(descriptor)
     descriptor.patchZ = descriptor.patchMinZ
     descriptor.phase = "base"
     self.npcPresetQueue = self.npcPresetQueue or {}
-    if descriptor.presetScope == "ownedBootstrap"
-        or descriptor.presetScope == "ownedRepair" then
+    if descriptor.presetScope == "ownedBootstrap" or descriptor.presetScope == "ownedRepair" then
         -- Player fields should match their visible initial state before the
         -- background NPC refresh works through the rest of the map.
         table.insert(self.npcPresetQueue, 1, descriptor)
@@ -2739,29 +2956,28 @@ function TerraLogicSoilManager:queueNpcPresetDescriptor(descriptor)
 end
 
 function TerraLogicSoilManager:scanNpcPresetFields()
-    if g_fieldManager == nil then return false end
-    local fields = g_fieldManager.getFields ~= nil
-        and g_fieldManager:getFields() or g_fieldManager.fields
-    if type(fields) ~= "table" then return false end
+    if g_fieldManager == nil then
+        return false
+    end
+    local fields = g_fieldManager.getFields ~= nil and g_fieldManager:getFields() or g_fieldManager.fields
+    if type(fields) ~= "table" then
+        return false
+    end
     self.npcPresetSignatures = self.npcPresetSignatures or {}
-    self.ownedPresetInitializedFields =
-        self.ownedPresetInitializedFields or {}
+    self.ownedPresetInitializedFields = self.ownedPresetInitializedFields or {}
     local initializeOwned = self.ownedPresetInitializationPending == true
     local foundField, waitingForState, queued = false, false, 0
     local ownedMissing, ownedQueued = false, 0
     for _, field in pairs(fields) do
-        local farmlandId = tonumber(field ~= nil and field.farmland ~= nil
-            and field.farmland.id)
+        local farmlandId = tonumber(field ~= nil and field.farmland ~= nil and field.farmland.id)
         if farmlandId ~= nil then
             foundField = true
             local isNpc = self:getIsNpcField(field, farmlandId)
-            if isNpc
-                and not self:getIsNpcFieldMissionActive(field) then
+            if isNpc and not self:getIsNpcFieldMissionActive(field) then
                 local state = self:getNpcFieldDescriptor(field, false)
                 if state == nil then
                     waitingForState = true
-                elseif self.npcPresetSignatures[state.fieldKey]
-                        ~= state.signature then
+                elseif self.npcPresetSignatures[state.fieldKey] ~= state.signature then
                     local descriptor = self:getNpcFieldDescriptor(field, true)
                     if descriptor == nil then
                         waitingForState = true
@@ -2769,13 +2985,11 @@ function TerraLogicSoilManager:scanNpcPresetFields()
                         queued = queued + 1
                     end
                 end
-            elseif initializeOwned
-                and self:getIsPlayerOwnedField(field, farmlandId) then
+            elseif initializeOwned and self:getIsPlayerOwnedField(field, farmlandId) then
                 local state = self:getNpcFieldDescriptor(field, false, true)
                 if state == nil then
                     waitingForState = true
-                elseif self.ownedPresetInitializedFields[state.fieldKey]
-                        ~= state.signature then
+                elseif self.ownedPresetInitializedFields[state.fieldKey] ~= state.signature then
                     ownedMissing = true
                     local descriptor = self:getNpcFieldDescriptor(field, true, true)
                     if descriptor == nil then
@@ -2791,17 +3005,12 @@ function TerraLogicSoilManager:scanNpcPresetFields()
         end
     end
     if queued > 0 then
-        TerraLogicLogging.debug(
-            "[FS25_TerraLogic] Queued %d changed NPC field preset(s)",
-            queued)
+        TerraLogicLogging.debug("[FS25_TerraLogic] Queued %d changed NPC field preset(s)", queued)
     end
     if ownedQueued > 0 then
-        TerraLogicLogging.debug(
-            "[FS25_TerraLogic] Queued %d one-time owned-field preset(s)",
-            ownedQueued)
+        TerraLogicLogging.debug("[FS25_TerraLogic] Queued %d one-time owned-field preset(s)", ownedQueued)
     end
-    local ownedJobActive = self.npcPresetCurrentJob ~= nil
-        and self.npcPresetCurrentJob.presetScope == "ownedBootstrap"
+    local ownedJobActive = self.npcPresetCurrentJob ~= nil and self.npcPresetCurrentJob.presetScope == "ownedBootstrap"
     if not ownedJobActive then
         for _, job in ipairs(self.npcPresetQueue or {}) do
             if job.presetScope == "ownedBootstrap" then
@@ -2810,14 +3019,11 @@ function TerraLogicSoilManager:scanNpcPresetFields()
             end
         end
     end
-    if initializeOwned and foundField and not waitingForState
-        and not ownedMissing and not ownedJobActive then
-        self.ownedPresetInitializationVersion =
-            self.OWNED_PRESET_INITIALIZATION_VERSION
+    if initializeOwned and foundField and not waitingForState and not ownedMissing and not ownedJobActive then
+        self.ownedPresetInitializationVersion = self.OWNED_PRESET_INITIALIZATION_VERSION
         self.ownedPresetInitializationPending = false
         self.ownedPresetInitializedFields = {}
-        TerraLogicLogging.debug(
-            "[FS25_TerraLogic] One-time owned-field soil preset initialization complete")
+        TerraLogicLogging.debug("[FS25_TerraLogic] One-time owned-field soil preset initialization complete")
     end
     return foundField and not waitingForState
 end
@@ -2829,20 +3035,20 @@ local function npcPatchInsideField(job, minX, minZ, size)
         and npcPointInPolygon(maxX - inset, minZ + inset, job.polygon)
         and npcPointInPolygon(minX + inset, maxZ - inset, job.polygon)
         and npcPointInPolygon(maxX - inset, maxZ - inset, job.polygon)
-        and npcPointInPolygon(minX + size * 0.5,
-            minZ + size * 0.5, job.polygon)
+        and npcPointInPolygon(minX + size * 0.5, minZ + size * 0.5, job.polygon)
 end
 
 function TerraLogicSoilManager:writeNpcPresetBase(job)
     for _, layer in ipairs(self.layers) do
         local modifier = self.modifiers[layer.id]
-        if modifier == nil then return false end
+        if modifier == nil then
+            return false
+        end
         modifier:clearPolygonPoints()
         for _, point in ipairs(job.polygon) do
             modifier:addPolygonPointWorldCoords(point.x, point.z)
         end
-        modifier:executeSet(encode(
-            job.values[layer.id], getLayerChannels(layer.id)))
+        modifier:executeSet(encode(job.values[layer.id], getLayerChannels(layer.id)))
         modifier:clearPolygonPoints()
     end
     return true
@@ -2853,13 +3059,10 @@ function TerraLogicSoilManager:getNpcPresetPatchValues(job, gridX, gridZ)
     for layerId, baseValue in pairs(job.values) do
         local variation = NPC_FIELD_VARIATION[layerId]
         local coarseX, coarseZ = math.floor(gridX / 2), math.floor(gridZ / 2)
-        local coarse = npcSignedNoise(
-            job.seed, coarseX, coarseZ, variation.salt + 101)
-        local fine = npcSignedNoise(
-            job.seed, gridX, gridZ, variation.salt + 211)
+        local coarse = npcSignedNoise(job.seed, coarseX, coarseZ, variation.salt + 101)
+        local fine = npcSignedNoise(job.seed, gridX, gridZ, variation.salt + 211)
         local localNoise = coarse * 0.72 + fine * 0.28
-        values[layerId] = clamp01(baseValue
-            + localNoise * variation.localValue)
+        values[layerId] = clamp01(baseValue + localNoise * variation.localValue)
     end
     return values
 end
@@ -2867,14 +3070,14 @@ end
 function TerraLogicSoilManager:writeNpcPresetPatch(job, gridX, gridZ)
     local size = self.NPC_PRESET_PATCH_SIZE_M
     local minX, minZ = gridX * size, gridZ * size
-    if not npcPatchInsideField(job, minX, minZ, size) then return false end
+    if not npcPatchInsideField(job, minX, minZ, size) then
+        return false
+    end
     local values = self:getNpcPresetPatchValues(job, gridX, gridZ)
     for _, layer in ipairs(self.layers) do
         local modifier = self.modifiers[layer.id]
-        if modifier ~= nil and self:setModifierToWorldRegion(
-                modifier, minX, minZ, size) then
-            modifier:executeSet(encode(
-                values[layer.id], getLayerChannels(layer.id)))
+        if modifier ~= nil and self:setModifierToWorldRegion(modifier, minX, minZ, size) then
+            modifier:executeSet(encode(values[layer.id], getLayerChannels(layer.id)))
         end
     end
     job.variedPatches = (tonumber(job.variedPatches) or 0) + 1
@@ -2887,15 +3090,17 @@ function TerraLogicSoilManager:clearNpcPresetRuntimeCaches(job)
         for layerId, entries in pairs(collection or {}) do
             local cellSize = getLayerCellSize(layerId)
             for key in pairs(entries or {}) do
-                local ix, iz = string.match(tostring(key),
-                    "^(-?%d+):(-?%d+)$")
+                local ix, iz = string.match(tostring(key), "^(-?%d+):(-?%d+)$")
                 ix, iz = tonumber(ix), tonumber(iz)
                 if ix ~= nil then
-                    local x, z = (ix + 0.5) * cellSize,
-                        (iz + 0.5) * cellSize
-                    if x >= bounds.minX and x <= bounds.maxX
-                        and z >= bounds.minZ and z <= bounds.maxZ
-                        and npcPointInPolygon(x, z, job.polygon) then
+                    local x, z = (ix + 0.5) * cellSize, (iz + 0.5) * cellSize
+                    if
+                        x >= bounds.minX
+                        and x <= bounds.maxX
+                        and z >= bounds.minZ
+                        and z <= bounds.maxZ
+                        and npcPointInPolygon(x, z, job.polygon)
+                    then
                         entries[key] = nil
                     end
                 end
@@ -2913,8 +3118,7 @@ function TerraLogicSoilManager:finishNpcPresetJob(job)
     local ownedBootstrap = job.presetScope == "ownedBootstrap"
     local ownedRepair = job.presetScope == "ownedRepair"
     if ownedBootstrap then
-        self.ownedPresetInitializedFields =
-            self.ownedPresetInitializedFields or {}
+        self.ownedPresetInitializedFields = self.ownedPresetInitializedFields or {}
         self.ownedPresetInitializedFields[job.fieldKey] = job.signature
     elseif not ownedRepair then
         self.npcPresetSignatures[job.fieldKey] = job.signature
@@ -2924,14 +3128,17 @@ function TerraLogicSoilManager:finishNpcPresetJob(job)
     self.npcPresetCurrentJob = nil
     self.layerWriteSerial = self.layerWriteSerial or {}
     for _, layer in ipairs(self.layers) do
-        self.layerWriteSerial[layer.id] =
-            (tonumber(self.layerWriteSerial[layer.id]) or 0) + 1
+        self.layerWriteSerial[layer.id] = (tonumber(self.layerWriteSerial[layer.id]) or 0) + 1
         -- Presets use polygon/patch modifier writes instead of individual
         -- cells. Mark only tiles intersecting this field's bounds so an NPC
         -- update elsewhere cannot force every client's visible map to reload.
-        self:markServerNetworkRegionChanged(layer.id,
-            job.bounds.minX, job.bounds.minZ,
-            job.bounds.maxX, job.bounds.maxZ)
+        self:markServerNetworkRegionChanged(
+            layer.id,
+            job.bounds.minX,
+            job.bounds.minZ,
+            job.bounds.maxX,
+            job.bounds.maxZ
+        )
     end
     self.dirty = true
     self.visualizationDirty = true
@@ -2939,11 +3146,14 @@ function TerraLogicSoilManager:finishNpcPresetJob(job)
     self.overlayRefreshTime = now + self.OVERLAY_REFRESH_DELAY_MS
     TerraLogicLogging.debug(
         "[FS25_TerraLogic] %s field preset complete: field=%s farmland=%d preset=%s crop=%s phase=%d variedPatches=%d",
-        ownedBootstrap and "Initial owned"
-            or (ownedRepair and "Repaired owned" or "NPC"),
-        tostring(job.fieldId), job.farmlandId, tostring(job.presetKey),
-        tostring(job.cropName), tonumber(job.growthPhase) or 0,
-        tonumber(job.variedPatches) or 0)
+        ownedBootstrap and "Initial owned" or (ownedRepair and "Repaired owned" or "NPC"),
+        tostring(job.fieldId),
+        job.farmlandId,
+        tostring(job.presetKey),
+        tostring(job.cropName),
+        tonumber(job.growthPhase) or 0,
+        tonumber(job.variedPatches) or 0
+    )
     if ownedBootstrap then
         self:queueNpcPresetScan(self.NPC_PRESET_RETRY_DELAY_MS)
     end
@@ -2960,15 +3170,24 @@ function TerraLogicSoilManager:cancelNpcPresetJob(job, rescan)
 end
 
 function TerraLogicSoilManager:updateNpcPresets(dt)
-    if g_currentMission == nil or not g_currentMission:getIsServer()
-        or not self.rasterReady or self.deepMapMigration ~= nil then return end
+    if
+        g_currentMission == nil
+        or not g_currentMission:getIsServer()
+        or not self.rasterReady
+        or self.deepMapMigration ~= nil
+    then
+        return
+    end
     -- A developer-requested full reset is committed only between jobs. This
     -- prevents a field whose base polygon was already written from being left
     -- half initialized when the request arrives. Queued-but-not-started jobs
     -- are safely discarded and rebuilt from the current live field state.
-    if self.fullPresetReinitializationPending == true
+    if
+        self.fullPresetReinitializationPending == true
         and self.npcPresetCurrentJob == nil
-        and self.recoveryPending ~= true and self.recoveryJob == nil then
+        and self.recoveryPending ~= true
+        and self.recoveryJob == nil
+    then
         self.npcPresetQueue = {}
         self.npcPresetQueued = {}
         self.npcPresetSignatures = {}
@@ -2982,18 +3201,16 @@ function TerraLogicSoilManager:updateNpcPresets(dt)
         self.dirty = true
         self:queueNpcPresetScan(0)
         Logging.info(
-            "[FS25_TerraLogic] Full field-preset reinitialization started (NPC and player-owned standard fields)")
+            "[FS25_TerraLogic] Full field-preset reinitialization started (NPC and player-owned standard fields)"
+        )
     end
     if self.npcPresetScanPending == true then
-        self.npcPresetScanDelayRemaining = math.max(
-            (tonumber(self.npcPresetScanDelayRemaining) or 0)
-                - (tonumber(dt) or 0), 0)
+        self.npcPresetScanDelayRemaining =
+            math.max((tonumber(self.npcPresetScanDelayRemaining) or 0) - (tonumber(dt) or 0), 0)
         if self.npcPresetScanDelayRemaining <= 0 then
-            local fieldTasks = g_fieldManager ~= nil
-                and g_fieldManager.updateTasks or nil
+            local fieldTasks = g_fieldManager ~= nil and g_fieldManager.updateTasks or nil
             if type(fieldTasks) == "table" and #fieldTasks > 0 then
-                self.npcPresetScanDelayRemaining =
-                    self.NPC_PRESET_RETRY_DELAY_MS
+                self.npcPresetScanDelayRemaining = self.NPC_PRESET_RETRY_DELAY_MS
             else
                 self.npcPresetScanPending = false
                 if not self:scanNpcPresetFields() then
@@ -3006,24 +3223,28 @@ function TerraLogicSoilManager:updateNpcPresets(dt)
     -- Complete the period's physical/biological recovery snapshot first.
     -- Presets then describe the new Vanilla NPC state without two writers
     -- touching the same raster cells during one frame window.
-    if self.recoveryPending == true or self.recoveryJob ~= nil then return end
+    if self.recoveryPending == true or self.recoveryJob ~= nil then
+        return
+    end
 
     local job = self.npcPresetCurrentJob
     if job == nil and #(self.npcPresetQueue or {}) > 0 then
         job = table.remove(self.npcPresetQueue, 1)
         self.npcPresetCurrentJob = job
     end
-    if job == nil then return end
+    if job == nil then
+        return
+    end
     local ownedBootstrap = job.presetScope == "ownedBootstrap"
     local ownedRepair = job.presetScope == "ownedRepair"
     local ownedJob = ownedBootstrap or ownedRepair
     local invalidOwner = ownedBootstrap
-        and (self.ownedPresetInitializationPending ~= true
-            or not self:getIsPlayerOwnedField(job.field, job.farmlandId))
-        or ownedRepair
-            and not self:getIsPlayerOwnedField(job.field, job.farmlandId)
-        or (not ownedJob
-            and not self:getIsNpcField(job.field, job.farmlandId))
+            and (self.ownedPresetInitializationPending ~= true or not self:getIsPlayerOwnedField(
+                job.field,
+                job.farmlandId
+            ))
+        or ownedRepair and not self:getIsPlayerOwnedField(job.field, job.farmlandId)
+        or (not ownedJob and not self:getIsNpcField(job.field, job.farmlandId))
     if invalidOwner or self:getIsNpcFieldMissionActive(job.field) then
         self:cancelNpcPresetJob(job, false)
         if ownedBootstrap then
@@ -3033,8 +3254,7 @@ function TerraLogicSoilManager:updateNpcPresets(dt)
     end
     local now = g_currentMission.time or 0
     if now >= (tonumber(job.nextStateCheckTime) or 0) then
-        local current = self:getNpcFieldDescriptor(job.field, false,
-            job.stateSource == "liveDensity")
+        local current = self:getNpcFieldDescriptor(job.field, false, job.stateSource == "liveDensity")
         job.nextStateCheckTime = now + 1000
         if current == nil then
             self:cancelNpcPresetJob(job, true)
@@ -3054,8 +3274,7 @@ function TerraLogicSoilManager:updateNpcPresets(dt)
     end
 
     local processed = 0
-    while job.patchZ <= job.patchMaxZ
-        and processed < self.NPC_PRESET_PATCHES_PER_FRAME do
+    while job.patchZ <= job.patchMaxZ and processed < self.NPC_PRESET_PATCHES_PER_FRAME do
         self:writeNpcPresetPatch(job, job.patchX, job.patchZ)
         processed = processed + 1
         job.patchX = job.patchX + 1
@@ -3064,22 +3283,32 @@ function TerraLogicSoilManager:updateNpcPresets(dt)
             job.patchZ = job.patchZ + 1
         end
     end
-    if job.patchZ > job.patchMaxZ then self:finishNpcPresetJob(job) end
+    if job.patchZ > job.patchMaxZ then
+        self:finishNpcPresetJob(job)
+    end
 end
 
 function TerraLogicSoilManager:queueOwnedFieldPresetRepairAtWorldPosition(x, z)
-    if g_server == nil or self.rasterReady ~= true
-        or g_farmlandManager == nil or g_fieldManager == nil
-        or g_farmlandManager.getFarmlandAtWorldPosition == nil then
+    if
+        g_server == nil
+        or self.rasterReady ~= true
+        or g_farmlandManager == nil
+        or g_fieldManager == nil
+        or g_farmlandManager.getFarmlandAtWorldPosition == nil
+    then
         return false, "server soil raster unavailable"
     end
     x, z = tonumber(x), tonumber(z)
-    if x == nil or z == nil then return false, "position unavailable" end
+    if x == nil or z == nil then
+        return false, "position unavailable"
+    end
     local farmland = g_farmlandManager:getFarmlandAtWorldPosition(x, z)
-    if farmland == nil then return false, "no farmland at this position" end
+    if farmland == nil then
+        return false, "no farmland at this position"
+    end
     local mapped = (g_fieldManager.farmlandIdFieldMapping or {})[farmland.id]
-    local candidates = type(mapped) == "table" and mapped[1] ~= nil
-        and mapped.getPolygonPoints == nil and mapped or {mapped}
+    local candidates = type(mapped) == "table" and mapped[1] ~= nil and mapped.getPolygonPoints == nil and mapped
+        or { mapped }
     local field = nil
     for _, candidate in ipairs(candidates) do
         local polygon = getNpcFieldPolygon(candidate)
@@ -3088,7 +3317,9 @@ function TerraLogicSoilManager:queueOwnedFieldPresetRepairAtWorldPosition(x, z)
             break
         end
     end
-    if field == nil then return false, "no standard field polygon found" end
+    if field == nil then
+        return false, "no standard field polygon found"
+    end
     if not self:getIsPlayerOwnedField(field, farmland.id) then
         return false, "field is not player-owned"
     end
@@ -3102,17 +3333,17 @@ function TerraLogicSoilManager:queueOwnedFieldPresetRepairAtWorldPosition(x, z)
     end
     Logging.info(
         "[FS25_TerraLogic] Queued live owned-field preset repair: field=%s farmland=%d preset=%s samples=%d fruitSamples=%d",
-        tostring(descriptor.fieldId), tonumber(descriptor.farmlandId) or -1,
+        tostring(descriptor.fieldId),
+        tonumber(descriptor.farmlandId) or -1,
         tostring(descriptor.presetKey),
         tonumber(descriptor.liveSampleCount) or 0,
-        tonumber(descriptor.liveFruitSampleCount) or 0)
-    return true, string.format("field %s queued as %s",
-        tostring(descriptor.fieldId), tostring(descriptor.presetKey))
+        tonumber(descriptor.liveFruitSampleCount) or 0
+    )
+    return true, string.format("field %s queued as %s", tostring(descriptor.fieldId), tostring(descriptor.presetKey))
 end
 
 function TerraLogicSoilManager:requestAllFieldPresetReinitialization()
-    if g_server == nil or g_currentMission == nil
-        or self.rasterReady ~= true then
+    if g_server == nil or g_currentMission == nil or self.rasterReady ~= true then
         return false, "server soil raster unavailable"
     end
     if self.fullPresetReinitializationPending == true then
@@ -3122,12 +3353,12 @@ function TerraLogicSoilManager:requestAllFieldPresetReinitialization()
     return true, "all NPC and player-owned field presets queued"
 end
 
-function TerraLogicSoilManager:onFarmlandOwnerChanged(
-        farmlandId, farmId, loadFromSavegame)
+function TerraLogicSoilManager:onFarmlandOwnerChanged(farmlandId, farmId, loadFromSavegame)
     farmlandId = tonumber(farmlandId)
-    if farmlandId == nil then return end
-    local noOwner = FarmlandManager ~= nil
-        and tonumber(FarmlandManager.NO_OWNER_FARM_ID) or 0
+    if farmlandId == nil then
+        return
+    end
+    local noOwner = FarmlandManager ~= nil and tonumber(FarmlandManager.NO_OWNER_FARM_ID) or 0
     if tonumber(farmId) == noOwner then
         self.npcPresetSignatures = self.npcPresetSignatures or {}
         self.npcPresetFarmlands = self.npcPresetFarmlands or {}
@@ -3152,13 +3383,14 @@ function TerraLogicSoilManager:onFarmlandOwnerChanged(
             self.npcPresetQueued[job.fieldKey] = true
         end
         if self.npcPresetCurrentJob ~= nil then
-            self.npcPresetQueued[
-                self.npcPresetCurrentJob.fieldKey] = true
+            self.npcPresetQueued[self.npcPresetCurrentJob.fieldKey] = true
         end
     end
-    if self.npcPresetCurrentJob ~= nil
+    if
+        self.npcPresetCurrentJob ~= nil
         and self.npcPresetCurrentJob.farmlandId == farmlandId
-        and tonumber(farmId) ~= noOwner then
+        and tonumber(farmId) ~= noOwner
+    then
         self:cancelNpcPresetJob(self.npcPresetCurrentJob, false)
     end
     if self.ownedPresetInitializationPending == true then
@@ -3166,78 +3398,83 @@ function TerraLogicSoilManager:onFarmlandOwnerChanged(
     end
 end
 
-local function getRawMapPointAtWorldPosition(
-        map, firstChannel, numChannels, terrainSize, x, z)
-    if map == nil or getBitVectorMapPoint == nil then return nil end
+local function getRawMapPointAtWorldPosition(map, firstChannel, numChannels, terrainSize, x, z)
+    if map == nil or type(getBitVectorMapPoint) ~= "function" then
+        return nil
+    end
     local sizeX, sizeZ = getBitVectorMapSize(map)
     sizeX = tonumber(sizeX) or 0
     sizeZ = tonumber(sizeZ) or sizeX
-    if sizeX <= 0 or sizeZ <= 0 then return nil end
+    if sizeX <= 0 or sizeZ <= 0 then
+        return nil
+    end
     terrainSize = tonumber(terrainSize) or 2048
-    local px = math.max(0, math.min(math.floor(
-        ((tonumber(x) or 0) / terrainSize + 0.5) * sizeX),
-        sizeX - 1))
-    local pz = math.max(0, math.min(math.floor(
-        ((tonumber(z) or 0) / terrainSize + 0.5) * sizeZ),
-        sizeZ - 1))
-    local ok, value = pcall(getBitVectorMapPoint,
-        map, px, pz, tonumber(firstChannel) or 0,
-        tonumber(numChannels) or 1)
-    return ok and tonumber(value) or nil
+    local px = math.max(0, math.min(math.floor(((tonumber(x) or 0) / terrainSize + 0.5) * sizeX), sizeX - 1))
+    local pz = math.max(0, math.min(math.floor(((tonumber(z) or 0) / terrainSize + 0.5) * sizeZ), sizeZ - 1))
+    local value = getBitVectorMapPoint(map, px, pz, tonumber(firstChannel) or 0, tonumber(numChannels) or 1)
+    return tonumber(value) or nil
 end
 
 function TerraLogicSoilManager:getRecoveryAgeAtWorldPosition(x, z)
-    local raw = getRawMapPointAtWorldPosition(
-        self.recoveryAgeMap, 0, RECOVERY_AGE_CHANNELS,
-        self.terrainSize, x, z) or 0
+    local raw = getRawMapPointAtWorldPosition(self.recoveryAgeMap, 0, RECOVERY_AGE_CHANNELS, self.terrainSize, x, z)
+        or 0
     if raw > 0 then
-        return math.clamp((raw - 1) / RECOVERY_AGE_SCALE,
-            0, self.RECOVERY_AGE_MAX)
+        return math.clamp((raw - 1) / RECOVERY_AGE_SCALE, 0, self.RECOVERY_AGE_MAX)
     end
-    return math.clamp(getRawMapPointAtWorldPosition(
-        self.recoveryAgeLegacyMap, 0, 4, self.terrainSize, x, z) or 0,
-        0, self.RECOVERY_AGE_MAX)
+    return math.clamp(
+        getRawMapPointAtWorldPosition(self.recoveryAgeLegacyMap, 0, 4, self.terrainSize, x, z) or 0,
+        0,
+        self.RECOVERY_AGE_MAX
+    )
 end
 
 function TerraLogicSoilManager:setRecoveryAgeCell(ix, iz, age)
-    if self.recoveryAgeModifier == nil then return false end
+    if self.recoveryAgeModifier == nil then
+        return false
+    end
     local cellSize = self.RECOVERY_CELL_SIZE
-    if not self:setModifierToWorldRegion(self.recoveryAgeModifier,
-            ix * cellSize, iz * cellSize, cellSize) then return false end
-    self.recoveryAgeModifier:executeSet(1 + math.floor(math.clamp(
-        tonumber(age) or 0, 0, self.RECOVERY_AGE_MAX) * RECOVERY_AGE_SCALE + 0.5))
+    if not self:setModifierToWorldRegion(self.recoveryAgeModifier, ix * cellSize, iz * cellSize, cellSize) then
+        return false
+    end
+    self.recoveryAgeModifier:executeSet(
+        1 + math.floor(math.clamp(tonumber(age) or 0, 0, self.RECOVERY_AGE_MAX) * RECOVERY_AGE_SCALE + 0.5)
+    )
     self.dirty = true
     return true
 end
 
 function TerraLogicSoilManager:getGroundTypeAtWorldPosition(x, z)
     local mission = g_currentMission
-    if mission == nil or mission.fieldGroundSystem == nil
-        or FieldDensityMap == nil or FieldDensityMap.GROUND_TYPE == nil then
+    if
+        mission == nil
+        or mission.fieldGroundSystem == nil
+        or FieldDensityMap == nil
+        or FieldDensityMap.GROUND_TYPE == nil
+    then
         return nil
     end
     local data = self.groundTypeDensityData
     if data == nil or data.system ~= mission.fieldGroundSystem then
-        local ok, mapId, firstChannel, numChannels = pcall(
-            mission.fieldGroundSystem.getDensityMapData,
-            mission.fieldGroundSystem, FieldDensityMap.GROUND_TYPE)
-        if not ok or mapId == nil or mapId == 0 then return nil end
+        local mapId, firstChannel, numChannels =
+            mission.fieldGroundSystem.getDensityMapData(mission.fieldGroundSystem, FieldDensityMap.GROUND_TYPE)
+        if mapId == nil or mapId == 0 then
+            return nil
+        end
         data = {
-            system=mission.fieldGroundSystem,
-            mapId=mapId,
-            firstChannel=math.max(
-                math.floor(tonumber(firstChannel) or 0), 0),
-            numChannels=math.max(
-                math.floor(tonumber(numChannels) or 0), 0),
-            terrainNode=getTerrainDataNode()
+            system = mission.fieldGroundSystem,
+            mapId = mapId,
+            firstChannel = math.max(math.floor(tonumber(firstChannel) or 0), 0),
+            numChannels = math.max(math.floor(tonumber(numChannels) or 0), 0),
+            terrainNode = getTerrainDataNode(),
         }
         self.groundTypeDensityData = data
     end
     local mapId = data.mapId
     local firstChannel = data.firstChannel
     local numChannels = data.numChannels
-    if mapId == nil or mapId == 0
-        or getDensityAtWorldPos == nil or bit32 == nil then return nil end
+    if mapId == nil or mapId == 0 or type(getDensityAtWorldPos) ~= "function" or bit32 == nil then
+        return nil
+    end
     -- GROUND_TYPE is a terrain density map, not a BitVectorMap. Query its
     -- packed channels exactly like the base game's WheelPhysics does.
     local terrainY = 0
@@ -3246,42 +3483,46 @@ function TerraLogicSoilManager:getGroundTypeAtWorldPosition(x, z)
         terrainNode = getTerrainDataNode()
         data.terrainNode = terrainNode
     end
-    if terrainNode ~= nil and getTerrainHeightAtWorldPos ~= nil then
-        local heightOk, height = pcall(
-            getTerrainHeightAtWorldPos, terrainNode, x, 0, z)
-        if heightOk and tonumber(height) ~= nil then terrainY = height end
+    if terrainNode ~= nil and type(getTerrainHeightAtWorldPos) == "function" then
+        local height = getTerrainHeightAtWorldPos(terrainNode, x, 0, z)
+        if tonumber(height) ~= nil then
+            terrainY = height
+        end
     end
-    local densityOk, densityBits = pcall(
-        getDensityAtWorldPos, mapId, x, terrainY, z)
-    if not densityOk or tonumber(densityBits) == nil
-        or numChannels <= 0 then return nil end
+    local densityBits = getDensityAtWorldPos(mapId, x, terrainY, z)
+    if tonumber(densityBits) == nil or numChannels <= 0 then
+        return nil
+    end
     local mask = 2 ^ numChannels - 1
-    return bit32.band(bit32.rshift(
-        math.floor(tonumber(densityBits)), firstChannel), mask)
+    return bit32.band(bit32.rshift(math.floor(tonumber(densityBits)), firstChannel), mask)
 end
 
 function TerraLogicSoilManager:getGroundCoverSets()
     if self.recoveryGroundCoverSets ~= nil then
         return self.recoveryGroundCoverSets
     end
-    local sets = {residue={}, sown={}}
+    local sets = { residue = {}, sown = {} }
     local function add(target, names)
-        if FieldGroundType == nil or FieldGroundType.getValueByType == nil then
+        if FieldGroundType == nil or type(FieldGroundType.getValueByType) ~= "function" then
             return
         end
         for _, name in ipairs(names) do
             local typeId = FieldGroundType[name]
             if typeId ~= nil then
-                local ok, value = pcall(
-                    FieldGroundType.getValueByType, typeId)
-                if ok and value ~= nil then target[tonumber(value)] = true end
+                local value = FieldGroundType.getValueByType(typeId)
+                if value ~= nil then
+                    target[tonumber(value)] = true
+                end
             end
         end
     end
     add(sets.residue, {
-        "STUBBLE_TILLAGE", "GRASS_CUT", "MULCHED", "HARVESTED"
+        "STUBBLE_TILLAGE",
+        "GRASS_CUT",
+        "MULCHED",
+        "HARVESTED",
     })
-    add(sets.sown, {"SOWN", "DIRECT_SOWN"})
+    add(sets.sown, { "SOWN", "DIRECT_SOWN" })
     self.recoveryGroundCoverSets = sets
     return sets
 end
@@ -3296,10 +3537,14 @@ function TerraLogicSoilManager:getRecoveryFruitStateInfo(fruitTypeIndex)
     fruitTypeIndex = tonumber(fruitTypeIndex)
     self.recoveryFruitStateInfoCache = self.recoveryFruitStateInfoCache or {}
     local cached = self.recoveryFruitStateInfoCache[fruitTypeIndex]
-    if cached ~= nil then return cached end
-    local info = {withered={}, cut={}, regrowthSources={}}
-    local desc = fruitTypeIndex ~= nil and g_fruitTypeManager ~= nil
-        and g_fruitTypeManager:getFruitTypeByIndex(fruitTypeIndex) or nil
+    if cached ~= nil then
+        return cached
+    end
+    local info = { withered = {}, cut = {}, regrowthSources = {} }
+    local desc = fruitTypeIndex ~= nil
+            and g_fruitTypeManager ~= nil
+            and g_fruitTypeManager:getFruitTypeByIndex(fruitTypeIndex)
+        or nil
     if desc == nil then
         self.recoveryFruitStateInfoCache[fruitTypeIndex or 0] = info
         return info
@@ -3310,30 +3555,27 @@ function TerraLogicSoilManager:getRecoveryFruitStateInfo(fruitTypeIndex)
         local normalized = normalizeCropName(name)
         if state ~= nil then
             local isWithered = false
-            if desc.getIsWithered ~= nil then
-                local ok, result = pcall(desc.getIsWithered, desc, state)
-                isWithered = ok and result == true
+            if type(desc.getIsWithered) == "function" then
+                local result = desc.getIsWithered(desc, state)
+                isWithered = result == true
             end
             if not isWithered and tonumber(desc.witheredState) == state then
                 isWithered = true
             end
-            if not isWithered and containsAny(
-                    normalized, {"withered", "dead"}) then
+            if not isWithered and containsAny(normalized, { "withered", "dead" }) then
                 isWithered = true
             end
             info.withered[state] = isWithered
 
             local isCut = false
-            if desc.getIsCut ~= nil then
-                local ok, result = pcall(desc.getIsCut, desc, state)
-                isCut = ok and result == true
+            if type(desc.getIsCut) == "function" then
+                local result = desc.getIsCut(desc, state)
+                isCut = result == true
             end
-            if not isCut and desc.cutStates ~= nil
-                    and desc.cutStates[state] == true then
+            if not isCut and desc.cutStates ~= nil and desc.cutStates[state] == true then
                 isCut = true
             end
-            if not isCut and containsAny(
-                    normalized, {"harvested", "cut"}) then
+            if not isCut and containsAny(normalized, { "harvested", "cut" }) then
                 isCut = true
             end
             info.cut[state] = isCut
@@ -3341,39 +3583,39 @@ function TerraLogicSoilManager:getRecoveryFruitStateInfo(fruitTypeIndex)
     end
 
     local function getStateByName(name)
-        if name == nil then return nil end
-        if desc.getGrowthStateByName ~= nil then
-            local ok, state = pcall(desc.getGrowthStateByName, desc, name)
-            if ok and tonumber(state) ~= nil then return tonumber(state) end
+        if name == nil then
+            return nil
         end
-        return desc.nameToGrowthState ~= nil
-            and tonumber(desc.nameToGrowthState[string.upper(name)]) or nil
+        if type(desc.getGrowthStateByName) == "function" then
+            local state = desc.getGrowthStateByName(desc, name)
+            if tonumber(state) ~= nil then
+                return tonumber(state)
+            end
+        end
+        return desc.nameToGrowthState ~= nil and tonumber(desc.nameToGrowthState[string.upper(name)]) or nil
     end
     local filename = desc.xmlFilename
-    if filename ~= nil and XMLFile ~= nil
-            and XMLFile.loadIfExists ~= nil then
-        local ok, xml = pcall(
-            XMLFile.loadIfExists, "terraLogicRecoveryFruit", filename)
-        if ok and xml ~= nil then
+    if filename ~= nil and XMLFile ~= nil and type(XMLFile.loadIfExists) == "function" then
+        local xml = XMLFile.loadIfExists("terraLogicRecoveryFruit", filename)
+        if xml ~= nil then
             local function inspectUpdate(_, key)
-                local sourceState = getStateByName(
-                    xml:getString(key .. "#startState"))
-                local targetState = getStateByName(
-                    xml:getString(key .. "#endState"))
-                if sourceState ~= nil and targetState ~= nil
-                        and info.withered[targetState] ~= true
-                        and info.cut[targetState] ~= true then
+                local sourceState = getStateByName(xml:getString(key .. "#startState"))
+                local targetState = getStateByName(xml:getString(key .. "#endState"))
+                if
+                    sourceState ~= nil
+                    and targetState ~= nil
+                    and info.withered[targetState] ~= true
+                    and info.cut[targetState] ~= true
+                then
                     info.regrowthSources[sourceState] = true
                 end
             end
-            pcall(function()
-                xml:iterate("foliageType.growth.seasonal.period",
-                    function(_, periodKey)
-                        xml:iterate(periodKey .. ".update", inspectUpdate)
-                    end)
-                xml:iterate("foliageType.growth.nonSeasonal.update",
-                    inspectUpdate)
-            end)
+            do
+                xml:iterate("foliageType.growth.seasonal.period", function(_, periodKey)
+                    xml:iterate(periodKey .. ".update", inspectUpdate)
+                end)
+                xml:iterate("foliageType.growth.nonSeasonal.update", inspectUpdate)
+            end
             xml:delete()
         end
     end
@@ -3383,47 +3625,44 @@ end
 
 function TerraLogicSoilManager:getRecoveryCoverAtWorldPosition(x, z)
     local fruitTypeIndex, growthState = nil, nil
-    if FSDensityMapUtil ~= nil
-        and FSDensityMapUtil.getFruitTypeIndexAtWorldPos ~= nil then
-        local ok, fruit, state = pcall(
-            FSDensityMapUtil.getFruitTypeIndexAtWorldPos, x, z)
-        if ok then
+    if FSDensityMapUtil ~= nil and type(FSDensityMapUtil.getFruitTypeIndexAtWorldPos) == "function" then
+        local fruit, state = FSDensityMapUtil.getFruitTypeIndexAtWorldPos(x, z)
+        do
             fruitTypeIndex, growthState = tonumber(fruit), tonumber(state)
         end
     end
-    if fruitTypeIndex ~= nil and (FruitType == nil
-        or FruitType.UNKNOWN == nil or fruitTypeIndex ~= FruitType.UNKNOWN) then
+    if
+        fruitTypeIndex ~= nil
+        and (FruitType == nil or FruitType.UNKNOWN == nil or fruitTypeIndex ~= FruitType.UNKNOWN)
+    then
         local group, cropName = self:getCropGroup(fruitTypeIndex)
         local livingCover = "annual"
         if group == CROP_GROUP.PERENNIAL then
-            livingCover = containsAny(cropName, {"alfalfa", "clover"})
-                and "deepPerennial" or "perennial"
+            livingCover = containsAny(cropName, { "alfalfa", "clover" }) and "deepPerennial" or "perennial"
         elseif group == CROP_GROUP.ROOT then
-            livingCover = containsAny(cropName,
-                {"sugarbeet", "beetroot", "carrot", "parsnip"})
-                and "deepRoot" or "rootCrop"
+            livingCover = containsAny(cropName, { "sugarbeet", "beetroot", "carrot", "parsnip" })
+                    and "deepRoot"
+                or "rootCrop"
         elseif DEEP_ROOT_GROUP[group] then
             livingCover = "deepRoot"
         end
-        local desc = g_fruitTypeManager ~= nil
-            and g_fruitTypeManager:getFruitTypeByIndex(fruitTypeIndex) or nil
-        local stateName = desc ~= nil and desc.growthStateToName ~= nil
-            and desc.growthStateToName[growthState] or ""
+        local desc = g_fruitTypeManager ~= nil and g_fruitTypeManager:getFruitTypeByIndex(fruitTypeIndex) or nil
+        local stateName = desc ~= nil and desc.growthStateToName ~= nil and desc.growthStateToName[growthState] or ""
         stateName = normalizeCropName(stateName)
         local stateInfo = self:getRecoveryFruitStateInfo(fruitTypeIndex)
-        if growthState ~= nil
-                and stateInfo.withered[growthState] == true then
+        if growthState ~= nil and stateInfo.withered[growthState] == true then
             return "residue"
         end
-        if containsAny(stateName,
-                {"invisible", "seed", "germinat"}) then
+        if containsAny(stateName, { "invisible", "seed", "germinat" }) then
             return "sown"
         end
         -- A cut perennial remains a living stand (grass regrowth), whereas a
         -- cut annual is residue unless its loaded growth graph proves another
         -- living growth phase. This keeps two-cut spinach annual and living
         -- after harvest one, but residue after its terminal second harvest.
-        if group == CROP_GROUP.PERENNIAL then return livingCover end
+        if group == CROP_GROUP.PERENNIAL then
+            return livingCover
+        end
         if growthState ~= nil and stateInfo.cut[growthState] == true then
             if stateInfo.regrowthSources[growthState] == true then
                 return livingCover
@@ -3434,103 +3673,100 @@ function TerraLogicSoilManager:getRecoveryCoverAtWorldPosition(x, z)
     end
     local groundType = self:getGroundTypeAtWorldPosition(x, z)
     local sets = self:getGroundCoverSets()
-    if groundType ~= nil and sets.residue[groundType] then return "residue" end
-    if groundType ~= nil and sets.sown[groundType] then return "sown" end
+    if groundType ~= nil and sets.residue[groundType] then
+        return "residue"
+    end
+    if groundType ~= nil and sets.sown[groundType] then
+        return "sown"
+    end
     return "bare"
 end
 
 function TerraLogicSoilManager:getRecoveryMoistureFactor(x, z)
-    if TerraLogicSoilMoistureManager == nil then return 1 end
+    if TerraLogicSoilMoistureManager == nil then
+        return 1
+    end
     local moisture = TerraLogicSoilMoistureManager:getStateAtWorldPosition(x, z)
-    moisture.surface=TerraLogicSoilMoistureManager:getResponseMoisture(moisture.surface,moisture.profileIndex)
-    moisture.subsoil=TerraLogicSoilMoistureManager:getResponseMoisture(moisture.subsoil,moisture.profileIndex)
-    local value = clamp01((moisture.surface * 0.35)
-        + (moisture.subsoil * 0.65))
+    moisture.surface = TerraLogicSoilMoistureManager:getResponseMoisture(moisture.surface, moisture.profileIndex)
+    moisture.subsoil = TerraLogicSoilMoistureManager:getResponseMoisture(moisture.subsoil, moisture.profileIndex)
+    local value = clamp01((moisture.surface * 0.35) + (moisture.subsoil * 0.65))
     local dryActivity = smoothStep01((value - 0.12) / 0.38)
     local waterlogging = smoothStep01((value - 0.82) / 0.16)
-    return math.clamp(0.40 + 0.75 * dryActivity
-        - 0.30 * waterlogging, 0.35, 1.15)
+    return math.clamp(0.40 + 0.75 * dryActivity - 0.30 * waterlogging, 0.35, 1.15)
 end
 
-function TerraLogicSoilManager:getRecoveryEnvironmentFactors(
-        x, z, soilTypeIndex, temperatureOverride, moistureOverride)
-    local moisture = {surface=0.50, subsoil=0.55, profileName="Generic"}
+function TerraLogicSoilManager:getRecoveryEnvironmentFactors(x, z, soilTypeIndex, temperatureOverride, moistureOverride)
+    local moisture = { surface = 0.50, subsoil = 0.55, profileName = "Generic" }
     if TerraLogicSoilMoistureManager ~= nil then
         if soilTypeIndex ~= nil then
-            local surface, subsoil, _, profile =
-                TerraLogicSoilMoistureManager:getProfileState(soilTypeIndex, x, z)
-            moisture = {surface=surface, subsoil=subsoil, profileIndex=soilTypeIndex,
-                profileName=profile.name}
+            local surface, subsoil, _, profile = TerraLogicSoilMoistureManager:getProfileState(soilTypeIndex, x, z)
+            moisture = {
+                surface = surface,
+                subsoil = subsoil,
+                profileIndex = soilTypeIndex,
+                profileName = profile.name,
+            }
         else
-            moisture = TerraLogicSoilMoistureManager:
-                getStateAtWorldPosition(x, z)
+            moisture = TerraLogicSoilMoistureManager:getStateAtWorldPosition(x, z)
         end
     end
-    if moistureOverride then moisture=moistureOverride end
+    if moistureOverride then
+        moisture = moistureOverride
+    end
     if TerraLogicSoilMoistureManager ~= nil then
-        local index=moisture.profileIndex or soilTypeIndex or 0
-        moisture.surface=TerraLogicSoilMoistureManager:getResponseMoisture(moisture.surface,index)
-        moisture.subsoil=TerraLogicSoilMoistureManager:getResponseMoisture(moisture.subsoil,index)
+        local index = moisture.profileIndex or soilTypeIndex or 0
+        moisture.surface = TerraLogicSoilMoistureManager:getResponseMoisture(moisture.surface, index)
+        moisture.subsoil = TerraLogicSoilMoistureManager:getResponseMoisture(moisture.subsoil, index)
     end
     -- Ecology accumulators retain their dimensionless suitability scale;
     -- public moisture and hydraulic storage use volume fractions.
     -- Inline the public moisture response here so a full monthly raster scan
     -- performs only one PF texture lookup per 8 m recovery cell.
-    local rootMoisture = clamp01((moisture.surface * 0.35)
-        + (moisture.subsoil * 0.65))
+    local rootMoisture = clamp01((moisture.surface * 0.35) + (moisture.subsoil * 0.65))
     local dryActivity = smoothStep01((rootMoisture - 0.12) / 0.38)
     local waterlogging = smoothStep01((rootMoisture - 0.82) / 0.16)
-    local moistureFactor = math.clamp(0.40 + 0.75 * dryActivity
-        - 0.30 * waterlogging, 0.35, 1.15)
+    local moistureFactor = math.clamp(0.40 + 0.75 * dryActivity - 0.30 * waterlogging, 0.35, 1.15)
     local temperature = temperatureOverride
-        or (TerraLogicSoilTemperatureManager ~= nil
-        and TerraLogicSoilTemperatureManager:getState() or nil
-        )
-    local surfaceTemperature = temperature ~= nil
-        and tonumber(temperature.surfaceTemperatureC) or 10
-    local subsoilTemperature = temperature ~= nil
-        and tonumber(temperature.subsoilTemperatureC) or 10
-    local biologicalTemperature = surfaceTemperature * 0.45
-        + subsoilTemperature * 0.55
+        or (TerraLogicSoilTemperatureManager ~= nil and TerraLogicSoilTemperatureManager:getState() or nil)
+    local surfaceTemperature = temperature ~= nil and tonumber(temperature.surfaceTemperatureC) or 10
+    local subsoilTemperature = temperature ~= nil and tonumber(temperature.subsoilTemperatureC) or 10
+    local biologicalTemperature = surfaceTemperature * 0.45 + subsoilTemperature * 0.55
     local warmth = smoothStep01((biologicalTemperature - 1.5) / 14.5)
-    local heatStress = 1 - 0.45
-        * smoothStep01((biologicalTemperature - 28) / 12)
-    local biological = math.clamp(
-        moistureFactor * warmth * heatStress, 0.02, 1.15)
+    local heatStress = 1 - 0.45 * smoothStep01((biologicalTemperature - 28) / 12)
+    local biological = math.clamp(moistureFactor * warmth * heatStress, 0.02, 1.15)
 
     -- Frost is accumulated by the temperature manager, but acts exactly once
     -- after a hysteretic thaw transition. Moist soil transmits the effect;
     -- dry freezing no longer creates fictitious monthly loosening.
-    local surfaceFrostMoisture = smoothStep01(
-        ((tonumber(moisture.surface) or 0.5) - 0.18) / 0.42)
-    local deepFrostMoisture = smoothStep01(
-        ((tonumber(moisture.subsoil) or 0.55) - 0.22) / 0.43)
-    local surfaceThawPulse = math.max(tonumber(temperature ~= nil
-        and (temperature.freezeThawSurfacePulse
-            or temperature.pendingSurfaceThawPulse)) or 0, 0)
-    local deepThawPulse = math.max(tonumber(temperature ~= nil
-        and (temperature.freezeThawDeepPulse
-            or temperature.pendingDeepThawPulse)) or 0, 0)
+    local surfaceFrostMoisture = smoothStep01(((tonumber(moisture.surface) or 0.5) - 0.18) / 0.42)
+    local deepFrostMoisture = smoothStep01(((tonumber(moisture.subsoil) or 0.55) - 0.22) / 0.43)
+    local surfaceThawPulse = math.max(
+        tonumber(temperature ~= nil and (temperature.freezeThawSurfacePulse or temperature.pendingSurfaceThawPulse))
+            or 0,
+        0
+    )
+    local deepThawPulse = math.max(
+        tonumber(temperature ~= nil and (temperature.freezeThawDeepPulse or temperature.pendingDeepThawPulse)) or 0,
+        0
+    )
     local surfaceFrost = surfaceThawPulse * surfaceFrostMoisture
     local deepFrost = deepThawPulse * deepFrostMoisture
-    local physicalSurface = math.clamp(
-        moistureFactor * (0.32 + 0.68 * warmth), 0.20, 1.35) + 0.38*surfaceFrost
-    local physicalDeep = math.clamp(
-        moistureFactor * (0.45 + 0.55 * warmth), 0.25, 1.20) + 0.16*deepFrost
+    local physicalSurface = math.clamp(moistureFactor * (0.32 + 0.68 * warmth), 0.20, 1.35) + 0.38 * surfaceFrost
+    local physicalDeep = math.clamp(moistureFactor * (0.45 + 0.55 * warmth), 0.25, 1.20) + 0.16 * deepFrost
     return {
-        moistureFactor=moistureFactor,
-        biologicalFactor=biological,
-        physicalSurfaceFactor=physicalSurface,
-        physicalDeepFactor=physicalDeep,
-        surfaceFrostFactor=surfaceFrost,
-        deepFrostFactor=deepFrost,
-        surfaceThawPulse=surfaceThawPulse,
-        deepThawPulse=deepThawPulse,
-        surfaceTemperatureC=surfaceTemperature,
-        subsoilTemperatureC=subsoilTemperature,
-        surfaceMoisture=tonumber(moisture.surface) or 0.5,
-        subsoilMoisture=tonumber(moisture.subsoil) or 0.55,
-        moistureProfileName=moisture.profileName or "Generic"
+        moistureFactor = moistureFactor,
+        biologicalFactor = biological,
+        physicalSurfaceFactor = physicalSurface,
+        physicalDeepFactor = physicalDeep,
+        surfaceFrostFactor = surfaceFrost,
+        deepFrostFactor = deepFrost,
+        surfaceThawPulse = surfaceThawPulse,
+        deepThawPulse = deepThawPulse,
+        surfaceTemperatureC = surfaceTemperature,
+        subsoilTemperatureC = subsoilTemperature,
+        surfaceMoisture = tonumber(moisture.surface) or 0.5,
+        subsoilMoisture = tonumber(moisture.subsoil) or 0.55,
+        moistureProfileName = moisture.profileName or "Generic",
     }
 end
 
@@ -3542,19 +3778,26 @@ end
 function TerraLogicSoilManager:updateRecoveryEnvironmentAccumulator()
     local mission = g_currentMission
     local temperatureManager = TerraLogicSoilTemperatureManager
-    if mission == nil or not mission:getIsServer()
+    if
+        mission == nil
+        or not mission:getIsServer()
         or temperatureManager == nil
-        or temperatureManager.initialized ~= true then return end
-    local currentHours = math.max(
-        tonumber(temperatureManager.simulatedGameHours) or 0, 0)
+        or temperatureManager.initialized ~= true
+    then
+        return
+    end
+    local currentHours = math.max(tonumber(temperatureManager.simulatedGameHours) or 0, 0)
     local previousHours = tonumber(self.recoveryLastIntegratedGameHours)
     self.recoveryLastIntegratedGameHours = currentHours
-    if previousHours == nil or currentHours < previousHours then return end
+    if previousHours == nil or currentHours < previousHours then
+        return
+    end
     local elapsedHours = currentHours - previousHours
-    if elapsedHours <= 0 then return end
+    if elapsedHours <= 0 then
+        return
+    end
 
-    local accumulator = self.recoveryEnvironmentAccumulator
-        or newRecoveryAccumulator()
+    local accumulator = self.recoveryEnvironmentAccumulator or newRecoveryAccumulator()
     self.recoveryEnvironmentAccumulator = accumulator
     local temperature = temperatureManager:getState()
     -- Thaw pulses are discrete events assigned to the month snapshot below;
@@ -3569,102 +3812,103 @@ function TerraLogicSoilManager:updateRecoveryEnvironmentAccumulator()
     temperatureWithoutPulse.pendingDeepThawPulse = 0
 
     accumulator.hours = (accumulator.hours or 0) + elapsedHours
-    accumulator.surfaceTemperatureSum =
-        (accumulator.surfaceTemperatureSum or 0)
+    accumulator.surfaceTemperatureSum = (accumulator.surfaceTemperatureSum or 0)
         + (tonumber(temperature.surfaceTemperatureC) or 10) * elapsedHours
-    accumulator.subsoilTemperatureSum =
-        (accumulator.subsoilTemperatureSum or 0)
+    accumulator.subsoilTemperatureSum = (accumulator.subsoilTemperatureSum or 0)
         + (tonumber(temperature.subsoilTemperatureC) or 10) * elapsedHours
-    accumulator.airTemperatureSum =
-        (accumulator.airTemperatureSum or 0)
+    accumulator.airTemperatureSum = (accumulator.airTemperatureSum or 0)
         + (tonumber(temperature.airTemperatureC) or 10) * elapsedHours
     accumulator.daysPerPeriod = tonumber(temperature.daysPerPeriod) or 1
     accumulator.calendarScale = tonumber(temperature.calendarScale) or 1
 
     for _, profileIndex in ipairs(getRecoveryProfileOrder()) do
-        local environment = self:getRecoveryEnvironmentFactors(
-            nil, nil, profileIndex, temperatureWithoutPulse)
+        local environment = self:getRecoveryEnvironmentFactors(nil, nil, profileIndex, temperatureWithoutPulse)
         local sums = accumulator.profiles[profileIndex]
         if sums == nil then
-            sums = {hours=0, moistureFactor=0, biologicalFactor=0,
-                physicalSurfaceFactor=0, physicalDeepFactor=0,
-                surfaceMoisture=0, subsoilMoisture=0}
+            sums = {
+                hours = 0,
+                moistureFactor = 0,
+                biologicalFactor = 0,
+                physicalSurfaceFactor = 0,
+                physicalDeepFactor = 0,
+                surfaceMoisture = 0,
+                subsoilMoisture = 0,
+            }
             accumulator.profiles[profileIndex] = sums
         end
         sums.hours = sums.hours + elapsedHours
-        for _, name in ipairs({"moistureFactor", "biologicalFactor",
-                "physicalSurfaceFactor", "physicalDeepFactor",
-                "surfaceMoisture", "subsoilMoisture"}) do
-            sums[name] = (sums[name] or 0)
-                + (tonumber(environment[name]) or 0) * elapsedHours
+        for _, name in ipairs({
+            "moistureFactor",
+            "biologicalFactor",
+            "physicalSurfaceFactor",
+            "physicalDeepFactor",
+            "surfaceMoisture",
+            "subsoilMoisture",
+        }) do
+            sums[name] = (sums[name] or 0) + (tonumber(environment[name]) or 0) * elapsedHours
         end
     end
 end
 
 function TerraLogicSoilManager:createRecoveryEnvironmentSnapshot()
-    local accumulator = self.recoveryEnvironmentAccumulator
-        or newRecoveryAccumulator()
+    local accumulator = self.recoveryEnvironmentAccumulator or newRecoveryAccumulator()
     local hours = math.max(tonumber(accumulator.hours) or 0, 0)
-    local temperature = TerraLogicSoilTemperatureManager ~= nil
-        and TerraLogicSoilTemperatureManager:getState() or {}
+    local temperature = TerraLogicSoilTemperatureManager ~= nil and TerraLogicSoilTemperatureManager:getState() or {}
     local surfacePulse, deepPulse = 0, 0
-    if TerraLogicSoilTemperatureManager ~= nil
-        and TerraLogicSoilTemperatureManager.consumeFreezeThawPulses
-            ~= nil then
-        surfacePulse, deepPulse =
-            TerraLogicSoilTemperatureManager:consumeFreezeThawPulses()
+    if TerraLogicSoilTemperatureManager ~= nil and TerraLogicSoilTemperatureManager.consumeFreezeThawPulses ~= nil then
+        surfacePulse, deepPulse = TerraLogicSoilTemperatureManager:consumeFreezeThawPulses()
     end
-    self.recoveryCompletedPeriods =
-        (tonumber(self.recoveryCompletedPeriods) or 0) + 1
-    local water=TerraLogicSoilMoistureManager
-    local waterSerial=water and water:getPeriodSerial() or nil
-    if waterSerial and ((water.periodAccumulator or {}).hours or 0)>=12*(temperature.daysPerPeriod or 1) then
-        waterSerial=waterSerial+1
+    self.recoveryCompletedPeriods = (tonumber(self.recoveryCompletedPeriods) or 0) + 1
+    local water = TerraLogicSoilMoistureManager
+    local waterSerial = water and water:getPeriodSerial() or nil
+    if waterSerial and ((water.periodAccumulator or {}).hours or 0) >= 12 * (temperature.daysPerPeriod or 1) then
+        waterSerial = waterSerial + 1
     end
     local snapshot = {
-        version=self.RECOVERY_SNAPSHOT_VERSION,
-        serial=self.recoveryCompletedPeriods,
-        moistureSerial=waterSerial,
-        hours=hours,
-        daysPerPeriod=tonumber(accumulator.daysPerPeriod)
-            or tonumber(temperature.daysPerPeriod) or 1,
-        calendarScale=tonumber(accumulator.calendarScale)
-            or tonumber(temperature.calendarScale) or 1,
-        developmentSpeed=getSoilDevelopmentSpeed(),
-        surfaceTemperatureC=hours > 0
-            and (accumulator.surfaceTemperatureSum or 0) / hours
-            or tonumber(temperature.dailyMeanTemperatureC)
-            or tonumber(temperature.surfaceTemperatureC) or 10,
-        subsoilTemperatureC=hours > 0
-            and (accumulator.subsoilTemperatureSum or 0) / hours
-            or tonumber(temperature.subsoilTemperatureC) or 10,
-        airTemperatureC=hours > 0
-            and (accumulator.airTemperatureSum or 0) / hours
-            or tonumber(temperature.dailyMeanTemperatureC)
-            or tonumber(temperature.airTemperatureC) or 10,
-        surfaceThawPulse=math.max(tonumber(surfacePulse) or 0, 0),
-        deepThawPulse=math.max(tonumber(deepPulse) or 0, 0),
-        profiles={}, source=hours > 0 and "periodAverage" or "dailyMeanFallback"
+        version = self.RECOVERY_SNAPSHOT_VERSION,
+        serial = self.recoveryCompletedPeriods,
+        moistureSerial = waterSerial,
+        hours = hours,
+        daysPerPeriod = tonumber(accumulator.daysPerPeriod) or tonumber(temperature.daysPerPeriod) or 1,
+        calendarScale = tonumber(accumulator.calendarScale) or tonumber(temperature.calendarScale) or 1,
+        developmentSpeed = getSoilDevelopmentSpeed(),
+        surfaceTemperatureC = hours > 0 and (accumulator.surfaceTemperatureSum or 0) / hours or tonumber(
+            temperature.dailyMeanTemperatureC
+        ) or tonumber(temperature.surfaceTemperatureC) or 10,
+        subsoilTemperatureC = hours > 0 and (accumulator.subsoilTemperatureSum or 0) / hours or tonumber(
+            temperature.subsoilTemperatureC
+        ) or 10,
+        airTemperatureC = hours > 0 and (accumulator.airTemperatureSum or 0) / hours or tonumber(
+            temperature.dailyMeanTemperatureC
+        ) or tonumber(temperature.airTemperatureC) or 10,
+        surfaceThawPulse = math.max(tonumber(surfacePulse) or 0, 0),
+        deepThawPulse = math.max(tonumber(deepPulse) or 0, 0),
+        profiles = {},
+        source = hours > 0 and "periodAverage" or "dailyMeanFallback",
     }
     for _, profileIndex in ipairs(getRecoveryProfileOrder()) do
         local sums = accumulator.profiles[profileIndex]
-        local sampleHours = sums ~= nil
-            and math.max(tonumber(sums.hours) or 0, 0) or 0
+        local sampleHours = sums ~= nil and math.max(tonumber(sums.hours) or 0, 0) or 0
         if sampleHours > 0 then
             snapshot.profiles[profileIndex] = {}
-            for _, name in ipairs({"moistureFactor", "biologicalFactor",
-                    "physicalSurfaceFactor", "physicalDeepFactor",
-                    "surfaceMoisture", "subsoilMoisture"}) do
-                snapshot.profiles[profileIndex][name] =
-                    (tonumber(sums[name]) or 0) / sampleHours
+            for _, name in ipairs({
+                "moistureFactor",
+                "biologicalFactor",
+                "physicalSurfaceFactor",
+                "physicalDeepFactor",
+                "surfaceMoisture",
+                "subsoilMoisture",
+            }) do
+                snapshot.profiles[profileIndex][name] = (tonumber(sums[name]) or 0) / sampleHours
             end
         else
             local noPulse = {}
-            for key, value in pairs(temperature) do noPulse[key] = value end
+            for key, value in pairs(temperature) do
+                noPulse[key] = value
+            end
             noPulse.pendingSurfaceThawPulse = 0
             noPulse.pendingDeepThawPulse = 0
-            local environment = self:getRecoveryEnvironmentFactors(
-                nil, nil, profileIndex, noPulse)
+            local environment = self:getRecoveryEnvironmentFactors(nil, nil, profileIndex, noPulse)
             snapshot.profiles[profileIndex] = environment
         end
     end
@@ -3673,52 +3917,55 @@ function TerraLogicSoilManager:createRecoveryEnvironmentSnapshot()
     return snapshot
 end
 
-function TerraLogicSoilManager:getRecoveryEnvironmentFromSnapshot(
-        snapshot, soilTypeIndex, x, z)
-    if snapshot == nil or snapshot.profiles == nil then return nil end
+function TerraLogicSoilManager:getRecoveryEnvironmentFromSnapshot(snapshot, soilTypeIndex, x, z)
+    if snapshot == nil or snapshot.profiles == nil then
+        return nil
+    end
     if x and z and TerraLogicFieldWaterManager and snapshot.moistureSerial then
-        local w=TerraLogicFieldWaterManager:getStore(x,z,soilTypeIndex or 0)
-        local h=w and w.history and w.history[snapshot.moistureSerial]
+        local w = TerraLogicFieldWaterManager:getStore(x, z, soilTypeIndex or 0)
+        local h = w and w.history and w.history[snapshot.moistureSerial]
         if h then
-            local temp={surfaceTemperatureC=snapshot.surfaceTemperatureC,
-                subsoilTemperatureC=snapshot.subsoilTemperatureC,
-                freezeThawSurfacePulse=snapshot.surfaceThawPulse,
-                freezeThawDeepPulse=snapshot.deepThawPulse}
-            return self:getRecoveryEnvironmentFactors(x,z,soilTypeIndex,temp,
-                {surface=h.upper,subsoil=h.lower,profileIndex=soilTypeIndex or 0})
+            local temp = {
+                surfaceTemperatureC = snapshot.surfaceTemperatureC,
+                subsoilTemperatureC = snapshot.subsoilTemperatureC,
+                freezeThawSurfacePulse = snapshot.surfaceThawPulse,
+                freezeThawDeepPulse = snapshot.deepThawPulse,
+            }
+            return self:getRecoveryEnvironmentFactors(
+                x,
+                z,
+                soilTypeIndex,
+                temp,
+                { surface = h.upper, subsoil = h.lower, profileIndex = soilTypeIndex or 0 }
+            )
         end
     end
     local index = tonumber(soilTypeIndex)
     local stored = index ~= nil and snapshot.profiles[index] or nil
-    stored = stored
-        or snapshot.profiles[0] or snapshot.profiles[2]
-    if stored == nil then return nil end
+    stored = stored or snapshot.profiles[0] or snapshot.profiles[2]
+    if stored == nil then
+        return nil
+    end
     local surfaceMoisture = tonumber(stored.surfaceMoisture) or 0.5
     local subsoilMoisture = tonumber(stored.subsoilMoisture) or 0.55
-    local surfaceFrost = math.max(
-        tonumber(snapshot.surfaceThawPulse) or 0, 0)
+    local surfaceFrost = math.max(tonumber(snapshot.surfaceThawPulse) or 0, 0)
         * smoothStep01((surfaceMoisture - 0.18) / 0.42)
-    local deepFrost = math.max(
-        tonumber(snapshot.deepThawPulse) or 0, 0)
-        * smoothStep01((subsoilMoisture - 0.22) / 0.43)
+    local deepFrost = math.max(tonumber(snapshot.deepThawPulse) or 0, 0) * smoothStep01((subsoilMoisture - 0.22) / 0.43)
     return {
-        moistureFactor=tonumber(stored.moistureFactor) or 1,
-        biologicalFactor=tonumber(stored.biologicalFactor) or 1,
-        physicalSurfaceFactor=math.clamp(
-            (tonumber(stored.physicalSurfaceFactor) or 1), 0.20, 1.35)
-                + 0.38 * surfaceFrost,
-        physicalDeepFactor=math.clamp(
-            (tonumber(stored.physicalDeepFactor) or 1), 0.25, 1.20)
-                + 0.16 * deepFrost,
-        surfaceFrostFactor=surfaceFrost,
-        deepFrostFactor=deepFrost,
-        surfaceThawPulse=tonumber(snapshot.surfaceThawPulse) or 0,
-        deepThawPulse=tonumber(snapshot.deepThawPulse) or 0,
-        surfaceTemperatureC=tonumber(snapshot.surfaceTemperatureC) or 10,
-        subsoilTemperatureC=tonumber(snapshot.subsoilTemperatureC) or 10,
-        surfaceMoisture=surfaceMoisture,
-        subsoilMoisture=subsoilMoisture,
-        moistureProfileName=tostring(stored.profileName or index or "Generic")
+        moistureFactor = tonumber(stored.moistureFactor) or 1,
+        biologicalFactor = tonumber(stored.biologicalFactor) or 1,
+        physicalSurfaceFactor = math.clamp((tonumber(stored.physicalSurfaceFactor) or 1), 0.20, 1.35)
+            + 0.38 * surfaceFrost,
+        physicalDeepFactor = math.clamp((tonumber(stored.physicalDeepFactor) or 1), 0.25, 1.20) + 0.16 * deepFrost,
+        surfaceFrostFactor = surfaceFrost,
+        deepFrostFactor = deepFrost,
+        surfaceThawPulse = tonumber(snapshot.surfaceThawPulse) or 0,
+        deepThawPulse = tonumber(snapshot.deepThawPulse) or 0,
+        surfaceTemperatureC = tonumber(snapshot.surfaceTemperatureC) or 10,
+        subsoilTemperatureC = tonumber(snapshot.subsoilTemperatureC) or 10,
+        surfaceMoisture = surfaceMoisture,
+        subsoilMoisture = subsoilMoisture,
+        moistureProfileName = tostring(stored.profileName or index or "Generic"),
     }
 end
 
@@ -3728,53 +3975,47 @@ function TerraLogicSoilManager:getNaturalRecoveryDebugAtWorldPosition(x, z)
     local cover = RECOVERY_COVER[coverKey] or RECOVERY_COVER.bare
     local speed = getSoilDevelopmentSpeed()
     local soilTypeIndex = self:getPFSoilTypeAtWorldPosition(x, z)
-    local environment = self:getRecoveryEnvironmentFactors(
-        x, z, soilTypeIndex)
-    local snapshot = self.recoveryJob ~= nil
-        and self.recoveryJob.snapshot or self.recoveryLastSnapshot
+    local environment = self:getRecoveryEnvironmentFactors(x, z, soilTypeIndex)
+    local snapshot = self.recoveryJob ~= nil and self.recoveryJob.snapshot or self.recoveryLastSnapshot
     return {
-        ageMonths=age,
-        ageMature=age >= self.RECOVERY_AGE_MAX,
-        coverKey=coverKey,
-        developmentSpeed=speed,
-        resilienceDevelopmentSpeed=getResilienceDevelopmentSpeed(speed),
-        physicalDevelopmentSpeed=PHYSICAL_DEVELOPMENT_SPEED,
-        restFactor=getBiologicalContinuityFromAge(age),
-        surfaceTarget=cover.surfaceTarget,
-        deepTarget=cover.deepTarget,
-        resilienceCeiling=cover.resilienceCeiling,
-        tilthTarget=cover.tilthTarget,
-        settlingTarget=cover.settlingTarget,
-        settlementCompactionFloor=cover.settlementCompactionFloor,
-        biologicalFactor=environment.biologicalFactor,
-        physicalSurfaceFactor=environment.physicalSurfaceFactor,
-        physicalDeepFactor=environment.physicalDeepFactor,
-        surfaceFrostFactor=environment.surfaceFrostFactor,
-        deepFrostFactor=environment.deepFrostFactor,
-        surfaceThawPulse=environment.surfaceThawPulse,
-        deepThawPulse=environment.deepThawPulse,
-        moistureFactor=environment.moistureFactor,
-        surfaceTemperatureC=environment.surfaceTemperatureC,
-        subsoilTemperatureC=environment.subsoilTemperatureC,
-        surfaceMoisture=environment.surfaceMoisture,
-        subsoilMoisture=environment.subsoilMoisture,
-        moistureProfileName=environment.moistureProfileName,
-        completedPeriods=tonumber(self.recoveryCompletedPeriods) or 0,
-        pendingPeriods=#(self.recoverySnapshotQueue or {}),
-        recoveryRunning=self.recoveryJob ~= nil,
-        accumulatorHours=tonumber(
-            self.recoveryEnvironmentAccumulator ~= nil
-                and self.recoveryEnvironmentAccumulator.hours) or 0,
-        snapshotHours=tonumber(snapshot ~= nil and snapshot.hours) or 0,
-        snapshotDaysPerPeriod=tonumber(
-            snapshot ~= nil and snapshot.daysPerPeriod) or 0,
-        snapshotDevelopmentSpeed=tonumber(
-            snapshot ~= nil and snapshot.developmentSpeed) or 0,
-        snapshotSurfaceTemperatureC=tonumber(
-            snapshot ~= nil and snapshot.surfaceTemperatureC) or 0,
-        snapshotSubsoilTemperatureC=tonumber(
-            snapshot ~= nil and snapshot.subsoilTemperatureC) or 0,
-        snapshotSource=snapshot ~= nil and snapshot.source or "none"
+        ageMonths = age,
+        ageMature = age >= self.RECOVERY_AGE_MAX,
+        coverKey = coverKey,
+        developmentSpeed = speed,
+        resilienceDevelopmentSpeed = getResilienceDevelopmentSpeed(speed),
+        physicalDevelopmentSpeed = PHYSICAL_DEVELOPMENT_SPEED,
+        restFactor = getBiologicalContinuityFromAge(age),
+        surfaceTarget = cover.surfaceTarget,
+        deepTarget = cover.deepTarget,
+        resilienceCeiling = cover.resilienceCeiling,
+        tilthTarget = cover.tilthTarget,
+        settlingTarget = cover.settlingTarget,
+        settlementCompactionFloor = cover.settlementCompactionFloor,
+        biologicalFactor = environment.biologicalFactor,
+        physicalSurfaceFactor = environment.physicalSurfaceFactor,
+        physicalDeepFactor = environment.physicalDeepFactor,
+        surfaceFrostFactor = environment.surfaceFrostFactor,
+        deepFrostFactor = environment.deepFrostFactor,
+        surfaceThawPulse = environment.surfaceThawPulse,
+        deepThawPulse = environment.deepThawPulse,
+        moistureFactor = environment.moistureFactor,
+        surfaceTemperatureC = environment.surfaceTemperatureC,
+        subsoilTemperatureC = environment.subsoilTemperatureC,
+        surfaceMoisture = environment.surfaceMoisture,
+        subsoilMoisture = environment.subsoilMoisture,
+        moistureProfileName = environment.moistureProfileName,
+        completedPeriods = tonumber(self.recoveryCompletedPeriods) or 0,
+        pendingPeriods = #(self.recoverySnapshotQueue or {}),
+        recoveryRunning = self.recoveryJob ~= nil,
+        accumulatorHours = tonumber(
+            self.recoveryEnvironmentAccumulator ~= nil and self.recoveryEnvironmentAccumulator.hours
+        ) or 0,
+        snapshotHours = tonumber(snapshot ~= nil and snapshot.hours) or 0,
+        snapshotDaysPerPeriod = tonumber(snapshot ~= nil and snapshot.daysPerPeriod) or 0,
+        snapshotDevelopmentSpeed = tonumber(snapshot ~= nil and snapshot.developmentSpeed) or 0,
+        snapshotSurfaceTemperatureC = tonumber(snapshot ~= nil and snapshot.surfaceTemperatureC) or 0,
+        snapshotSubsoilTemperatureC = tonumber(snapshot ~= nil and snapshot.subsoilTemperatureC) or 0,
+        snapshotSource = snapshot ~= nil and snapshot.source or "none",
     }
 end
 
@@ -3782,30 +4023,30 @@ end
 -- Resilience is the accumulated condition; continuity controls how efficiently
 -- current cover and roots can continue rebuilding it after a disturbance.
 function TerraLogicSoilManager:getBiologicalContinuityAtWorldPosition(x, z)
-    return getBiologicalContinuityFromAge(
-        self:getRecoveryAgeAtWorldPosition(x, z))
+    return getBiologicalContinuityFromAge(self:getRecoveryAgeAtWorldPosition(x, z))
 end
 
 local function recoveryRandom(ix, iz, serial, salt)
-    local value = (ix * 73856093 + iz * 19349663
+    local value = (
+        ix * 73856093
+        + iz * 19349663
         + (tonumber(serial) or 0) * 83492791
-        + (tonumber(salt) or 0) * 2654435761) % 104729
+        + (tonumber(salt) or 0) * 2654435761
+    ) % 104729
     return value / 104729
 end
 
-function TerraLogicSoilManager:applyRecoveryStepToBlock(
-        layerId, recoveryIx, recoveryIz, target, direction, stepCount)
+function TerraLogicSoilManager:applyRecoveryStepToBlock(layerId, recoveryIx, recoveryIz, target, direction, stepCount)
     local layerCellSize = getLayerCellSize(layerId)
-    local cellsPerSide = math.max(math.floor(
-        self.RECOVERY_CELL_SIZE / layerCellSize + 0.5), 1)
+    local cellsPerSide = math.max(math.floor(self.RECOVERY_CELL_SIZE / layerCellSize + 0.5), 1)
     local startIx = recoveryIx * cellsPerSide
     local startIz = recoveryIz * cellsPerSide
     local step = 1 / math.max(2 ^ getLayerChannels(layerId) - 2, 1)
     stepCount = math.max(math.floor(tonumber(stepCount) or 1), 1)
     local movement = step * stepCount
     local changed = 0
-    for localZ=0,cellsPerSide-1 do
-        for localX=0,cellsPerSide-1 do
+    for localZ = 0, cellsPerSide - 1 do
+        for localX = 0, cellsPerSide - 1 do
             local ix, iz = startIx + localX, startIz + localZ
             local x = (ix + 0.5) * layerCellSize
             local z = (iz + 0.5) * layerCellSize
@@ -3826,8 +4067,7 @@ function TerraLogicSoilManager:applyRecoveryStepToBlock(
 end
 
 local function getRecoveryStepCount(expectedDelta, quantStep, randomValue)
-    local expectedSteps = math.max(tonumber(expectedDelta) or 0, 0)
-        / math.max(tonumber(quantStep) or 0, 0.000001)
+    local expectedSteps = math.max(tonumber(expectedDelta) or 0, 0) / math.max(tonumber(quantStep) or 0, 0.000001)
     local whole = math.floor(expectedSteps)
     if (tonumber(randomValue) or 1) < expectedSteps - whole then
         whole = whole + 1
@@ -3836,22 +4076,25 @@ local function getRecoveryStepCount(expectedDelta, quantStep, randomValue)
 end
 
 function TerraLogicSoilManager:processNaturalRecoveryCell(job, index)
-    if g_server == nil then return end
+    if g_server == nil then
+        return
+    end
     local size = job.size
     local half = math.floor(size / 2)
     local recoveryIx = index % size - half
     local recoveryIz = math.floor(index / size) - half
     local x = (recoveryIx + 0.5) * self.RECOVERY_CELL_SIZE
     local z = (recoveryIz + 0.5) * self.RECOVERY_CELL_SIZE
-    local surface = TerraLogicQualityManager ~= nil
-        and TerraLogicQualityManager:getSurfaceTypeAtWorldPosition(x, z) or nil
-    if surface ~= "field" and surface ~= "grassField" then return end
+    local surface = TerraLogicQualityManager ~= nil and TerraLogicQualityManager:getSurfaceTypeAtWorldPosition(x, z)
+        or nil
+    if surface ~= "field" and surface ~= "grassField" then
+        return
+    end
     job.fieldCells = job.fieldCells + 1
 
     local age = self:getRecoveryAgeAtWorldPosition(x, z)
     local nextAge = math.min(age + 1, self.RECOVERY_AGE_MAX)
-    if nextAge ~= age and self:setRecoveryAgeCell(
-            recoveryIx, recoveryIz, nextAge) then
+    if nextAge ~= age and self:setRecoveryAgeCell(recoveryIx, recoveryIz, nextAge) then
         job.ageChanges = job.ageChanges + 1
     end
     age = nextAge
@@ -3860,82 +4103,98 @@ function TerraLogicSoilManager:processNaturalRecoveryCell(job, index)
     job.coverCounts[coverKey] = (job.coverCounts[coverKey] or 0) + 1
     local soilTypeIndex = self:getPFSoilTypeAtWorldPosition(x, z)
     local texture = RECOVERY_TEXTURE[soilTypeIndex] or RECOVERY_TEXTURE[2]
-    local developmentSpeed = tonumber(job.developmentSpeed)
-        or getSoilDevelopmentSpeed()
-    local resilienceDevelopmentSpeed = getResilienceDevelopmentSpeed(
-        developmentSpeed)
+    local developmentSpeed = tonumber(job.developmentSpeed) or getSoilDevelopmentSpeed()
+    local resilienceDevelopmentSpeed = getResilienceDevelopmentSpeed(developmentSpeed)
     local restFactor = getBiologicalContinuityFromAge(age)
-    local environment = self:getRecoveryEnvironmentFromSnapshot(
-        job.snapshot, soilTypeIndex, x, z)
+    local environment = self:getRecoveryEnvironmentFromSnapshot(job.snapshot, soilTypeIndex, x, z)
     if environment == nil then
         -- Compatibility fallback for a v78 job resumed without a persisted
         -- snapshot. New v79 passes never use an instantaneous month value.
-        environment = self:getRecoveryEnvironmentFactors(
-            x, z, soilTypeIndex, nil)
+        environment = self:getRecoveryEnvironmentFactors(x, z, soilTypeIndex, nil)
     end
-    job.biologicalFactorSum = job.biologicalFactorSum
-        + environment.biologicalFactor
-    job.physicalSurfaceFactorSum = job.physicalSurfaceFactorSum
-        + environment.physicalSurfaceFactor
-    job.physicalDeepFactorSum = job.physicalDeepFactorSum
-        + environment.physicalDeepFactor
-    job.surfaceFrostFactorSum = job.surfaceFrostFactorSum
-        + environment.surfaceFrostFactor
-    job.deepFrostFactorSum = job.deepFrostFactorSum
-        + environment.deepFrostFactor
+    job.biologicalFactorSum = job.biologicalFactorSum + environment.biologicalFactor
+    job.physicalSurfaceFactorSum = job.physicalSurfaceFactorSum + environment.physicalSurfaceFactor
+    job.physicalDeepFactorSum = job.physicalDeepFactorSum + environment.physicalDeepFactor
+    job.surfaceFrostFactorSum = job.surfaceFrostFactorSum + environment.surfaceFrostFactor
+    job.deepFrostFactorSum = job.deepFrostFactorSum + environment.deepFrostFactor
     job.environmentSamples = job.environmentSamples + 1
     local state = self:getStateAtWorldPosition(x, z)
 
-    local function tryMove(layerId, target, direction, baseRate,
-            environmentFactor, textureFactor, activity, salt,
-            severityExponent)
+    local function tryMove(
+        layerId,
+        target,
+        direction,
+        baseRate,
+        environmentFactor,
+        textureFactor,
+        activity,
+        salt,
+        severityExponent
+    )
         local current = clamp01(state[layerId])
         if direction == nil or direction == 0 then
             direction = current < target and 1 or -1
         end
-        if (direction < 0 and current <= target)
-            or (direction > 0 and current >= target) then return 0 end
+        if (direction < 0 and current <= target) or (direction > 0 and current >= target) then
+            return 0
+        end
         local accessibility = 1
         if severityExponent ~= nil then
-            accessibility = 0.20 + 0.80
-                * (1 - current) ^ severityExponent
+            accessibility = 0.20 + 0.80 * (1 - current) ^ severityExponent
         end
-        local processStrength = scaleEnvironmentalStrength(
-            baseRate, environmentFactor, PHYSICAL_DEVELOPMENT_SPEED)
+        local processStrength = scaleEnvironmentalStrength(baseRate, environmentFactor, PHYSICAL_DEVELOPMENT_SPEED)
         local expectedDelta = math.abs(current - target)
-            * processStrength * (tonumber(activity) or 1) * restFactor
-            * (tonumber(textureFactor) or 1) * accessibility
-        local quantStep = 1 / math.max(
-            2 ^ getLayerChannels(layerId) - 2, 1)
-        local steps = getRecoveryStepCount(expectedDelta, quantStep,
-            recoveryRandom(recoveryIx, recoveryIz, job.serial, salt))
-        if steps <= 0 then return 0 end
-        local changed = self:applyRecoveryStepToBlock(
-            layerId, recoveryIx, recoveryIz, target, direction, steps)
+            * processStrength
+            * (tonumber(activity) or 1)
+            * restFactor
+            * (tonumber(textureFactor) or 1)
+            * accessibility
+        local quantStep = 1 / math.max(2 ^ getLayerChannels(layerId) - 2, 1)
+        local steps =
+            getRecoveryStepCount(expectedDelta, quantStep, recoveryRandom(recoveryIx, recoveryIz, job.serial, salt))
+        if steps <= 0 then
+            return 0
+        end
+        local changed = self:applyRecoveryStepToBlock(layerId, recoveryIx, recoveryIz, target, direction, steps)
         job[layerId .. "Changes"] = job[layerId .. "Changes"] + changed
         return changed
     end
-    local surfaceRecoveryFactor = environment.physicalSurfaceFactor
-        * (0.55 + 0.45 * environment.biologicalFactor)
-    local deepRecoveryFactor = environment.physicalDeepFactor
-        * (0.35 + 0.65 * environment.biologicalFactor)
+    local surfaceRecoveryFactor = environment.physicalSurfaceFactor * (0.55 + 0.45 * environment.biologicalFactor)
+    local deepRecoveryFactor = environment.physicalDeepFactor * (0.35 + 0.65 * environment.biologicalFactor)
     -- Only established living cover earns extra biological deep recovery.
     -- Bare soil/residue and the separate frost process retain their rates.
-    local livingCover = coverKey == "annual" or coverKey == "rootCrop"
-        or coverKey == "deepRoot" or coverKey == "perennial"
+    local livingCover = coverKey == "annual"
+        or coverKey == "rootCrop"
+        or coverKey == "deepRoot"
+        or coverKey == "perennial"
         or coverKey == "deepPerennial"
-    local deepBiologyBoost = livingCover
-        and (1 + 0.50 * restFactor * clamp01(environment.biologicalFactor)) or 1
+    local deepBiologyBoost = livingCover and (1 + 0.50 * restFactor * clamp01(environment.biologicalFactor)) or 1
     -- Established, undisturbed living cover strengthens monthly recovery.
     -- Keep root-growth events, targets and bare/residue recovery unchanged.
     local surfaceRecoveryBoost = livingCover and (1 + 0.25 * restFactor) or 1
     local deepRecoveryBoost = livingCover and (1 + 0.35 * restFactor) or 1
-    tryMove("surfaceCompaction", cover.surfaceTarget, -1, 0.0060,
-        surfaceRecoveryFactor, texture.surface,
-        cover.activity * surfaceRecoveryBoost, 11, 1.20)
-    tryMove("deepCompaction", cover.deepTarget, -1, 0.0018,
-        deepRecoveryFactor, texture.deep,
-        cover.activity * deepBiologyBoost * deepRecoveryBoost, 23, 1.60)
+    tryMove(
+        "surfaceCompaction",
+        cover.surfaceTarget,
+        -1,
+        0.0060,
+        surfaceRecoveryFactor,
+        texture.surface,
+        cover.activity * surfaceRecoveryBoost,
+        11,
+        1.20
+    )
+    tryMove(
+        "deepCompaction",
+        cover.deepTarget,
+        -1,
+        0.0018,
+        deepRecoveryFactor,
+        texture.deep,
+        cover.activity * deepBiologyBoost * deepRecoveryBoost,
+        23,
+        1.60
+    )
 
     -- Covered soil can slowly rebuild an intermediate crumb structure from
     -- either coarse clods or an over-pulverized state. Bare soil receives only
@@ -3943,63 +4202,73 @@ function TerraLogicSoilManager:processNaturalRecoveryCell(job, index)
     -- may instead slake toward a fine/sealed state.
     local aggregate = clamp01(state.aggregateSize)
     local tilthEnvironment = environment.physicalSurfaceFactor
-        * (coverKey == "bare" and 1
-            or (0.35 + 0.65 * environment.biologicalFactor))
+        * (coverKey == "bare" and 1 or (0.35 + 0.65 * environment.biologicalFactor))
     if cover.tilthTarget ~= nil then
-        tryMove("aggregateSize", cover.tilthTarget, 0, 0.0045,
-            tilthEnvironment, texture.tilth,
-            cover.tilthActivity, 41)
+        tryMove("aggregateSize", cover.tilthTarget, 0, 0.0045, tilthEnvironment, texture.tilth, cover.tilthActivity, 41)
     elseif aggregate < 0.38 then
-        tryMove("aggregateSize", 0.38, 1, 0.0030,
-            environment.physicalSurfaceFactor, texture.tilth,
-            cover.tilthActivity, 43)
+        tryMove(
+            "aggregateSize",
+            0.38,
+            1,
+            0.0030,
+            environment.physicalSurfaceFactor,
+            texture.tilth,
+            cover.tilthActivity,
+            43
+        )
     elseif aggregate > 0.62 then
-        local slaking = smoothStep01(
-            (environment.surfaceMoisture - 0.78) / 0.18)
-            * (1 - (cover.protection or 0))
+        local slaking = smoothStep01((environment.surfaceMoisture - 0.78) / 0.18) * (1 - (cover.protection or 0))
         if slaking > 0 then
-            tryMove("aggregateSize", 0.78, 1, 0.0025,
-                slaking, texture.tilth, 1, 47)
+            tryMove("aggregateSize", 0.78, 1, 0.0025, slaking, texture.tilth, 1, 47)
         end
     end
 
     -- Rainfall and gravity settle only pronounced roughness. This is not a
     -- free levelling pass: a small reconsolidation floor accompanies settling.
     local roughness = clamp01(state.roughness)
-    local settlingSeverity = smoothStep01(
-        (roughness - cover.settlingTarget) / 0.45)
+    local settlingSeverity = smoothStep01((roughness - cover.settlingTarget) / 0.45)
     if settlingSeverity > 0 then
-        local settlingEnvironment = environment.physicalSurfaceFactor
-            * (0.70 + 0.30 * environment.surfaceMoisture)
-        tryMove("roughness", cover.settlingTarget, -1, 0.0120,
-            settlingEnvironment, texture.settling,
-            cover.settlingActivity, 53)
-        tryMove("surfaceCompaction", cover.settlementCompactionFloor,
-            1, 0.0018, settlingEnvironment * settlingSeverity,
-            texture.surface, cover.settlingActivity, 59)
+        local settlingEnvironment = environment.physicalSurfaceFactor * (0.70 + 0.30 * environment.surfaceMoisture)
+        tryMove(
+            "roughness",
+            cover.settlingTarget,
+            -1,
+            0.0120,
+            settlingEnvironment,
+            texture.settling,
+            cover.settlingActivity,
+            53
+        )
+        tryMove(
+            "surfaceCompaction",
+            cover.settlementCompactionFloor,
+            1,
+            0.0018,
+            settlingEnvironment * settlingSeverity,
+            texture.surface,
+            cover.settlingActivity,
+            59
+        )
     end
 
     local resilience = clamp01(state.resilience)
     local resilienceTarget, direction, rate
     if resilience < cover.resilienceCeiling then
-        resilienceTarget, direction, rate = cover.resilienceCeiling, 1,
-            cover.resilienceRate
-    elseif cover.resilienceDecay ~= nil
-        and resilience > cover.resilienceCeiling then
-        resilienceTarget, direction, rate = cover.resilienceCeiling, -1,
-            cover.resilienceDecay
+        resilienceTarget, direction, rate = cover.resilienceCeiling, 1, cover.resilienceRate
+    elseif cover.resilienceDecay ~= nil and resilience > cover.resilienceCeiling then
+        resilienceTarget, direction, rate = cover.resilienceCeiling, -1, cover.resilienceDecay
     end
     if direction ~= nil and rate ~= nil and rate > 0 then
         local expectedDelta = math.abs(resilienceTarget - resilience)
-            * scaleEnvironmentalStrength(rate,
-                environment.biologicalFactor, resilienceDevelopmentSpeed)
-            * restFactor * texture.resilience
+            * scaleEnvironmentalStrength(rate, environment.biologicalFactor, resilienceDevelopmentSpeed)
+            * restFactor
+            * texture.resilience
         local quantStep = 1 / 254
-        local steps = getRecoveryStepCount(expectedDelta, quantStep,
-            recoveryRandom(recoveryIx, recoveryIz, job.serial, 37))
+        local steps =
+            getRecoveryStepCount(expectedDelta, quantStep, recoveryRandom(recoveryIx, recoveryIz, job.serial, 37))
         if steps > 0 then
-            local changed = self:applyRecoveryStepToBlock("resilience",
-                recoveryIx, recoveryIz, resilienceTarget, direction, steps)
+            local changed =
+                self:applyRecoveryStepToBlock("resilience", recoveryIx, recoveryIz, resilienceTarget, direction, steps)
             job.resilienceChanges = job.resilienceChanges + changed
             if direction > 0 then
                 job.resilienceGainCells = job.resilienceGainCells + changed
@@ -4010,29 +4279,36 @@ function TerraLogicSoilManager:processNaturalRecoveryCell(job, index)
     end
 end
 
-function TerraLogicSoilManager:createRecoveryJob(
-        snapshot, startIndex, developmentSpeed)
+function TerraLogicSoilManager:createRecoveryJob(snapshot, startIndex, developmentSpeed)
     return {
-        size=self.recoveryAgeMapSize, index=math.max(
-            math.floor(tonumber(startIndex) or 0), 0),
-        serial=tonumber(snapshot ~= nil and snapshot.serial)
-            or (self.recoverySerial or 0),
-        snapshot=snapshot,
-        fieldCells=0, ageChanges=0,
-        surfaceCompactionChanges=0, deepCompactionChanges=0,
-        aggregateSizeChanges=0, roughnessChanges=0,
-        resilienceChanges=0, resilienceGainCells=0,
-        resilienceDecayCells=0, coverCounts={},
-        biologicalFactorSum=0, physicalSurfaceFactorSum=0,
-        physicalDeepFactorSum=0, surfaceFrostFactorSum=0,
-        deepFrostFactorSum=0, environmentSamples=0,
-        developmentSpeed=math.clamp(
-            tonumber(developmentSpeed) or getSoilDevelopmentSpeed(), 1, 8)
+        size = self.recoveryAgeMapSize,
+        index = math.max(math.floor(tonumber(startIndex) or 0), 0),
+        serial = tonumber(snapshot ~= nil and snapshot.serial) or (self.recoverySerial or 0),
+        snapshot = snapshot,
+        fieldCells = 0,
+        ageChanges = 0,
+        surfaceCompactionChanges = 0,
+        deepCompactionChanges = 0,
+        aggregateSizeChanges = 0,
+        roughnessChanges = 0,
+        resilienceChanges = 0,
+        resilienceGainCells = 0,
+        resilienceDecayCells = 0,
+        coverCounts = {},
+        biologicalFactorSum = 0,
+        physicalSurfaceFactorSum = 0,
+        physicalDeepFactorSum = 0,
+        surfaceFrostFactorSum = 0,
+        deepFrostFactorSum = 0,
+        environmentSamples = 0,
+        developmentSpeed = math.clamp(tonumber(developmentSpeed) or getSoilDevelopmentSpeed(), 1, 8),
     }
 end
 
 function TerraLogicSoilManager:onPeriodChanged()
-    if g_currentMission == nil or not g_currentMission:getIsServer() then return end
+    if g_currentMission == nil or not g_currentMission:getIsServer() then
+        return
+    end
     -- Vanilla updates NPC FieldState asynchronously after the period event.
     -- Scan only after its field-update queue has settled; unchanged semantic
     -- states retain their existing TerraLogic maps and mission scars.
@@ -4041,8 +4317,7 @@ function TerraLogicSoilManager:onPeriodChanged()
     -- transition may arrive while an earlier raster scan is still running;
     -- each queued pass therefore owns its exact temperature/moisture average.
     self.recoverySnapshotQueue = self.recoverySnapshotQueue or {}
-    self.recoverySnapshotQueue[#self.recoverySnapshotQueue + 1] =
-        self:createRecoveryEnvironmentSnapshot()
+    self.recoverySnapshotQueue[#self.recoverySnapshotQueue + 1] = self:createRecoveryEnvironmentSnapshot()
     self.recoveryPendingPasses = #self.recoverySnapshotQueue
     if self.recoveryJob == nil and self.recoveryPending ~= true then
         self.recoveryPending = true
@@ -4051,7 +4326,9 @@ function TerraLogicSoilManager:onPeriodChanged()
 end
 
 function TerraLogicSoilManager:startNaturalRecovery()
-    if not self.rasterReady or self.recoveryAgeMapSize == nil then return false end
+    if not self.rasterReady or self.recoveryAgeMapSize == nil then
+        return false
+    end
     local queue = self.recoverySnapshotQueue or {}
     if #queue <= 0 then
         self.recoveryPending = false
@@ -4062,20 +4339,23 @@ function TerraLogicSoilManager:startNaturalRecovery()
     self.recoveryPendingPasses = #queue
     self.recoverySerial = (self.recoverySerial or 0) + 1
     self.recoveryPending = false
-    self.recoveryJob = self:createRecoveryJob(
-        snapshot, 0, snapshot.developmentSpeed)
+    self.recoveryJob = self:createRecoveryJob(snapshot, 0, snapshot.developmentSpeed)
     return true
 end
 
 function TerraLogicSoilManager:finishNaturalRecovery(job)
-    local logger=TerraLogicWeatherLogger
-    if logger ~= nil and logger.active then logger:recordRecoveryCompleted(job) end
+    local logger = TerraLogicWeatherLogger
+    if logger ~= nil and logger.active then
+        logger:recordRecoveryCompleted(job)
+    end
     if TerraLogicTutorialManager ~= nil then
         TerraLogicTutorialManager:observeRecovery(job)
     end
     local physicalChanges = job.surfaceCompactionChanges
-        + job.deepCompactionChanges + job.aggregateSizeChanges
-        + job.roughnessChanges + job.resilienceChanges
+        + job.deepCompactionChanges
+        + job.aggregateSizeChanges
+        + job.roughnessChanges
+        + job.resilienceChanges
     if physicalChanges > 0 then
         self.dirty = true
         local now = g_currentMission ~= nil and g_currentMission.time or 0
@@ -4086,13 +4366,20 @@ function TerraLogicSoilManager:finishNaturalRecovery(job)
     end
     local samples = math.max(job.environmentSamples or 0, 1)
     TerraLogicLogging.debug(
-        "[FS25_TerraLogic] Natural recovery pass: setting=%dx resilience=%dx physical=%dx fieldCells=%d age=%d surface/deep/tilth/evenness=%d/%d/%d/%d resilience(gain/decay)=%d/%d env(bio/surface/deep/thawSurface/thawDeep)=%.3f/%.3f/%.3f/%.3f/%.3f pending=%d cover(bare/sown/residue/annual/rootCrop/deepRoot/perennial/deepPerennial)=%d/%d/%d/%d/%d/%d/%d/%d",
+        "[FS25_TerraLogic] Natural recovery pass: setting=%dx resilience=%dx physical=%dx fieldCells=%d age=%d "
+            .. "surface/deep/tilth/evenness=%d/%d/%d/%d resilience(gain/decay)=%d/%d "
+            .. "env(bio/surface/deep/thawSurface/thawDeep)=%.3f/%.3f/%.3f/%.3f/%.3f pending=%d "
+            .. "cover(bare/sown/residue/annual/rootCrop/deepRoot/perennial/deepPerennial)=%d/%d/%d/%d/%d/%d/%d/%d",
         job.developmentSpeed,
         getResilienceDevelopmentSpeed(job.developmentSpeed),
-        PHYSICAL_DEVELOPMENT_SPEED, job.fieldCells, job.ageChanges,
+        PHYSICAL_DEVELOPMENT_SPEED,
+        job.fieldCells,
+        job.ageChanges,
         job.surfaceCompactionChanges,
-        job.deepCompactionChanges, job.aggregateSizeChanges,
-        job.roughnessChanges, job.resilienceGainCells,
+        job.deepCompactionChanges,
+        job.aggregateSizeChanges,
+        job.roughnessChanges,
+        job.resilienceGainCells,
         job.resilienceDecayCells,
         job.biologicalFactorSum / samples,
         job.physicalSurfaceFactorSum / samples,
@@ -4100,22 +4387,28 @@ function TerraLogicSoilManager:finishNaturalRecovery(job)
         job.surfaceFrostFactorSum / samples,
         job.deepFrostFactorSum / samples,
         #(self.recoverySnapshotQueue or {}),
-        job.coverCounts.bare or 0, job.coverCounts.sown or 0,
-        job.coverCounts.residue or 0, job.coverCounts.annual or 0,
-        job.coverCounts.rootCrop or 0, job.coverCounts.deepRoot or 0,
+        job.coverCounts.bare or 0,
+        job.coverCounts.sown or 0,
+        job.coverCounts.residue or 0,
+        job.coverCounts.annual or 0,
+        job.coverCounts.rootCrop or 0,
+        job.coverCounts.deepRoot or 0,
         job.coverCounts.perennial or 0,
-        job.coverCounts.deepPerennial or 0)
+        job.coverCounts.deepPerennial or 0
+    )
     local snapshot = job.snapshot or {}
     TerraLogicLogging.debug(
         "[FS25_TerraLogic] Recovery snapshot: serial=%d source=%s observed=%.2f gameHours daysPerPeriod=%g meanSoil=%.2f/%.2fC thaw=%.3f/%.3f queue=%d",
-        tonumber(snapshot.serial) or 0, tostring(snapshot.source or "legacy"),
+        tonumber(snapshot.serial) or 0,
+        tostring(snapshot.source or "legacy"),
         tonumber(snapshot.hours) or 0,
         tonumber(snapshot.daysPerPeriod) or 0,
         tonumber(snapshot.surfaceTemperatureC) or 0,
         tonumber(snapshot.subsoilTemperatureC) or 0,
         tonumber(snapshot.surfaceThawPulse) or 0,
         tonumber(snapshot.deepThawPulse) or 0,
-        #(self.recoverySnapshotQueue or {}))
+        #(self.recoverySnapshotQueue or {})
+    )
     self.recoveryJob = nil
     self.recoveryPendingPasses = #(self.recoverySnapshotQueue or {})
     if self.recoveryPendingPasses > 0 then
@@ -4127,111 +4420,130 @@ function TerraLogicSoilManager:finishNaturalRecovery(job)
 end
 
 function TerraLogicSoilManager:updateNaturalRecovery(dt)
-    if g_currentMission == nil or not g_currentMission:getIsServer() then return end
-    if self.deepMapMigration ~= nil then return end
+    if g_currentMission == nil or not g_currentMission:getIsServer() then
+        return
+    end
+    if self.deepMapMigration ~= nil then
+        return
+    end
     if self.recoveryPending then
-        self.recoveryDelayRemaining = math.max(
-            (self.recoveryDelayRemaining or 0) - (tonumber(dt) or 0), 0)
+        self.recoveryDelayRemaining = math.max((self.recoveryDelayRemaining or 0) - (tonumber(dt) or 0), 0)
         local growthBusy = TerraLogicQualityManager ~= nil
-            and (TerraLogicQualityManager.plowGrowthPending == true
-                or TerraLogicQualityManager.plowGrowthJob ~= nil)
+            and (TerraLogicQualityManager.plowGrowthPending == true or TerraLogicQualityManager.plowGrowthJob ~= nil)
         if self.recoveryDelayRemaining <= 0 and not growthBusy then
             self:startNaturalRecovery()
         end
     end
     local job = self.recoveryJob
-    if job == nil then return end
+    if job == nil then
+        return
+    end
     local total = job.size * job.size
     local stop = math.min(job.index + self.RECOVERY_CELLS_PER_FRAME, total)
     while job.index < stop do
         self:processNaturalRecoveryCell(job, job.index)
         job.index = job.index + 1
     end
-    if job.index >= total then self:finishNaturalRecovery(job) end
+    if job.index >= total then
+        self:finishNaturalRecovery(job)
+    end
 end
 
 local function decodeRotationState(raw)
     raw = math.max(0, math.min(math.floor(tonumber(raw) or 0), 255))
-    return raw % 8, math.floor(raw / 8) % 8,
-        math.floor(raw / 64) % 4
+    return raw % 8, math.floor(raw / 8) % 8, math.floor(raw / 64) % 4
 end
 
 local function encodeRotationState(lastGroup, currentGroup, phase)
-    return math.max(0, math.min(
-        (tonumber(lastGroup) or 0) % 8
-        + ((tonumber(currentGroup) or 0) % 8) * 8
-        + ((tonumber(phase) or 0) % 4) * 64,
-        255))
+    return math.max(
+        0,
+        math.min(
+            (tonumber(lastGroup) or 0) % 8 + ((tonumber(currentGroup) or 0) % 8) * 8 + ((tonumber(phase) or 0) % 4) * 64,
+            255
+        )
+    )
 end
 
 function TerraLogicSoilManager:getRotationRawAtWorldPosition(x, z)
     local map = self.rotationMap
-    if map == nil or getBitVectorMapPoint == nil then return 0 end
+    if map == nil or type(getBitVectorMapPoint) ~= "function" then
+        return 0
+    end
     local sizeX, sizeZ = getBitVectorMapSize(map)
     sizeX, sizeZ = tonumber(sizeX) or 0, tonumber(sizeZ) or tonumber(sizeX) or 0
-    if sizeX <= 0 or sizeZ <= 0 then return 0 end
+    if sizeX <= 0 or sizeZ <= 0 then
+        return 0
+    end
     local terrainSize = tonumber(self.terrainSize) or 2048
-    local px = math.max(0, math.min(math.floor(
-        ((tonumber(x) or 0) / terrainSize + 0.5) * sizeX),
-        sizeX - 1))
-    local pz = math.max(0, math.min(math.floor(
-        ((tonumber(z) or 0) / terrainSize + 0.5) * sizeZ),
-        sizeZ - 1))
-    return tonumber(getBitVectorMapPoint(
-        map, px, pz, 0, ROTATION_CHANNELS)) or 0
+    local px = math.max(0, math.min(math.floor(((tonumber(x) or 0) / terrainSize + 0.5) * sizeX), sizeX - 1))
+    local pz = math.max(0, math.min(math.floor(((tonumber(z) or 0) / terrainSize + 0.5) * sizeZ), sizeZ - 1))
+    return tonumber(getBitVectorMapPoint(map, px, pz, 0, ROTATION_CHANNELS)) or 0
 end
 
 function TerraLogicSoilManager:getRotationDebugAtWorldPosition(x, z)
     local groupNames = {
-        [0]="none", [1]="cereal", [2]="legume", [3]="oilseed",
-        [4]="root", [5]="maize", [6]="other", [7]="perennial"
+        [0] = "none",
+        [1] = "cereal",
+        [2] = "legume",
+        [3] = "oilseed",
+        [4] = "root",
+        [5] = "maize",
+        [6] = "other",
+        [7] = "perennial",
     }
     local phaseNames = {
-        [ROTATION_PHASE_UNKNOWN]="unknown",
-        [ROTATION_PHASE_PLANTED]="planted",
-        [ROTATION_PHASE_COMPLETED]="completed"
+        [ROTATION_PHASE_UNKNOWN] = "unknown",
+        [ROTATION_PHASE_PLANTED] = "planted",
+        [ROTATION_PHASE_COMPLETED] = "completed",
     }
     local raw = self:getRotationRawAtWorldPosition(x, z)
     local lastGroup, currentGroup, phase = decodeRotationState(raw)
-    return {raw=raw, lastGroup=lastGroup, currentGroup=currentGroup,
-        phase=phase, lastGroupName=groupNames[lastGroup] or "unknown",
-        currentGroupName=groupNames[currentGroup] or "unknown",
-        phaseName=phaseNames[phase] or "unknown",
-        diverse=lastGroup > 0 and currentGroup > 0
-            and lastGroup ~= currentGroup}
+    return {
+        raw = raw,
+        lastGroup = lastGroup,
+        currentGroup = currentGroup,
+        phase = phase,
+        lastGroupName = groupNames[lastGroup] or "unknown",
+        currentGroupName = groupNames[currentGroup] or "unknown",
+        phaseName = phaseNames[phase] or "unknown",
+        diverse = lastGroup > 0 and currentGroup > 0 and lastGroup ~= currentGroup,
+    }
 end
 
-function TerraLogicSoilManager:setRotationStateAtWorldPosition(
-        x, z, lastGroup, currentGroup, phase)
-    if self.rotationModifier == nil then return false end
+function TerraLogicSoilManager:setRotationStateAtWorldPosition(x, z, lastGroup, currentGroup, phase)
+    if self.rotationModifier == nil then
+        return false
+    end
     local cellSize = self.RESILIENCE_CELL_SIZE
     local ix = math.floor((tonumber(x) or 0) / cellSize)
     local iz = math.floor((tonumber(z) or 0) / cellSize)
-    if not self:setModifierToWorldRegion(
-            self.rotationModifier, ix * cellSize, iz * cellSize,
-            cellSize) then return false end
-    self.rotationModifier:executeSet(encodeRotationState(
-        lastGroup, currentGroup, phase))
+    if not self:setModifierToWorldRegion(self.rotationModifier, ix * cellSize, iz * cellSize, cellSize) then
+        return false
+    end
+    self.rotationModifier:executeSet(encodeRotationState(lastGroup, currentGroup, phase))
     self.dirty = true
     return true
 end
 
 function TerraLogicSoilManager:markCropSownAtWorldPosition(x, z, fruitTypeIndex)
-    if g_server == nil then return false end
+    if g_server == nil then
+        return false
+    end
     local group = self:getCropGroup(fruitTypeIndex)
-    if group == CROP_GROUP.NONE then return false end
-    local lastGroup, currentGroup, phase = decodeRotationState(
-        self:getRotationRawAtWorldPosition(x, z))
+    if group == CROP_GROUP.NONE then
+        return false
+    end
+    local lastGroup, currentGroup, phase = decodeRotationState(self:getRotationRawAtWorldPosition(x, z))
     if phase == ROTATION_PHASE_PLANTED and currentGroup == group then
         return false
     end
-    return self:setRotationStateAtWorldPosition(
-        x, z, lastGroup, group, ROTATION_PHASE_PLANTED)
+    return self:setRotationStateAtWorldPosition(x, z, lastGroup, group, ROTATION_PHASE_PLANTED)
 end
 
-function TerraLogicSoilManager:markSownQualityCells(
-        positions, allowedCellKeys, fruitTypeIndex, sourceCellSize)
-    if positions == nil then return 0 end
+function TerraLogicSoilManager:markSownQualityCells(positions, allowedCellKeys, fruitTypeIndex, sourceCellSize)
+    if positions == nil then
+        return 0
+    end
     sourceCellSize = tonumber(sourceCellSize) or 4
     local changed = 0
     for _, position in ipairs(positions) do
@@ -4248,13 +4560,13 @@ function TerraLogicSoilManager:markSownQualityCells(
 end
 
 local CROP_RESILIENCE_GAIN = {
-    [CROP_GROUP.CEREAL]=0.006,
-    [CROP_GROUP.LEGUME]=0.014,
-    [CROP_GROUP.OILSEED]=0.011,
-    [CROP_GROUP.ROOT]=0.007,
-    [CROP_GROUP.MAIZE]=0.007,
-    [CROP_GROUP.OTHER]=0.006,
-    [CROP_GROUP.PERENNIAL]=0.018
+    [CROP_GROUP.CEREAL] = 0.006,
+    [CROP_GROUP.LEGUME] = 0.014,
+    [CROP_GROUP.OILSEED] = 0.011,
+    [CROP_GROUP.ROOT] = 0.007,
+    [CROP_GROUP.MAIZE] = 0.007,
+    [CROP_GROUP.OTHER] = 0.006,
+    [CROP_GROUP.PERENNIAL] = 0.018,
 }
 
 -- Roots act slowly and only when the game reports a real forward growth
@@ -4265,47 +4577,84 @@ local CROP_RESILIENCE_GAIN = {
 -- This is functional biological loosening, not a substitute for a subsoiler:
 -- targets stop above the mechanical optimum and annual changes remain small.
 local ROOT_GROWTH_RESPONSE = {
-    [CROP_GROUP.CEREAL]={surface=0.014, deep=0.005,
-        surfaceTarget=0.26, deepTarget=0.25,
-        resilienceCeiling=0.62, tilth=0.008},
-    [CROP_GROUP.LEGUME]={surface=0.024, deep=0.016,
-        surfaceTarget=0.22, deepTarget=0.19,
-        resilienceCeiling=0.75, tilth=0.014},
-    [CROP_GROUP.OILSEED]={surface=0.020, deep=0.020,
-        surfaceTarget=0.23, deepTarget=0.18,
-        resilienceCeiling=0.72, tilth=0.012},
-    [CROP_GROUP.ROOT]={surface=0.016, deep=0.009,
-        surfaceTarget=0.24, deepTarget=0.23,
-        resilienceCeiling=0.66, tilth=0.010},
-    [CROP_GROUP.MAIZE]={surface=0.017, deep=0.010,
-        surfaceTarget=0.25, deepTarget=0.22,
-        resilienceCeiling=0.65, tilth=0.009},
-    [CROP_GROUP.OTHER]={surface=0.011, deep=0.005,
-        surfaceTarget=0.27, deepTarget=0.26,
-        resilienceCeiling=0.60, tilth=0.007},
-    [CROP_GROUP.PERENNIAL]={surface=0.028, deep=0.012,
-        surfaceTarget=0.20, deepTarget=0.21,
-        resilienceCeiling=0.84, tilth=0.018}
+    [CROP_GROUP.CEREAL] = {
+        surface = 0.014,
+        deep = 0.005,
+        surfaceTarget = 0.26,
+        deepTarget = 0.25,
+        resilienceCeiling = 0.62,
+        tilth = 0.008,
+    },
+    [CROP_GROUP.LEGUME] = {
+        surface = 0.024,
+        deep = 0.016,
+        surfaceTarget = 0.22,
+        deepTarget = 0.19,
+        resilienceCeiling = 0.75,
+        tilth = 0.014,
+    },
+    [CROP_GROUP.OILSEED] = {
+        surface = 0.020,
+        deep = 0.020,
+        surfaceTarget = 0.23,
+        deepTarget = 0.18,
+        resilienceCeiling = 0.72,
+        tilth = 0.012,
+    },
+    [CROP_GROUP.ROOT] = {
+        surface = 0.016,
+        deep = 0.009,
+        surfaceTarget = 0.24,
+        deepTarget = 0.23,
+        resilienceCeiling = 0.66,
+        tilth = 0.010,
+    },
+    [CROP_GROUP.MAIZE] = {
+        surface = 0.017,
+        deep = 0.010,
+        surfaceTarget = 0.25,
+        deepTarget = 0.22,
+        resilienceCeiling = 0.65,
+        tilth = 0.009,
+    },
+    [CROP_GROUP.OTHER] = {
+        surface = 0.011,
+        deep = 0.005,
+        surfaceTarget = 0.27,
+        deepTarget = 0.26,
+        resilienceCeiling = 0.60,
+        tilth = 0.007,
+    },
+    [CROP_GROUP.PERENNIAL] = {
+        surface = 0.028,
+        deep = 0.012,
+        surfaceTarget = 0.20,
+        deepTarget = 0.21,
+        resilienceCeiling = 0.84,
+        tilth = 0.018,
+    },
 }
 
 local function getRootGrowthResponse(group, cropName)
     local base = ROOT_GROWTH_RESPONSE[group]
-    if base == nil then return nil end
+    if base == nil then
+        return nil
+    end
     local response = {}
-    for key, value in pairs(base) do response[key] = value end
+    for key, value in pairs(base) do
+        response[key] = value
+    end
     cropName = tostring(cropName or "")
-    if group == CROP_GROUP.PERENNIAL
-        and containsAny(cropName, {"alfalfa", "clover"}) then
+    if group == CROP_GROUP.PERENNIAL and containsAny(cropName, { "alfalfa", "clover" }) then
         response.deep = 0.024
         response.deepTarget = 0.16
         response.resilienceCeiling = 0.88
     elseif group == CROP_GROUP.ROOT then
-        if containsAny(cropName,
-                {"sugarbeet", "beetroot", "carrot", "parsnip"}) then
+        if containsAny(cropName, { "sugarbeet", "beetroot", "carrot", "parsnip" }) then
             response.deep = 0.015
             response.deepTarget = 0.19
             response.resilienceCeiling = 0.70
-        elseif containsAny(cropName, {"potato"}) then
+        elseif containsAny(cropName, { "potato" }) then
             response.deep = 0.007
             response.deepTarget = 0.24
         end
@@ -4315,47 +4664,50 @@ local function getRootGrowthResponse(group, cropName)
         response.surface = response.surface * 1.15
         response.deep = response.deep * 1.15
         response.tilth = response.tilth * 1.20
-        response.resilienceCeiling = math.min(
-            response.resilienceCeiling + 0.02, 0.76)
+        response.resilienceCeiling = math.min(response.resilienceCeiling + 0.02, 0.76)
     end
     return response
 end
 
-function TerraLogicSoilManager:applyRootGrowthAtWorldPosition(
-        x, z, fruitTypeIndex, stages, eventToken, cropCoverage)
-    if g_server == nil then return false end
-    if self.deepMapMigration ~= nil then return false end
+function TerraLogicSoilManager:applyRootGrowthAtWorldPosition(x, z, fruitTypeIndex, stages, eventToken, cropCoverage)
+    if g_server == nil then
+        return false
+    end
+    if self.deepMapMigration ~= nil then
+        return false
+    end
     stages = math.clamp(math.floor(tonumber(stages) or 0), 0, 3)
-    if stages <= 0 then return false end
+    if stages <= 0 then
+        return false
+    end
     local group, cropName = self:getCropGroup(fruitTypeIndex)
     local response = getRootGrowthResponse(group, cropName)
-    if response == nil then return false end
+    if response == nil then
+        return false
+    end
     cropCoverage = math.clamp(tonumber(cropCoverage) or 1, 0, 1)
-    if cropCoverage <= 0 then return false end
-    local biologyKey = getCellKey(
-        math.floor(x / self.RESILIENCE_CELL_SIZE),
-        math.floor(z / self.RESILIENCE_CELL_SIZE))
+    if cropCoverage <= 0 then
+        return false
+    end
+    local biologyKey = getCellKey(math.floor(x / self.RESILIENCE_CELL_SIZE), math.floor(z / self.RESILIENCE_CELL_SIZE))
     local signature = tostring(fruitTypeIndex) .. ":" .. tostring(eventToken)
     self.rootGrowthRecent = self.rootGrowthRecent or {}
     -- Resilience is an 8 m layer and must be credited only once per block.
     -- Root loosening and tilth, however, are driven by each 4 m crop-history
     -- cell. The former shared early return accidentally limited those physical
     -- effects to one quarter of every 8 m block.
-    local resilienceAlreadyCredited =
-        self.rootGrowthRecent[biologyKey] == signature
+    local resilienceAlreadyCredited = self.rootGrowthRecent[biologyKey] == signature
     if not resilienceAlreadyCredited then
         self.rootGrowthRecent[biologyKey] = signature
     end
-    local previousGroup, _, phase = decodeRotationState(
-        self:getRotationRawAtWorldPosition(x, z))
+    local previousGroup, _, phase = decodeRotationState(self:getRotationRawAtWorldPosition(x, z))
 
     local cycleGain = CROP_RESILIENCE_GAIN[group] or 0.006
     if previousGroup == group then
         -- Repeated annual crops maintain some living pores but receive only a
         -- fraction of the diverse-crop response. Established perennial grass
         -- earns a small contribution on every genuine regrowth cycle.
-        cycleGain = group == CROP_GROUP.PERENNIAL
-            and 0.010 or cycleGain * 0.35
+        cycleGain = group == CROP_GROUP.PERENNIAL and 0.010 or cycleGain * 0.35
     elseif phase ~= ROTATION_PHASE_PLANTED then
         -- Old/external fields without a known sowing marker get the cautious
         -- monoculture share until their first complete TerraLogic cycle.
@@ -4375,24 +4727,20 @@ function TerraLogicSoilManager:applyRootGrowthAtWorldPosition(
     -- The retained 55% floor avoids an artificial dead season.
     local continuity = self:getBiologicalContinuityAtWorldPosition(x, z)
     cycleGain = cycleGain * (0.55 + 0.45 * continuity) * cropCoverage
-    cycleGain = scaleEnvironmentalStrength(
-        cycleGain, rootActivity, resilienceDevelopmentSpeed)
+    cycleGain = scaleEnvironmentalStrength(cycleGain, rootActivity, resilienceDevelopmentSpeed)
     local stageGain = 1 - (1 - cycleGain) ^ (1 / 3)
     local combinedGain = 1 - (1 - stageGain) ^ stages
     local resilienceBefore = self:getValueAtWorldPosition("resilience", x, z)
     local resilienceAfter = resilienceBefore
-    if not resilienceAlreadyCredited
-        and resilienceBefore < response.resilienceCeiling then
-        resilienceAfter = math.min(response.resilienceCeiling,
-            clamp01(resilienceBefore
-                + combinedGain * (1 - resilienceBefore)))
+    if not resilienceAlreadyCredited and resilienceBefore < response.resilienceCeiling then
+        resilienceAfter =
+            math.min(response.resilienceCeiling, clamp01(resilienceBefore + combinedGain * (1 - resilienceBefore)))
     end
     local changed = false
     if math.abs(resilienceAfter - resilienceBefore) > 0.0001 then
         self:setStateAtWorldPosition("resilience", x, z, resilienceAfter)
         self.continuousTrafficValues = self.continuousTrafficValues or {}
-        self.continuousTrafficValues.resilience =
-            self.continuousTrafficValues.resilience or {}
+        self.continuousTrafficValues.resilience = self.continuousTrafficValues.resilience or {}
         self.continuousTrafficValues.resilience[biologyKey] = resilienceAfter
         self:markResilienceChanged()
         changed = true
@@ -4400,17 +4748,17 @@ function TerraLogicSoilManager:applyRootGrowthAtWorldPosition(
 
     local function rememberContinuous(layerId, value, sampleX, sampleZ)
         self.continuousTrafficValues = self.continuousTrafficValues or {}
-        self.continuousTrafficValues[layerId] =
-            self.continuousTrafficValues[layerId] or {}
+        self.continuousTrafficValues[layerId] = self.continuousTrafficValues[layerId] or {}
         local cellSize = getLayerCellSize(layerId)
         self.continuousTrafficValues[layerId][getCellKey(
             math.floor((sampleX or x) / cellSize),
-            math.floor((sampleZ or z) / cellSize))] = value
+            math.floor((sampleZ or z) / cellSize)
+        )] =
+            value
     end
     local function relax(layerId, target, cycleStrength)
         cycleStrength = cycleStrength * cropCoverage
-        cycleStrength = scaleEnvironmentalStrength(
-            cycleStrength, rootActivity, ROOT_LOOSENING_SPEED)
+        cycleStrength = scaleEnvironmentalStrength(cycleStrength, rootActivity, ROOT_LOOSENING_SPEED)
         -- Scale the completed-cycle response, not each assessment separately.
         -- This preserves equivalence when accelerated time batches stages.
         if layerId == "deepCompaction" then
@@ -4418,39 +4766,33 @@ function TerraLogicSoilManager:applyRootGrowthAtWorldPosition(
         end
         local stageStrength = 1 - (1 - cycleStrength) ^ (1 / 3)
         local strength = 1 - (1 - stageStrength) ^ stages
-        local positions = {{x=x, z=z}}
+        local positions = { { x = x, z = z } }
         if layerId == "deepCompaction" then
             -- One crop-history cell represents 4x4 m. The former 4 m deep map
             -- changed that complete area with one write; preserve the same
             -- physical coverage by updating all four new 2 m children.
             positions = {}
-            local areaSize = TerraLogicQualityManager ~= nil
-                and tonumber(TerraLogicQualityManager.CELL_SIZE) or 4
+            local areaSize = TerraLogicQualityManager ~= nil and tonumber(TerraLogicQualityManager.CELL_SIZE) or 4
             local cellSize = getLayerCellSize(layerId)
-            local cellsPerSide = math.max(math.floor(
-                areaSize / cellSize + 0.5), 1)
+            local cellsPerSide = math.max(math.floor(areaSize / cellSize + 0.5), 1)
             local minX, minZ = x - areaSize * 0.5, z - areaSize * 0.5
-            for localZ=0,cellsPerSide-1 do
-                for localX=0,cellsPerSide-1 do
+            for localZ = 0, cellsPerSide - 1 do
+                for localX = 0, cellsPerSide - 1 do
                     positions[#positions + 1] = {
-                        x=minX + (localX + 0.5) * cellSize,
-                        z=minZ + (localZ + 0.5) * cellSize
+                        x = minX + (localX + 0.5) * cellSize,
+                        z = minZ + (localZ + 0.5) * cellSize,
                     }
                 end
             end
         end
         for _, position in ipairs(positions) do
-            local current = self:getValueAtWorldPosition(
-                layerId, position.x, position.z)
+            local current = self:getValueAtWorldPosition(layerId, position.x, position.z)
             if current > target then
-                local nextValue = clamp01(
-                    current + (target - current) * strength)
+                local nextValue = clamp01(current + (target - current) * strength)
                 if math.abs(nextValue - current) > 0.0001 then
-                    self:setStateAtWorldPosition(
-                        layerId, position.x, position.z, nextValue)
+                    self:setStateAtWorldPosition(layerId, position.x, position.z, nextValue)
                     -- Retain sub-byte progress during the running session.
-                    rememberContinuous(
-                        layerId, nextValue, position.x, position.z)
+                    rememberContinuous(layerId, nextValue, position.x, position.z)
                     changed = true
                 end
             end
@@ -4459,12 +4801,13 @@ function TerraLogicSoilManager:applyRootGrowthAtWorldPosition(
     local function relaxTilth(target, cycleStrength)
         local current = self:getValueAtWorldPosition("aggregateSize", x, z)
         cycleStrength = cycleStrength * cropCoverage
-        cycleStrength = scaleEnvironmentalStrength(
-            cycleStrength, rootActivity, ROOT_LOOSENING_SPEED)
+        cycleStrength = scaleEnvironmentalStrength(cycleStrength, rootActivity, ROOT_LOOSENING_SPEED)
         local stageStrength = 1 - (1 - cycleStrength) ^ (1 / 3)
         local strength = 1 - (1 - stageStrength) ^ stages
         local nextValue = clamp01(current + (target - current) * strength)
-        if math.abs(nextValue - current) <= 0.0001 then return end
+        if math.abs(nextValue - current) <= 0.0001 then
+            return
+        end
         self:setStateAtWorldPosition("aggregateSize", x, z, nextValue)
         rememberContinuous("aggregateSize", nextValue)
         changed = true
@@ -4472,16 +4815,20 @@ function TerraLogicSoilManager:applyRootGrowthAtWorldPosition(
     relax("surfaceCompaction", response.surfaceTarget, response.surface)
     relax("deepCompaction", response.deepTarget, response.deep)
     relaxTilth(0.50, response.tilth)
-    if changed and TerraLogicLogging ~= nil
-        and TerraLogicLogging.verbose == true then
+    if changed and TerraLogicLogging ~= nil and TerraLogicLogging.verbose == true then
         TerraLogicLogging.debug(
             "[FS25_TerraLogic] Root growth: crop=%s stages=%d resilienceSpeed=%dx physicalSpeed=%dx bio=%.3f targets=%.2f/%.2f resilience=%.3f->%.3f ceiling=%.2f",
-            tostring(cropName), stages, resilienceDevelopmentSpeed,
+            tostring(cropName),
+            stages,
+            resilienceDevelopmentSpeed,
             ROOT_LOOSENING_SPEED,
             environment.biologicalFactor,
-            response.surfaceTarget, response.deepTarget,
-            resilienceBefore, resilienceAfter,
-            response.resilienceCeiling)
+            response.surfaceTarget,
+            response.deepTarget,
+            resilienceBefore,
+            resilienceAfter,
+            response.resilienceCeiling
+        )
     end
     return changed
 end
@@ -4498,24 +4845,24 @@ function TerraLogicSoilManager:markResilienceChanged()
     end
 end
 
-function TerraLogicSoilManager:completeCropCycleAtWorldPosition(
-        x, z, fruitTypeIndex, growthCredited)
-    if g_server == nil then return false end
+function TerraLogicSoilManager:completeCropCycleAtWorldPosition(x, z, fruitTypeIndex, growthCredited)
+    if g_server == nil then
+        return false
+    end
     local group, cropName = self:getCropGroup(fruitTypeIndex)
-    if group == CROP_GROUP.NONE then return false end
+    if group == CROP_GROUP.NONE then
+        return false
+    end
     local response = getRootGrowthResponse(group, cropName)
-    local lastGroup, currentGroup, phase = decodeRotationState(
-        self:getRotationRawAtWorldPosition(x, z))
+    local lastGroup, currentGroup, phase = decodeRotationState(self:getRotationRawAtWorldPosition(x, z))
     -- All 4 m harvest cells inside the same 8 m biology cell converge here.
     -- COMPLETED therefore means this crop cycle has already been credited.
     if phase == ROTATION_PHASE_COMPLETED and lastGroup == group then
         return false
     end
-    local plantedMatch = phase == ROTATION_PHASE_PLANTED
-        and currentGroup == group
+    local plantedMatch = phase == ROTATION_PHASE_PLANTED and currentGroup == group
     local previousGroup = lastGroup
-    local resilienceCeiling = response ~= nil
-        and response.resilienceCeiling or 0.60
+    local resilienceCeiling = response ~= nil and response.resilienceCeiling or 0.60
     local gain = CROP_RESILIENCE_GAIN[group] or 0.006
     if growthCredited == true then
         -- Living roots were already credited at the actual growth events.
@@ -4523,8 +4870,9 @@ function TerraLogicSoilManager:completeCropCycleAtWorldPosition(
         gain = 0
         if previousGroup ~= CROP_GROUP.NONE and previousGroup ~= group then
             gain = 0.006
-            if previousGroup == CROP_GROUP.LEGUME
-                or group == CROP_GROUP.LEGUME then gain = gain + 0.003 end
+            if previousGroup == CROP_GROUP.LEGUME or group == CROP_GROUP.LEGUME then
+                gain = gain + 0.003
+            end
         end
     elseif previousGroup == group then
         -- Ordinary monoculture maintains roots but cannot farm resilience by
@@ -4552,32 +4900,37 @@ function TerraLogicSoilManager:completeCropCycleAtWorldPosition(
     local current = self:getValueAtWorldPosition("resilience", x, z)
     local nextValue = current
     if current < resilienceCeiling then
-        nextValue = math.min(resilienceCeiling,
-            clamp01(current + gain * (1 - current)))
+        nextValue = math.min(resilienceCeiling, clamp01(current + gain * (1 - current)))
     end
     if math.abs(nextValue - current) > 0.001 then
         self:setStateAtWorldPosition("resilience", x, z, nextValue)
         self:markResilienceChanged()
     end
-    self:setRotationStateAtWorldPosition(
-        x, z, group, 0, ROTATION_PHASE_COMPLETED)
+    self:setRotationStateAtWorldPosition(x, z, group, 0, ROTATION_PHASE_COMPLETED)
     if TerraLogicLogging ~= nil and TerraLogicLogging.verbose == true then
         TerraLogicLogging.debug(
             "[FS25_TerraLogic] Crop resilience: crop=%s group=%d previous=%d planted=%s value=%.3f->%.3f gain=%.4f ceiling=%.2f",
-            tostring(cropName), group, previousGroup,
-            tostring(plantedMatch), current, nextValue, gain,
-            resilienceCeiling)
+            tostring(cropName),
+            group,
+            previousGroup,
+            tostring(plantedMatch),
+            current,
+            nextValue,
+            gain,
+            resilienceCeiling
+        )
     end
     return true
 end
 
-function TerraLogicSoilManager:completeCropCycleAtQualityCell(
-        ix, iz, fruitTypeIndex, sourceCellSize, growthCredited)
+function TerraLogicSoilManager:completeCropCycleAtQualityCell(ix, iz, fruitTypeIndex, sourceCellSize, growthCredited)
     sourceCellSize = tonumber(sourceCellSize) or 4
     return self:completeCropCycleAtWorldPosition(
         (ix + 0.5) * sourceCellSize,
         (iz + 0.5) * sourceCellSize,
-        fruitTypeIndex, growthCredited)
+        fruitTypeIndex,
+        growthCredited
+    )
 end
 
 function TerraLogicSoilManager:getStateAtWorldPosition(x, z)
@@ -4595,41 +4948,37 @@ end
 -- writes or a missing display mask.
 function TerraLogicSoilManager:getLayerDebugAtWorldPosition(layerId, x, z)
     local layer = getLayerDefinition(layerId)
-    if layer == nil then return nil end
+    if layer == nil then
+        return nil
+    end
     local cellSize = getLayerCellSize(layerId)
     local channels = getLayerChannels(layerId)
     local ix = math.floor((tonumber(x) or 0) / cellSize)
     local iz = math.floor((tonumber(z) or 0) / cellSize)
     local key = getCellKey(ix, iz)
     local continuous = self.continuousTrafficValues ~= nil
-        and self.continuousTrafficValues[layerId] ~= nil
-        and self.continuousTrafficValues[layerId][key] or nil
-    local cached = self.layerCells ~= nil
-        and self.layerCells[layerId] ~= nil
-        and self.layerCells[layerId][key] or nil
+            and self.continuousTrafficValues[layerId] ~= nil
+            and self.continuousTrafficValues[layerId][key]
+        or nil
+    local cached = self.layerCells ~= nil and self.layerCells[layerId] ~= nil and self.layerCells[layerId][key] or nil
     local raw = self:getRawAtWorldPosition(layerId, x, z)
-    local rasterValue = decode(raw,
-        TerraLogicSoilProfiles.DEFAULTS[layerId], channels)
+    local rasterValue = decode(raw, TerraLogicSoilProfiles.DEFAULTS[layerId], channels)
     local effective = self:getValueAtWorldPosition(layerId, x, z)
     local expectedRaw = encode(effective, channels)
 
     local visualMaskRaw, visualRaw, visualValue = 0, 0, nil
-    local visualMap = self.visualizationMaps ~= nil
-        and self.visualizationMaps[layerId] or nil
-    if visualMap ~= nil and getBitVectorMapPoint ~= nil then
+    local visualMap = self.visualizationMaps ~= nil and self.visualizationMaps[layerId] or nil
+    if visualMap ~= nil and type(getBitVectorMapPoint) == "function" then
         local sizeX, sizeZ = getBitVectorMapSize(visualMap)
         sizeX = tonumber(sizeX) or 0
         sizeZ = tonumber(sizeZ) or sizeX
         if sizeX > 0 and sizeZ > 0 then
             local terrainSize = tonumber(self.terrainSize) or 2048
-            local px = math.floor(((tonumber(x) or 0) / terrainSize + 0.5)
-                * sizeX)
-            local pz = math.floor(((tonumber(z) or 0) / terrainSize + 0.5)
-                * sizeZ)
+            local px = math.floor(((tonumber(x) or 0) / terrainSize + 0.5) * sizeX)
+            local pz = math.floor(((tonumber(z) or 0) / terrainSize + 0.5) * sizeZ)
             px = math.max(0, math.min(px, sizeX - 1))
             pz = math.max(0, math.min(pz, sizeZ - 1))
-            visualMaskRaw = tonumber(getBitVectorMapPoint(
-                visualMap, px, pz, 0, 1)) or 0
+            visualMaskRaw = tonumber(getBitVectorMapPoint(visualMap, px, pz, 0, 1)) or 0
             if visualMaskRaw > 0 then
                 -- The overlay now reads this authoritative raw state directly.
                 visualRaw = raw
@@ -4639,27 +4988,33 @@ function TerraLogicSoilManager:getLayerDebugAtWorldPosition(layerId, x, z)
     end
     local expectedVisualRaw = expectedRaw
     return {
-        id=layerId, cellSize=cellSize, channels=channels,
-        ix=ix, iz=iz, effective=effective,
-        raw=raw, rasterValue=rasterValue, expectedRaw=expectedRaw,
-        rasterMatches=raw == expectedRaw,
-        visualMaskRaw=visualMaskRaw,
-        visualRaw=visualRaw, visualValue=visualValue,
-        expectedVisualRaw=expectedVisualRaw,
-        visualMatches=visualMaskRaw > 0 and visualRaw == expectedVisualRaw,
-        continuousValue=continuous,
-        cachedValue=cached ~= nil and cached.value or nil,
-        source=continuous ~= nil and "traffic accumulator"
-            or (cached ~= nil and "write cache" or "raster"),
-        writeSerial=self.layerWriteSerial ~= nil
-            and tonumber(self.layerWriteSerial[layerId]) or 0
+        id = layerId,
+        cellSize = cellSize,
+        channels = channels,
+        ix = ix,
+        iz = iz,
+        effective = effective,
+        raw = raw,
+        rasterValue = rasterValue,
+        expectedRaw = expectedRaw,
+        rasterMatches = raw == expectedRaw,
+        visualMaskRaw = visualMaskRaw,
+        visualRaw = visualRaw,
+        visualValue = visualValue,
+        expectedVisualRaw = expectedVisualRaw,
+        visualMatches = visualMaskRaw > 0 and visualRaw == expectedVisualRaw,
+        continuousValue = continuous,
+        cachedValue = cached ~= nil and cached.value or nil,
+        source = continuous ~= nil and "traffic accumulator" or (cached ~= nil and "write cache" or "raster"),
+        writeSerial = self.layerWriteSerial ~= nil and tonumber(self.layerWriteSerial[layerId]) or 0,
     }
 end
 
-function TerraLogicSoilManager:writeRasterCell(
-        layerId, ix, iz, value, suppressNetworkRevision)
+function TerraLogicSoilManager:writeRasterCell(layerId, ix, iz, value, suppressNetworkRevision)
     local modifier = self.modifiers[layerId]
-    if not self:setModifierToCell(modifier, layerId, ix, iz) then return false end
+    if not self:setModifierToCell(modifier, layerId, ix, iz) then
+        return false
+    end
     modifier:executeSet(encode(value, getLayerChannels(layerId)))
     if suppressNetworkRevision ~= true then
         self:markServerNetworkTileChanged(layerId, ix, iz)
@@ -4671,51 +5026,68 @@ end
 -- Writing it directly avoids a decode/re-encode round trip and, unlike the
 -- authoritative setStateCell boundary, does not mark savegame data dirty or
 -- rebuild the overlay once per individual pixel.
-function TerraLogicSoilManager:writeNetworkRasterCell(
-        layerId, ix, iz, rawValue)
+function TerraLogicSoilManager:writeNetworkRasterCell(layerId, ix, iz, rawValue)
     local modifier = self.modifiers[layerId]
-    if not self:setModifierToCell(modifier, layerId, ix, iz) then return false end
+    if not self:setModifierToCell(modifier, layerId, ix, iz) then
+        return false
+    end
     local maximum = 2 ^ getLayerChannels(layerId) - 1
-    modifier:executeSet(math.clamp(
-        math.floor(tonumber(rawValue) or 0), 0, maximum))
+    modifier:executeSet(math.clamp(math.floor(tonumber(rawValue) or 0), 0, maximum))
     return true
 end
 
 function TerraLogicSoilManager:getVisualizationRawAtWorldPosition(layerId, x, z)
-    local map = self.visualizationMaps ~= nil
-        and self.visualizationMaps[layerId] or nil
-    local size = self.visualizationMapSizes ~= nil
-        and self.visualizationMapSizes[layerId] or nil
+    local map = self.visualizationMaps ~= nil and self.visualizationMaps[layerId] or nil
+    local size = self.visualizationMapSizes ~= nil and self.visualizationMapSizes[layerId] or nil
     return getRawFromBitVectorMap(
-        map, 1, tonumber(self.terrainSize) or 2048, x, z,
-        size ~= nil and size.x or nil, size ~= nil and size.z or nil)
+        map,
+        1,
+        tonumber(self.terrainSize) or 2048,
+        x,
+        z,
+        size ~= nil and size.x or nil,
+        size ~= nil and size.z or nil
+    )
 end
 
-function TerraLogicSoilManager:writeNetworkVisualizationCell(
-        layerId, ix, iz, rawValue)
-    local modifier = self.visualizationModifiers ~= nil
-        and self.visualizationModifiers[layerId] or nil
-    if not self:setModifierToCell(modifier, layerId, ix, iz) then return false end
+function TerraLogicSoilManager:writeNetworkVisualizationCell(layerId, ix, iz, rawValue)
+    local modifier = self.visualizationModifiers ~= nil and self.visualizationModifiers[layerId] or nil
+    if not self:setModifierToCell(modifier, layerId, ix, iz) then
+        return false
+    end
     modifier:executeSet((tonumber(rawValue) or 0) > 0 and 1 or 0)
     return true
 end
 
 function TerraLogicSoilManager:writeVisualizationCell(
-        layerId, ix, iz, value, suppressNetworkRevision, coverageConfirmed)
-    local modifier = self.visualizationModifiers ~= nil
-        and self.visualizationModifiers[layerId] or nil
-    if modifier == nil then return false end
+    layerId,
+    ix,
+    iz,
+    value,
+    suppressNetworkRevision,
+    coverageConfirmed
+)
+    local modifier = self.visualizationModifiers ~= nil and self.visualizationModifiers[layerId] or nil
+    if modifier == nil then
+        return false
+    end
     local cellSize = getLayerCellSize(layerId)
-    local centerX, centerZ = (ix+0.5)*cellSize, (iz+0.5)*cellSize
+    local centerX, centerZ = (ix + 0.5) * cellSize, (iz + 0.5) * cellSize
     -- Only reject a cell when the decoded GIANTS ground type positively says
     -- that no field surface remains. An unavailable density query must not
     -- erase valid coverage, especially on remote/dedicated-server clients.
-    local alreadyVisible = self:getVisualizationRawAtWorldPosition(
-        layerId, centerX, centerZ) > 0
-    if alreadyVisible then return true end
-    if not self:setModifierToCell(modifier, layerId, ix, iz) then return false end
-    if not alreadyVisible and coverageConfirmed ~= true
-        and self:isCultivatableTerrainCell(layerId, ix, iz) == false then
+    local alreadyVisible = self:getVisualizationRawAtWorldPosition(layerId, centerX, centerZ) > 0
+    if alreadyVisible then
+        return true
+    end
+    if not self:setModifierToCell(modifier, layerId, ix, iz) then
+        return false
+    end
+    if
+        not alreadyVisible
+        and coverageConfirmed ~= true
+        and self:isCultivatableTerrainCell(layerId, ix, iz) == false
+    then
         modifier:executeSet(0)
         if suppressNetworkRevision ~= true then
             self:markServerNetworkTileChanged(layerId, ix, iz)
@@ -4733,11 +5105,11 @@ function TerraLogicSoilManager:writeVisualizationCell(
     return true
 end
 
-function TerraLogicSoilManager:clearVisualizationCell(
-        layerId, ix, iz, suppressNetworkRevision)
-    local modifier = self.visualizationModifiers ~= nil
-        and self.visualizationModifiers[layerId] or nil
-    if not self:setModifierToCell(modifier, layerId, ix, iz) then return false end
+function TerraLogicSoilManager:clearVisualizationCell(layerId, ix, iz, suppressNetworkRevision)
+    local modifier = self.visualizationModifiers ~= nil and self.visualizationModifiers[layerId] or nil
+    if not self:setModifierToCell(modifier, layerId, ix, iz) then
+        return false
+    end
     modifier:executeSet(0)
     if suppressNetworkRevision ~= true then
         self:markServerNetworkTileChanged(layerId, ix, iz)
@@ -4747,12 +5119,18 @@ end
 
 function TerraLogicSoilManager:isCultivatableTerrainAtWorldPosition(x, z)
     local value = self:getGroundTypeAtWorldPosition(x, z)
-    if value == nil then return nil end
-    if FieldGroundType ~= nil
-        and FieldGroundType.getTypeByValue ~= nil
-        and FieldGroundType.NONE ~= nil then
-        local ok, groundType = pcall(FieldGroundType.getTypeByValue, value)
-        if ok then return groundType ~= FieldGroundType.NONE, value end
+    if value == nil then
+        return nil
+    end
+    if
+        FieldGroundType ~= nil
+        and type(FieldGroundType.getTypeByValue) == "function"
+        and FieldGroundType.NONE ~= nil
+    then
+        local groundType = FieldGroundType.getTypeByValue(value)
+        do
+            return groundType ~= FieldGroundType.NONE, value
+        end
     end
     -- Older/custom maps may not expose the converter. The decoded GROUND_TYPE
     -- value still uses zero for NONE, unlike the former raw terrainDetailId
@@ -4760,26 +5138,24 @@ function TerraLogicSoilManager:isCultivatableTerrainAtWorldPosition(x, z)
     return tonumber(value) ~= 0, value
 end
 
-function TerraLogicSoilManager:getCultivatableTerrainCoverage(
-        cellSize, ix, iz)
+function TerraLogicSoilManager:getCultivatableTerrainCoverage(cellSize, ix, iz)
     cellSize = math.max(tonumber(cellSize) or self.WHEEL_CELL_SIZE, 0.25)
     -- One-metre cells need more than their centre point: a diagonal native
     -- field edge can otherwise authorize a complete square although only a
     -- thin corner is arable. Coarser layer masks sample up to a 4x4 grid so
     -- all layers use the same live-ground majority rule without an expensive
     -- full-resolution scan of every eight-metre resilience cell.
-    local subdivisions = cellSize <= 1.01
-        and self.COVERAGE_FINE_SAMPLE_GRID
-        or math.min(math.max(math.ceil(cellSize / 2), 2),
-            self.COVERAGE_COARSE_SAMPLE_GRID_MAX)
+    local subdivisions = cellSize <= 1.01 and self.COVERAGE_FINE_SAMPLE_GRID
+        or math.min(math.max(math.ceil(cellSize / 2), 2), self.COVERAGE_COARSE_SAMPLE_GRID_MAX)
     local step = cellSize / subdivisions
     local originX, originZ = ix * cellSize, iz * cellSize
     local cultivatableCount, knownCount = 0, 0
-    for sampleZ=0,subdivisions-1 do
-        for sampleX=0,subdivisions-1 do
+    for sampleZ = 0, subdivisions - 1 do
+        for sampleX = 0, subdivisions - 1 do
             local result = self:isCultivatableTerrainAtWorldPosition(
                 originX + (sampleX + 0.5) * step,
-                originZ + (sampleZ + 0.5) * step)
+                originZ + (sampleZ + 0.5) * step
+            )
             if result ~= nil then
                 knownCount = knownCount + 1
                 if result == true then
@@ -4788,20 +5164,22 @@ function TerraLogicSoilManager:getCultivatableTerrainCoverage(
             end
         end
     end
-    if knownCount <= 0 then return nil end
+    if knownCount <= 0 then
+        return nil
+    end
     return cultivatableCount / knownCount
 end
 
-function TerraLogicSoilManager:isCultivatableTerrainRegion(
-        cellSize, ix, iz)
+function TerraLogicSoilManager:isCultivatableTerrainRegion(cellSize, ix, iz)
     local coverage = self:getCultivatableTerrainCoverage(cellSize, ix, iz)
-    if coverage == nil then return nil end
+    if coverage == nil then
+        return nil
+    end
     return coverage >= self.COVERAGE_VISIBLE_MIN_FRACTION
 end
 
 function TerraLogicSoilManager:isCultivatableTerrainCell(layerId, ix, iz)
-    return self:isCultivatableTerrainRegion(
-        getLayerCellSize(layerId), ix, iz)
+    return self:isCultivatableTerrainRegion(getLayerCellSize(layerId), ix, iz)
 end
 
 local function getCoverageTileKey(tileX, tileZ)
@@ -4809,47 +5187,62 @@ local function getCoverageTileKey(tileX, tileZ)
 end
 
 function TerraLogicSoilManager:queueCoverageTile(tileX, tileZ)
-    if g_server == nil or self.rasterReady ~= true then return false end
-    tileX, tileZ = math.floor(tonumber(tileX) or 0),
-        math.floor(tonumber(tileZ) or 0)
+    if g_server == nil or self.rasterReady ~= true then
+        return false
+    end
+    tileX, tileZ = math.floor(tonumber(tileX) or 0), math.floor(tonumber(tileZ) or 0)
     self.coverageReconcileJobs = self.coverageReconcileJobs or {}
     self.coverageReconcilePending = self.coverageReconcilePending or {}
     local key = getCoverageTileKey(tileX, tileZ)
-    if self.coverageReconcilePending[key] == true then return false end
+    if self.coverageReconcilePending[key] == true then
+        return false
+    end
     if #self.coverageReconcileJobs >= self.COVERAGE_RECONCILE_MAX_JOBS then
         return false
     end
     local size = self.COVERAGE_RECONCILE_TILE_SIZE_M
     local half = (tonumber(self.terrainSize) or 2048) * 0.5
     local minX, minZ = tileX * size, tileZ * size
-    if minX >= half or minZ >= half
-        or minX + size <= -half or minZ + size <= -half then return false end
+    if minX >= half or minZ >= half or minX + size <= -half or minZ + size <= -half then
+        return false
+    end
     self.coverageReconcilePending[key] = true
     self.coverageReconcileJobs[#self.coverageReconcileJobs + 1] = {
-        key=key, tileX=tileX, tileZ=tileZ,
-        minX=minX, minZ=minZ, index=0,
-        sampleStep=self.COVERAGE_AUTHORITY_SAMPLE_M,
-        samplesPerSide=math.max(math.floor(
-            size/self.COVERAGE_AUTHORITY_SAMPLE_M + 0.5), 1),
-        phase="sample", changed=false, coverageCells={},
-        applyCells=nil, applyIndex=1
+        key = key,
+        tileX = tileX,
+        tileZ = tileZ,
+        minX = minX,
+        minZ = minZ,
+        index = 0,
+        sampleStep = self.COVERAGE_AUTHORITY_SAMPLE_M,
+        samplesPerSide = math.max(math.floor(size / self.COVERAGE_AUTHORITY_SAMPLE_M + 0.5), 1),
+        phase = "sample",
+        changed = false,
+        coverageCells = {},
+        applyCells = nil,
+        applyIndex = 1,
     }
     return true
 end
 
 function TerraLogicSoilManager:queueCoverageRegion(minX, minZ, maxX, maxZ)
-    if g_server == nil then return false end
+    if g_server == nil then
+        return false
+    end
     minX, minZ = tonumber(minX) or 0, tonumber(minZ) or 0
     maxX, maxZ = tonumber(maxX) or minX, tonumber(maxZ) or minZ
-    if minX > maxX then minX, maxX = maxX, minX end
-    if minZ > maxZ then minZ, maxZ = maxZ, minZ end
+    if minX > maxX then
+        minX, maxX = maxX, minX
+    end
+    if minZ > maxZ then
+        minZ, maxZ = maxZ, minZ
+    end
     local maximum = self.COVERAGE_RECONCILE_MAX_REGION_M
-    maxX, maxZ = math.min(maxX, minX + maximum),
-        math.min(maxZ, minZ + maximum)
+    maxX, maxZ = math.min(maxX, minX + maximum), math.min(maxZ, minZ + maximum)
     local size = self.COVERAGE_RECONCILE_TILE_SIZE_M
     local queued = false
-    for tileZ=math.floor(minZ/size),math.floor((maxZ-0.001)/size) do
-        for tileX=math.floor(minX/size),math.floor((maxX-0.001)/size) do
+    for tileZ = math.floor(minZ / size), math.floor((maxZ - 0.001) / size) do
+        for tileX = math.floor(minX / size), math.floor((maxX - 0.001) / size) do
             queued = self:queueCoverageTile(tileX, tileZ) or queued
         end
     end
@@ -4858,7 +5251,9 @@ end
 
 function TerraLogicSoilManager:processCoverageReconcileJobs(jobs, budget)
     budget = tonumber(budget) or self.COVERAGE_RECONCILE_CELLS_PER_FRAME
-    if g_server == nil or self.rasterReady ~= true then return budget end
+    if g_server == nil or self.rasterReady ~= true then
+        return budget
+    end
     jobs = jobs or self.coverageReconcileJobs or {}
     while budget > 0 and #jobs > 0 do
         local job = jobs[1]
@@ -4867,8 +5262,7 @@ function TerraLogicSoilManager:processCoverageReconcileJobs(jobs, budget)
             local localX = job.index % side
             local localZ = math.floor(job.index / side)
             local step = job.sampleStep
-            local x, z = job.minX + (localX+0.5)*step,
-                job.minZ + (localZ+0.5)*step
+            local x, z = job.minX + (localX + 0.5) * step, job.minZ + (localZ + 0.5) * step
             -- Query the live half-metre authority once, then reuse that result
             -- for all five layer masks. This is both more accurate and much
             -- cheaper than independently resampling each 1/2/8 m mask cell.
@@ -4876,13 +5270,11 @@ function TerraLogicSoilManager:processCoverageReconcileJobs(jobs, budget)
             if cultivatable ~= nil then
                 for _, layer in ipairs(self.layers) do
                     local cellSize = getLayerCellSize(layer.id)
-                    local ix, iz = math.floor(x/cellSize), math.floor(z/cellSize)
-                    local cellKey = layer.id .. ":" .. tostring(ix) .. ":"
-                        .. tostring(iz)
+                    local ix, iz = math.floor(x / cellSize), math.floor(z / cellSize)
+                    local cellKey = layer.id .. ":" .. tostring(ix) .. ":" .. tostring(iz)
                     local entry = job.coverageCells[cellKey]
                     if entry == nil then
-                        entry = {layerId=layer.id, ix=ix, iz=iz,
-                            known=0, cultivatable=0}
+                        entry = { layerId = layer.id, ix = ix, iz = iz, known = 0, cultivatable = 0 }
                         job.coverageCells[cellKey] = entry
                     end
                     entry.known = entry.known + 1
@@ -4893,30 +5285,25 @@ function TerraLogicSoilManager:processCoverageReconcileJobs(jobs, budget)
             end
             job.index = job.index + 1
             budget = budget - 1
-            if job.index >= side*side then
+            if job.index >= side * side then
                 job.applyCells = {}
                 for _, entry in pairs(job.coverageCells) do
-                    job.applyCells[#job.applyCells+1] = entry
+                    job.applyCells[#job.applyCells + 1] = entry
                 end
                 job.phase, job.applyIndex = "apply", 1
             end
         else
             local entry = job.applyCells[job.applyIndex]
             if entry ~= nil and entry.known > 0 then
-                local cultivatable = entry.cultivatable/entry.known
-                    >= self.COVERAGE_VISIBLE_MIN_FRACTION
+                local cultivatable = entry.cultivatable / entry.known >= self.COVERAGE_VISIBLE_MIN_FRACTION
                 local cellSize = getLayerCellSize(entry.layerId)
-                local centerX, centerZ = (entry.ix+0.5)*cellSize,
-                    (entry.iz+0.5)*cellSize
-                local visible = self:getVisualizationRawAtWorldPosition(
-                    entry.layerId, centerX, centerZ) > 0
+                local centerX, centerZ = (entry.ix + 0.5) * cellSize, (entry.iz + 0.5) * cellSize
+                local visible = self:getVisualizationRawAtWorldPosition(entry.layerId, centerX, centerZ) > 0
                 if cultivatable ~= visible then
                     if cultivatable then
-                        self:writeVisualizationCell(entry.layerId,
-                            entry.ix, entry.iz, 1, false, true)
+                        self:writeVisualizationCell(entry.layerId, entry.ix, entry.iz, 1, false, true)
                     else
-                        self:clearVisualizationCell(
-                            entry.layerId, entry.ix, entry.iz)
+                        self:clearVisualizationCell(entry.layerId, entry.ix, entry.iz)
                     end
                     job.changed = true
                 end
@@ -4924,16 +5311,14 @@ function TerraLogicSoilManager:processCoverageReconcileJobs(jobs, budget)
             job.applyIndex = job.applyIndex + 1
             budget = budget - 1
         end
-        if job.phase == "apply"
-            and job.applyIndex > #(job.applyCells or {}) then
+        if job.phase == "apply" and job.applyIndex > #(job.applyCells or {}) then
             table.remove(jobs, 1)
             self.coverageReconcilePending[job.key] = nil
             TerraLogicMapMaintenance:onCompleted(job)
             if job.changed then
                 self.dirty = true
                 self.visualizationDirty = true
-                self.overlayRefreshTime = (g_currentMission.time or 0)
-                    + self.OVERLAY_REFRESH_DELAY_MS
+                self.overlayRefreshTime = (g_currentMission.time or 0) + self.OVERLAY_REFRESH_DELAY_MS
             end
         end
     end
@@ -4947,8 +5332,7 @@ function TerraLogicSoilManager:requestCoverageRegion(minX, minZ, maxX, maxZ)
     if g_client ~= nil then
         local connection = g_client:getServerConnection()
         if connection ~= nil and TerraLogicCoverageReconcileEvent ~= nil then
-            connection:sendEvent(TerraLogicCoverageReconcileEvent.new(
-                minX, minZ, maxX, maxZ))
+            connection:sendEvent(TerraLogicCoverageReconcileEvent.new(minX, minZ, maxX, maxZ))
             return true
         end
     end
@@ -4956,24 +5340,32 @@ function TerraLogicSoilManager:requestCoverageRegion(minX, minZ, maxX, maxZ)
 end
 
 function TerraLogicSoilManager:updateNearbyCoverageReconcile(now)
-    if now < (tonumber(self.coverageReconcileNextRequestTime) or 0) then return end
-    if g_localPlayer == nil or getWorldTranslation == nil then return end
-    local vehicle = g_localPlayer.getCurrentVehicle ~= nil
-        and g_localPlayer:getCurrentVehicle() or nil
-    local node = vehicle ~= nil and (vehicle.rootNode
-        or (vehicle.components ~= nil and vehicle.components[1] ~= nil
-            and vehicle.components[1].node)) or g_localPlayer.rootNode
-    if node == nil or node == 0 then return end
+    if now < (tonumber(self.coverageReconcileNextRequestTime) or 0) then
+        return
+    end
+    if g_localPlayer == nil or getWorldTranslation == nil then
+        return
+    end
+    local vehicle = g_localPlayer.getCurrentVehicle ~= nil and g_localPlayer:getCurrentVehicle() or nil
+    local node = vehicle ~= nil
+            and (vehicle.rootNode or (vehicle.components ~= nil and vehicle.components[1] ~= nil and vehicle.components[1].node))
+        or g_localPlayer.rootNode
+    if node == nil or node == 0 then
+        return
+    end
     local x, _, z = getWorldTranslation(node)
-    if x == nil then return end
+    if x == nil then
+        return
+    end
     local radius = tonumber(self.coverageViewportRadius) or 96
     if g_server ~= nil then
         TerraLogicMapMaintenance:setInterest("local", x, z, radius)
     elseif g_client ~= nil then
         local connection = g_client:getServerConnection()
         if connection ~= nil then
-            connection:sendEvent(TerraLogicCoverageReconcileEvent.new(
-                x-radius, z-radius, x+radius, z+radius, true))
+            connection:sendEvent(
+                TerraLogicCoverageReconcileEvent.new(x - radius, z - radius, x + radius, z + radius, true)
+            )
         end
     end
     self.coverageReconcileNextRequestTime = now + 3000
@@ -4983,61 +5375,61 @@ function TerraLogicSoilManager:recordConstructionCoveragePosition(screen)
     local cursor = screen ~= nil and screen.cursor or nil
     local node = cursor ~= nil and (cursor.rootNode or cursor.node) or nil
     node = node or (screen ~= nil and screen.cursorNode or nil)
-    if node == nil or node == 0 or getWorldTranslation == nil then return end
+    if node == nil or node == 0 or getWorldTranslation == nil then
+        return
+    end
     local x, _, z = getWorldTranslation(node)
     local size = self.COVERAGE_RECONCILE_TILE_SIZE_M
     self.constructionCoverageTiles = self.constructionCoverageTiles or {}
-    local centerX, centerZ = math.floor(x/size), math.floor(z/size)
+    local centerX, centerZ = math.floor(x / size), math.floor(z / size)
     -- One surrounding tile covers even the larger landscaping brushes while
     -- keeping the request bounded and independent of undocumented brush data.
-    for dz=-1,1 do
-        for dx=-1,1 do
-            local tileX, tileZ = centerX+dx, centerZ+dz
-            self.constructionCoverageTiles[
-                getCoverageTileKey(tileX, tileZ)] = {x=tileX, z=tileZ}
+    for dz = -1, 1 do
+        for dx = -1, 1 do
+            local tileX, tileZ = centerX + dx, centerZ + dz
+            self.constructionCoverageTiles[getCoverageTileKey(tileX, tileZ)] = { x = tileX, z = tileZ }
         end
     end
 end
 
 function TerraLogicSoilManager:flushConstructionCoverage()
-    local minTileX, minTileZ, maxTileX, maxTileZ =
-        math.huge, math.huge, -math.huge, -math.huge
+    local minTileX, minTileZ, maxTileX, maxTileZ = math.huge, math.huge, -math.huge, -math.huge
     for _, tile in pairs(self.constructionCoverageTiles or {}) do
-        minTileX, minTileZ = math.min(minTileX, tile.x),
-            math.min(minTileZ, tile.z)
-        maxTileX, maxTileZ = math.max(maxTileX, tile.x),
-            math.max(maxTileZ, tile.z)
+        minTileX, minTileZ = math.min(minTileX, tile.x), math.min(minTileZ, tile.z)
+        maxTileX, maxTileZ = math.max(maxTileX, tile.x), math.max(maxTileZ, tile.z)
     end
     if minTileX ~= math.huge then
         local size = self.COVERAGE_RECONCILE_TILE_SIZE_M
-        self:requestCoverageRegion(minTileX*size, minTileZ*size,
-            (maxTileX+1)*size, (maxTileZ+1)*size)
+        self:requestCoverageRegion(minTileX * size, minTileZ * size, (maxTileX + 1) * size, (maxTileZ + 1) * size)
     end
     self.constructionCoverageTiles = {}
 end
 
 function TerraLogicSoilManager:installConstructionCoverageHook()
-    if ConstructionScreen == nil or Utils == nil then return false end
+    if ConstructionScreen == nil or Utils == nil then
+        return false
+    end
     if ConstructionScreen.terraLogicCoverageHookInstalled == true then
         self.constructionCoverageHookInstalled = true
         return true
     end
     if ConstructionScreen.onButtonPrimaryDrag ~= nil then
         ConstructionScreen.onButtonPrimaryDrag = Utils.appendedFunction(
-            ConstructionScreen.onButtonPrimaryDrag, function(screen)
+            ConstructionScreen.onButtonPrimaryDrag,
+            function(screen)
                 if TerraLogicSoilManager ~= nil then
                     TerraLogicSoilManager:recordConstructionCoveragePosition(screen)
                 end
-            end)
+            end
+        )
     end
     if ConstructionScreen.onClose ~= nil then
-        ConstructionScreen.onClose = Utils.prependedFunction(
-            ConstructionScreen.onClose, function(screen)
-                if TerraLogicSoilManager ~= nil then
-                    TerraLogicSoilManager:recordConstructionCoveragePosition(screen)
-                    TerraLogicSoilManager:flushConstructionCoverage()
-                end
-            end)
+        ConstructionScreen.onClose = Utils.prependedFunction(ConstructionScreen.onClose, function(screen)
+            if TerraLogicSoilManager ~= nil then
+                TerraLogicSoilManager:recordConstructionCoveragePosition(screen)
+                TerraLogicSoilManager:flushConstructionCoverage()
+            end
+        end)
     end
     ConstructionScreen.terraLogicCoverageHookInstalled = true
     self.constructionCoverageHookInstalled = true
@@ -5059,30 +5451,27 @@ function TerraLogicSoilManager:ensureVisualizationCellVisible(layerId, ix, iz)
     return self:writeVisualizationCell(layerId, ix, iz, 1)
 end
 
-function TerraLogicSoilManager:setStateCell(
-        layerId, ix, iz, value, suppressNetworkRevision)
+function TerraLogicSoilManager:setStateCell(layerId, ix, iz, value, suppressNetworkRevision)
     local key = getCellKey(ix, iz)
     local normalized = clamp01(value)
-    if self.continuousTrafficValues ~= nil
-        and self.continuousTrafficValues[layerId] ~= nil then
+    if self.continuousTrafficValues ~= nil and self.continuousTrafficValues[layerId] ~= nil then
         -- Any implement/tillage write supersedes an accumulated wheel value.
         self.continuousTrafficValues[layerId][key] = nil
     end
-    local rasterWritten = self:writeRasterCell(
-        layerId, ix, iz, normalized, suppressNetworkRevision)
-    local visualWritten = self:writeVisualizationCell(
-        layerId, ix, iz, normalized, true)
+    local rasterWritten = self:writeRasterCell(layerId, ix, iz, normalized, suppressNetworkRevision)
+    local visualWritten = self:writeVisualizationCell(layerId, ix, iz, normalized, true)
     self.layerCells[layerId] = self.layerCells[layerId] or {}
     self.layerWriteSerial = self.layerWriteSerial or {}
-    self.layerWriteSerial[layerId] =
-        (tonumber(self.layerWriteSerial[layerId]) or 0) + 1
+    self.layerWriteSerial[layerId] = (tonumber(self.layerWriteSerial[layerId]) or 0) + 1
     if rasterWritten and visualWritten then
         self.layerCells[layerId][key] = nil
     else
         -- Short-lived fallback for changes or migration data received before
         -- terrain-backed modifiers are available.
         self.layerCells[layerId][key] = {
-            ix=ix, iz=iz, value=normalized
+            ix = ix,
+            iz = iz,
+            value = normalized,
         }
     end
     -- Every persisted soil write invalidates the currently generated overlay
@@ -5112,22 +5501,25 @@ end
 -- TerraLogic reads; it never writes Precision Farming's soil, pH, nitrogen or
 -- yield maps. Reloading the save restores automatic PF detection.
 function TerraLogicSoilManager:setTestSoilTypeOverride(name)
-    if g_server == nil then return false, "server unavailable" end
-    local normalized = string.lower(tostring(name or ""))
-        :gsub("[%s_%-]", "")
+    if g_server == nil then
+        return false, "server unavailable"
+    end
+    local normalized = string.lower(tostring(name or "")):gsub("[%s_%-]", "")
     local types = {
-        ["1"]=1, loamysand=1,
-        ["2"]=2, sandyloam=2,
-        ["3"]=3, loam=3,
-        ["4"]=4, siltyclay=4
+        ["1"] = 1,
+        loamysand = 1,
+        ["2"] = 2,
+        sandyloam = 2,
+        ["3"] = 3,
+        loam = 3,
+        ["4"] = 4,
+        siltyclay = 4,
     }
-    if normalized == "" or normalized == "auto" or normalized == "off"
-        or normalized == "natural" then
+    if normalized == "" or normalized == "auto" or normalized == "off" or normalized == "natural" then
         self.auditSoilTypeOverride = nil
         self.auditSoilTypeOverrideName = nil
         if TerraLogicAuditManager ~= nil then
-            TerraLogicAuditManager.metadata =
-                TerraLogicAuditManager.metadata or {}
+            TerraLogicAuditManager.metadata = TerraLogicAuditManager.metadata or {}
             TerraLogicAuditManager.metadata.soilTypeOverride = "auto"
         end
         return true, "automatic Precision Farming soil detection restored"
@@ -5138,19 +5530,16 @@ function TerraLogicSoilManager:setTestSoilTypeOverride(name)
     end
     self.auditSoilTypeOverride = index
     local response = TerraLogicSoilProfiles ~= nil
-        and TerraLogicSoilProfiles.PF_SOIL_RESPONSES ~= nil
-        and TerraLogicSoilProfiles.PF_SOIL_RESPONSES[index] or nil
-    local label = response ~= nil and response.name
-        or ({"Loamy Sand", "Sandy Loam", "Loam", "Silty Clay"})[index]
+            and TerraLogicSoilProfiles.PF_SOIL_RESPONSES ~= nil
+            and TerraLogicSoilProfiles.PF_SOIL_RESPONSES[index]
+        or nil
+    local label = response ~= nil and response.name or ({ "Loamy Sand", "Sandy Loam", "Loam", "Silty Clay" })[index]
     self.auditSoilTypeOverrideName = label
     if TerraLogicAuditManager ~= nil then
-        TerraLogicAuditManager.metadata =
-            TerraLogicAuditManager.metadata or {}
+        TerraLogicAuditManager.metadata = TerraLogicAuditManager.metadata or {}
         TerraLogicAuditManager.metadata.soilTypeOverride = label
     end
-    return true, string.format(
-        "%s used for TerraLogic physics until reload; PF maps remain unchanged",
-        tostring(label))
+    return true, string.format("%s used for TerraLogic physics until reload; PF maps remain unchanged", tostring(label))
 end
 
 TerraLogicSoilManager.TEST_SECTION_SCAN_CELL_SIZE = 2
@@ -5163,8 +5552,7 @@ end
 local function isTestSectionCell(manager, ix, iz)
     local size = manager.TEST_SECTION_SCAN_CELL_SIZE
     local x, z = (ix + 0.5) * size, (iz + 0.5) * size
-    if manager:getVisualizationRawAtWorldPosition(
-            "surfaceCompaction", x, z) <= 0 then
+    if manager:getVisualizationRawAtWorldPosition("surfaceCompaction", x, z) <= 0 then
         return false
     end
     return manager:isCultivatableTerrainRegion(size, ix, iz) == true
@@ -5176,11 +5564,12 @@ local function isTestSectionEdgeConnected(manager, ix, iz, nx, nz)
     local edgeX = (ix + 0.5 + dx * 0.5) * size
     local edgeZ = (iz + 0.5 + dz * 0.5) * size
     local sideX, sideZ = -dz * size, dx * size
-    for _, offset in ipairs({-0.25, 0, 0.25}) do
+    for _, offset in ipairs({ -0.25, 0, 0.25 }) do
         local x, z = edgeX + sideX * offset, edgeZ + sideZ * offset
-        if manager:getVisualizationRawAtWorldPosition(
-                "surfaceCompaction", x, z) > 0
-            and manager:isCultivatableTerrainAtWorldPosition(x, z) == true then
+        if
+            manager:getVisualizationRawAtWorldPosition("surfaceCompaction", x, z) > 0
+            and manager:isCultivatableTerrainAtWorldPosition(x, z) == true
+        then
             return true
         end
     end
@@ -5193,15 +5582,18 @@ end
 -- can regard the freshly reset field as already worked for several minutes.
 function TerraLogicSoilManager:clearRuntimeSoilPassCaches()
     local vehicles = g_currentMission ~= nil
-        and g_currentMission.vehicleSystem ~= nil
-        and g_currentMission.vehicleSystem.vehicles or {}
+            and g_currentMission.vehicleSystem ~= nil
+            and g_currentMission.vehicleSystem.vehicles
+        or {}
     local cleared = 0
     for _, vehicle in pairs(vehicles or {}) do
         local spec = vehicle ~= nil and vehicle.spec_terraLogic or nil
         if spec ~= nil then
-            if next(spec.soilRecentCells or {}) ~= nil
+            if
+                next(spec.soilRecentCells or {}) ~= nil
                 or next(spec.soilPreviousWorkAreaGeometry or {}) ~= nil
-                or spec.soilContactPassArmed == true then
+                or spec.soilContactPassArmed == true
+            then
                 cleared = cleared + 1
             end
             spec.soilRecentCells = {}
@@ -5226,27 +5618,28 @@ function TerraLogicSoilManager:setTestSectionBaselineAtWorldPosition(x, z)
     local startX, startZ = math.floor(x / size), math.floor(z / size)
     if not isTestSectionCell(self, startX, startZ) then
         local found = false
-        for radius=1,2 do
-            for dz=-radius,radius do
-                for dx=-radius,radius do
-                    if not found and isTestSectionCell(
-                            self, startX + dx, startZ + dz) then
+        for radius = 1, 2 do
+            for dz = -radius, radius do
+                for dx = -radius, radius do
+                    if not found and isTestSectionCell(self, startX + dx, startZ + dz) then
                         startX, startZ = startX + dx, startZ + dz
                         found = true
                     end
                 end
             end
-            if found then break end
+            if found then
+                break
+            end
         end
         if not found then
             return false, "stand on a visible, cultivatable TerraLogic soil section"
         end
     end
 
-    local queue = {{ix=startX, iz=startZ}}
-    local visited = {[getTestSectionKey(startX, startZ)]=true}
+    local queue = { { ix = startX, iz = startZ } }
+    local visited = { [getTestSectionKey(startX, startZ)] = true }
     local cells, cursor = {}, 1
-    local directions = {{1,0},{-1,0},{0,1},{0,-1}}
+    local directions = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }
     while cursor <= #queue do
         local cell = queue[cursor]
         cursor = cursor + 1
@@ -5256,26 +5649,31 @@ function TerraLogicSoilManager:setTestSectionBaselineAtWorldPosition(x, z)
             local key = getTestSectionKey(nx, nz)
             if not visited[key] then
                 visited[key] = true
-                if isTestSectionCell(self, nx, nz)
-                    and isTestSectionEdgeConnected(
-                        self, cell.ix, cell.iz, nx, nz) then
+                if isTestSectionCell(self, nx, nz) and isTestSectionEdgeConnected(self, cell.ix, cell.iz, nx, nz) then
                     if #queue >= self.TEST_SECTION_MAX_CELLS then
-                        return false, string.format(
-                            "connected section exceeds %.1f ha safety limit; separate a smaller test plot with at least 10 m non-field ground",
-                            self.TEST_SECTION_MAX_CELLS * size * size / 10000)
+                        return false,
+                            string.format(
+                                "connected section exceeds %.1f ha safety limit; separate a smaller test plot with at least 10 m non-field ground",
+                                self.TEST_SECTION_MAX_CELLS * size * size / 10000
+                            )
                     end
-                    queue[#queue + 1] = {ix=nx, iz=nz}
+                    queue[#queue + 1] = { ix = nx, iz = nz }
                 end
             end
         end
     end
 
     local baseline = {
-        surfaceCompaction=0.28, deepCompaction=0.26,
-        aggregateSize=0.50, roughness=0.25, resilience=0.50
+        surfaceCompaction = 0.28,
+        deepCompaction = 0.26,
+        aggregateSize = 0.50,
+        roughness = 0.25,
+        resilience = 0.50,
     }
     local layerCellSets = {}
-    for _, layer in ipairs(self.layers) do layerCellSets[layer.id] = {} end
+    for _, layer in ipairs(self.layers) do
+        layerCellSets[layer.id] = {}
+    end
     for _, cell in ipairs(cells) do
         local originX, originZ = cell.ix * size, cell.iz * size
         for _, layer in ipairs(self.layers) do
@@ -5285,13 +5683,11 @@ function TerraLogicSoilManager:setTestSectionBaselineAtWorldPosition(x, z)
             local firstZ = math.floor(originZ / layerSize)
             local lastZ = math.ceil((originZ + size) / layerSize) - 1
             local set = layerCellSets[layer.id]
-            for iz=firstZ,lastZ do
-                for ix=firstX,lastX do
+            for iz = firstZ, lastZ do
+                for ix = firstX, lastX do
                     local key = getCellKey(ix, iz)
-                    if set[key] == nil
-                        and self:isCultivatableTerrainCell(
-                            layer.id, ix, iz) == true then
-                        set[key] = {ix=ix, iz=iz}
+                    if set[key] == nil and self:isCultivatableTerrainCell(layer.id, ix, iz) == true then
+                        set[key] = { ix = ix, iz = iz }
                     end
                 end
             end
@@ -5304,8 +5700,7 @@ function TerraLogicSoilManager:setTestSectionBaselineAtWorldPosition(x, z)
     for _, layer in ipairs(self.layers) do
         local layerSize = getLayerCellSize(layer.id)
         for _, cell in pairs(layerCellSets[layer.id]) do
-            self:setStateCell(layer.id, cell.ix, cell.iz,
-                baseline[layer.id], true)
+            self:setStateCell(layer.id, cell.ix, cell.iz, baseline[layer.id], true)
             minimumX = math.min(minimumX, cell.ix * layerSize)
             minimumZ = math.min(minimumZ, cell.iz * layerSize)
             maximumX = math.max(maximumX, (cell.ix + 1) * layerSize)
@@ -5313,10 +5708,11 @@ function TerraLogicSoilManager:setTestSectionBaselineAtWorldPosition(x, z)
             writes = writes + 1
         end
     end
-    if writes <= 0 then return false, "no writable soil cells found" end
+    if writes <= 0 then
+        return false, "no writable soil cells found"
+    end
     for _, layer in ipairs(self.layers) do
-        self:markServerNetworkRegionChanged(
-            layer.id, minimumX, minimumZ, maximumX, maximumZ)
+        self:markServerNetworkRegionChanged(layer.id, minimumX, minimumZ, maximumX, maximumZ)
     end
     self.dirty = true
     self.visualizationDirty = true
@@ -5325,9 +5721,12 @@ function TerraLogicSoilManager:setTestSectionBaselineAtWorldPosition(x, z)
     if TerraLogicAuditManager ~= nil then
         TerraLogicAuditManager.runtimeSoilPreset = "sectionBaseline"
     end
-    return true, string.format(
-        "%.2f ha section reset to surface/deep 28/26%%, tilth/evenness 50/75%% and resilience 50%% (%d raster cells)",
-        #cells * size * size / 10000, writes)
+    return true,
+        string.format(
+            "%.2f ha section reset to surface/deep 28/26%%, tilth/evenness 50/75%% and resilience 50%% (%d raster cells)",
+            #cells * size * size / 10000,
+            writes
+        )
 end
 
 -- Developer-only audit helper. It writes a complete native field polygon in
@@ -5335,27 +5734,31 @@ end
 -- map resolutions and their ordinary quantization. Values use the public
 -- player terminology; evenness is converted back to stored roughness.
 function TerraLogicSoilManager:setAuditFieldStateAtWorldPosition(x, z, values)
-    if g_server == nil or self.rasterReady ~= true or values == nil
-        or g_farmlandManager == nil or g_fieldManager == nil
-        or g_farmlandManager.getFarmlandAtWorldPosition == nil then
+    if
+        g_server == nil
+        or self.rasterReady ~= true
+        or values == nil
+        or g_farmlandManager == nil
+        or g_fieldManager == nil
+        or g_farmlandManager.getFarmlandAtWorldPosition == nil
+    then
         return false, "soil raster or field manager unavailable"
     end
     local farmland = g_farmlandManager:getFarmlandAtWorldPosition(x, z)
     local mapping = g_fieldManager.farmlandIdFieldMapping or {}
     local mapped = farmland ~= nil and mapping[farmland.id] or nil
-    local candidates = type(mapped) == "table" and mapped[1] ~= nil
-        and mapped.getPolygonPoints == nil and mapped or {mapped}
+    local candidates = type(mapped) == "table" and mapped[1] ~= nil and mapped.getPolygonPoints == nil and mapped
+        or { mapped }
     local field, points = nil, nil
     for _, candidate in ipairs(candidates) do
-        if candidate ~= nil and candidate.getPolygonPoints ~= nil then
-            local ok, polygonNodes = pcall(
-                candidate.getPolygonPoints, candidate)
-            if ok and type(polygonNodes) == "table" then
+        if candidate ~= nil and type(candidate.getPolygonPoints) == "function" then
+            local polygonNodes = candidate.getPolygonPoints(candidate)
+            if type(polygonNodes) == "table" then
                 local polygon = {}
                 for _, node in ipairs(polygonNodes) do
                     if node ~= nil and node ~= 0 and entityExists(node) then
                         local px, _, pz = getWorldTranslation(node)
-                        polygon[#polygon + 1] = {x=px, z=pz}
+                        polygon[#polygon + 1] = { x = px, z = pz }
                     end
                 end
                 if #polygon >= 3 and npcPointInPolygon(x, z, polygon) then
@@ -5371,17 +5774,15 @@ function TerraLogicSoilManager:setAuditFieldStateAtWorldPosition(x, z, values)
     local minimumX, minimumZ = math.huge, math.huge
     local maximumX, maximumZ = -math.huge, -math.huge
     for _, point in ipairs(points) do
-        minimumX, minimumZ = math.min(minimumX, point.x),
-            math.min(minimumZ, point.z)
-        maximumX, maximumZ = math.max(maximumX, point.x),
-            math.max(maximumZ, point.z)
+        minimumX, minimumZ = math.min(minimumX, point.x), math.min(minimumZ, point.z)
+        maximumX, maximumZ = math.max(maximumX, point.x), math.max(maximumZ, point.z)
     end
     local stored = {
-        surfaceCompaction=values.surfaceCompaction,
-        deepCompaction=values.deepCompaction,
-        aggregateSize=values.aggregateSize,
-        roughness=1 - clamp01(values.evenness),
-        resilience=values.resilience
+        surfaceCompaction = values.surfaceCompaction,
+        deepCompaction = values.deepCompaction,
+        aggregateSize = values.aggregateSize,
+        roughness = 1 - clamp01(values.evenness),
+        resilience = values.resilience,
     }
     for _, layer in ipairs(self.layers) do
         local modifier = self.modifiers[layer.id]
@@ -5392,16 +5793,12 @@ function TerraLogicSoilManager:setAuditFieldStateAtWorldPosition(x, z, values)
         for _, point in ipairs(points) do
             modifier:addPolygonPointWorldCoords(point.x, point.z)
         end
-        modifier:executeSet(encode(
-            clamp01(stored[layer.id]), getLayerChannels(layer.id)))
+        modifier:executeSet(encode(clamp01(stored[layer.id]), getLayerChannels(layer.id)))
         modifier:clearPolygonPoints()
-        self.layerWriteSerial[layer.id] =
-            (tonumber(self.layerWriteSerial[layer.id]) or 0) + 1
-        self:markServerNetworkRegionChanged(layer.id,
-            minimumX, minimumZ, maximumX, maximumZ)
+        self.layerWriteSerial[layer.id] = (tonumber(self.layerWriteSerial[layer.id]) or 0) + 1
+        self:markServerNetworkRegionChanged(layer.id, minimumX, minimumZ, maximumX, maximumZ)
         self.layerCells[layer.id] = {}
-        if self.continuousTrafficValues ~= nil
-            and self.continuousTrafficValues[layer.id] ~= nil then
+        if self.continuousTrafficValues ~= nil and self.continuousTrafficValues[layer.id] ~= nil then
             self.continuousTrafficValues[layer.id] = {}
         end
     end
@@ -5409,96 +5806,91 @@ function TerraLogicSoilManager:setAuditFieldStateAtWorldPosition(x, z, values)
     self.visualizationDirty = true
     self.overlayRefreshTime = 0
     self:clearRuntimeSoilPassCaches()
-    return true, string.format("field %s updated",
-        tostring(field.fieldId or field.id or "unknown"))
+    return true, string.format("field %s updated", tostring(field.fieldId or field.id or "unknown"))
 end
 
 -- Reproducible traffic-calibration baseline. This intentionally resets the
 -- complete native field beneath the caller; it never runs automatically and
 -- is available only through the explicit developer console command.
-function TerraLogicSoilManager:applyTrafficTestPresetAtWorldPosition(
-        x, z, presetName)
-    if g_server == nil then return false, "server unavailable" end
+function TerraLogicSoilManager:applyTrafficTestPresetAtWorldPosition(x, z, presetName)
+    if g_server == nil then
+        return false, "server unavailable"
+    end
     local name = string.lower(tostring(presetName or ""))
     if name == "natural" or name == "off" then
-        local moistureOk, moistureMessage =
-            TerraLogicSoilMoistureManager:setAuditPreset("natural")
-        local temperatureOk, temperatureMessage =
-            TerraLogicSoilTemperatureManager:setAuditPreset("natural")
+        local moistureOk, moistureMessage = TerraLogicSoilMoistureManager:setAuditPreset("natural")
+        local temperatureOk, temperatureMessage = TerraLogicSoilTemperatureManager:setAuditPreset("natural")
         if TerraLogicAuditManager ~= nil then
             TerraLogicAuditManager.runtimeEnvironmentPreset = nil
             TerraLogicAuditManager.runtimeSoilPreset = nil
         end
-        return moistureOk and temperatureOk,
-            tostring(moistureMessage) .. "; " .. tostring(temperatureMessage)
+        return moistureOk and temperatureOk, tostring(moistureMessage) .. "; " .. tostring(temperatureMessage)
     end
-    if name ~= "dry" and name ~= "normal" and name ~= "wet"
-        and name ~= "frozen" then
+    if name ~= "dry" and name ~= "normal" and name ~= "wet" and name ~= "frozen" then
         return false, "unknown preset; use dry, normal, wet, frozen or natural"
     end
     local soilOk, soilMessage = self:setAuditFieldStateAtWorldPosition(
-        x, z, {surfaceCompaction=0.28, deepCompaction=0.26,
-            aggregateSize=0.50, evenness=0.75, resilience=0.50})
-    if not soilOk then return false, soilMessage end
-    local moistureOk, moistureMessage =
-        TerraLogicSoilMoistureManager:setAuditPreset(name)
-    local temperatureOk, temperatureMessage =
-        TerraLogicSoilTemperatureManager:setAuditPreset(name)
+        x,
+        z,
+        { surfaceCompaction = 0.28, deepCompaction = 0.26, aggregateSize = 0.50, evenness = 0.75, resilience = 0.50 }
+    )
+    if not soilOk then
+        return false, soilMessage
+    end
+    local moistureOk, moistureMessage = TerraLogicSoilMoistureManager:setAuditPreset(name)
+    local temperatureOk, temperatureMessage = TerraLogicSoilTemperatureManager:setAuditPreset(name)
     if not moistureOk or not temperatureOk then
-        return false, tostring(moistureMessage) .. "; "
-            .. tostring(temperatureMessage)
+        return false, tostring(moistureMessage) .. "; " .. tostring(temperatureMessage)
     end
     if TerraLogicAuditManager ~= nil then
         TerraLogicAuditManager.runtimeEnvironmentPreset = name
         TerraLogicAuditManager.runtimeSoilPreset = "trafficBaseline"
     end
-    return true, string.format(
-        "%s traffic baseline applied (surface/deep 28/26%%, tilth/evenness 50/75%%, resilience 50%%); %s; %s",
-        name, tostring(moistureMessage), tostring(temperatureMessage))
+    return true,
+        string.format(
+            "%s traffic baseline applied (surface/deep 28/26%%, tilth/evenness 50/75%%, resilience 50%%); %s; %s",
+            name,
+            tostring(moistureMessage),
+            tostring(temperatureMessage)
+        )
 end
 
 TerraLogicSoilManager.VIRTUAL_PASS_CELLS_PER_FRAME = 192
 
 local function getVirtualPassEngagement(classKey, speedKph, shopSpeedKph)
-    local profile = TerraLogicImplementProfiles ~= nil
-        and TerraLogicImplementProfiles.PROFILES[classKey] or nil
+    local profile = TerraLogicImplementProfiles ~= nil and TerraLogicImplementProfiles.PROFILES[classKey] or nil
     local shop = math.max(tonumber(shopSpeedKph) or 0, 0)
     local speed = math.max(tonumber(speedKph) or 0, 0)
     local engagementProfile = profile ~= nil and profile.engagement or nil
-    if engagementProfile == nil or shop <= 0 then return 1 end
+    if engagementProfile == nil or shop <= 0 then
+        return 1
+    end
     local shopRatio = speed / shop
-    local startRatio = math.max(
-        tonumber(engagementProfile.startRatio) or 1.5, 1)
-    local failedRatio = math.max(
-        tonumber(engagementProfile.failedRatio) or 2.5,
-        startRatio + 0.05)
-    local progress = clamp01(
-        (shopRatio - startRatio) / (failedRatio - startRatio))
+    local startRatio = math.max(tonumber(engagementProfile.startRatio) or 1.5, 1)
+    local failedRatio = math.max(tonumber(engagementProfile.failedRatio) or 2.5, startRatio + 0.05)
+    local progress = clamp01((shopRatio - startRatio) / (failedRatio - startRatio))
     local smooth = progress * progress * (3 - 2 * progress)
-    local minimum = math.clamp(
-        tonumber(engagementProfile.minimum) or 0.20, 0.02, 1)
+    local minimum = math.clamp(tonumber(engagementProfile.minimum) or 0.20, 0.02, 1)
     return 1 - (1 - minimum) * smooth
 end
 
 local function getVirtualPassFieldAtPosition(x, z)
-    if g_farmlandManager == nil or g_fieldManager == nil
-        or g_farmlandManager.getFarmlandAtWorldPosition == nil then
+    if g_farmlandManager == nil or g_fieldManager == nil or g_farmlandManager.getFarmlandAtWorldPosition == nil then
         return nil, nil, "field manager unavailable"
     end
     local farmland = g_farmlandManager:getFarmlandAtWorldPosition(x, z)
-    local mapped = farmland ~= nil
-        and (g_fieldManager.farmlandIdFieldMapping or {})[farmland.id] or nil
-    local candidates = type(mapped) == "table" and mapped[1] ~= nil
-        and mapped.getPolygonPoints == nil and mapped or {mapped}
+    local mapped = farmland ~= nil and (g_fieldManager.farmlandIdFieldMapping or {})[farmland.id] or nil
+    local candidates = type(mapped) == "table" and mapped[1] ~= nil and mapped.getPolygonPoints == nil and mapped
+        or { mapped }
     for _, field in ipairs(candidates) do
-        if field ~= nil and field.getPolygonPoints ~= nil then
-            local ok, nodes = pcall(field.getPolygonPoints, field)
-            if ok and type(nodes) == "table" then
+        if field ~= nil and type(field.getPolygonPoints) == "function" then
+            local nodes = field.getPolygonPoints(field)
+            if type(nodes) == "table" then
                 local polygon = {}
                 for _, node in ipairs(nodes) do
                     if node ~= nil and node ~= 0 and entityExists(node) then
                         local px, _, pz = getWorldTranslation(node)
-                        polygon[#polygon + 1] = {x=px, z=pz}
+                        polygon[#polygon + 1] = { x = px, z = pz }
                     end
                 end
                 if #polygon >= 3 and npcPointInPolygon(x, z, polygon) then
@@ -5513,18 +5905,16 @@ end
 -- Queues a developer-only virtual implement pass. The job is deliberately
 -- incremental: large fields are evaluated over many frames, preventing the
 -- command from creating the very hitch it is intended to avoid during tests.
-function TerraLogicSoilManager:queueVirtualImplementPassAtWorldPosition(
-        x, z, classKey, speedKph, shopSpeedKph)
+function TerraLogicSoilManager:queueVirtualImplementPassAtWorldPosition(x, z, classKey, speedKph, shopSpeedKph)
     if g_server == nil or self.rasterReady ~= true then
         return false, "server soil raster unavailable"
     end
     if self.virtualPassJob ~= nil then
         return false, "another virtual implement pass is still running"
     end
-    local profile = TerraLogicSoilProfiles ~= nil
-        and TerraLogicSoilProfiles:getProfile(classKey) or nil
-    local implementProfile = TerraLogicImplementProfiles ~= nil
-        and TerraLogicImplementProfiles.PROFILES[classKey] or nil
+    local profile = TerraLogicSoilProfiles ~= nil and TerraLogicSoilProfiles:getProfile(classKey) or nil
+    local implementProfile = TerraLogicImplementProfiles ~= nil and TerraLogicImplementProfiles.PROFILES[classKey]
+        or nil
     if profile == nil or implementProfile == nil then
         return false, "unsupported implement class " .. tostring(classKey)
     end
@@ -5537,7 +5927,9 @@ function TerraLogicSoilManager:queueVirtualImplementPassAtWorldPosition(
         return false, "shop speed must be greater than zero"
     end
     local field, polygon, fieldError = getVirtualPassFieldAtPosition(x, z)
-    if field == nil then return false, fieldError end
+    if field == nil then
+        return false, fieldError
+    end
     local minX, minZ, maxX, maxZ = math.huge, math.huge, -math.huge, -math.huge
     for _, point in ipairs(polygon) do
         minX, minZ = math.min(minX, point.x), math.min(minZ, point.z)
@@ -5545,27 +5937,27 @@ function TerraLogicSoilManager:queueVirtualImplementPassAtWorldPosition(
     end
     local jobLayers = {}
     for _, layer in ipairs(self.layers) do
-        if profile[layer.id] ~= nil
-            or (layer.id == "resilience"
-                and RESILIENCE_TILLAGE[classKey] ~= nil) then
+        if profile[layer.id] ~= nil or (layer.id == "resilience" and RESILIENCE_TILLAGE[classKey] ~= nil) then
             local cellSize = getLayerCellSize(layer.id)
             jobLayers[#jobLayers + 1] = {
-                id=layer.id, cellSize=cellSize,
-                minIx=math.floor(minX/cellSize),
-                maxIx=math.ceil(maxX/cellSize)-1,
-                minIz=math.floor(minZ/cellSize),
-                maxIz=math.ceil(maxZ/cellSize)-1
+                id = layer.id,
+                cellSize = cellSize,
+                minIx = math.floor(minX / cellSize),
+                maxIx = math.ceil(maxX / cellSize) - 1,
+                minIz = math.floor(minZ / cellSize),
+                maxIz = math.ceil(maxZ / cellSize) - 1,
             }
         end
     end
     if RECOVERY_AGE_WORK[classKey] ~= nil then
         local cellSize = self.RECOVERY_CELL_SIZE
         jobLayers[#jobLayers + 1] = {
-            id="recoveryAge", cellSize=cellSize,
-            minIx=math.floor(minX/cellSize),
-            maxIx=math.ceil(maxX/cellSize)-1,
-            minIz=math.floor(minZ/cellSize),
-            maxIz=math.ceil(maxZ/cellSize)-1
+            id = "recoveryAge",
+            cellSize = cellSize,
+            minIx = math.floor(minX / cellSize),
+            maxIx = math.ceil(maxX / cellSize) - 1,
+            minIz = math.floor(minZ / cellSize),
+            maxIz = math.ceil(maxZ / cellSize) - 1,
         }
     end
     if #jobLayers == 0 then
@@ -5573,35 +5965,51 @@ function TerraLogicSoilManager:queueVirtualImplementPassAtWorldPosition(
     end
     local totalCandidateCells = 0
     for _, layer in ipairs(jobLayers) do
-        totalCandidateCells = totalCandidateCells
-            + (layer.maxIx-layer.minIx+1) * (layer.maxIz-layer.minIz+1)
+        totalCandidateCells = totalCandidateCells + (layer.maxIx - layer.minIx + 1) * (layer.maxIz - layer.minIz + 1)
     end
     local fieldId = getNpcFieldId(field, nil)
     self.virtualPassJob = {
-        classKey=classKey, speedKph=speed, shopSpeedKph=shop,
-        workDepthCm=implementProfile.work ~= nil
-            and tonumber(implementProfile.work.depthCm) or 0,
-        fieldId=fieldId, polygon=polygon, bounds={minX=minX, minZ=minZ,
-            maxX=maxX, maxZ=maxZ}, layers=jobLayers, layerIndex=1,
-        ix=jobLayers[1].minIx, iz=jobLayers[1].minIz,
-        totalCandidateCells=totalCandidateCells,
-        testedCells=0, fieldCells=0, changedCells=0,
-        changedLayers={}
+        classKey = classKey,
+        speedKph = speed,
+        shopSpeedKph = shop,
+        workDepthCm = implementProfile.work ~= nil and tonumber(implementProfile.work.depthCm) or 0,
+        fieldId = fieldId,
+        polygon = polygon,
+        bounds = { minX = minX, minZ = minZ, maxX = maxX, maxZ = maxZ },
+        layers = jobLayers,
+        layerIndex = 1,
+        ix = jobLayers[1].minIx,
+        iz = jobLayers[1].minIz,
+        totalCandidateCells = totalCandidateCells,
+        testedCells = 0,
+        fieldCells = 0,
+        changedCells = 0,
+        changedLayers = {},
     }
-    local optimum = select(1, TerraLogicImplementProfiles.getOptimalSpeed(
-        shop, classKey, implementProfile))
+    local optimum = select(1, TerraLogicImplementProfiles.getOptimalSpeed(shop, classKey, implementProfile))
     Logging.info(
         "[FS25_TerraLogic] Virtual pass queued: field=%s class=%s speed=%.1f shop=%.1f optimum=%.1f",
-        tostring(fieldId), tostring(classKey), speed, shop,
-        tonumber(optimum) or shop)
-    return true, string.format(
-        "field %s queued: %s at %.1f km/h (shop %.1f)",
-        tostring(fieldId), tostring(classKey), speed, shop)
+        tostring(fieldId),
+        tostring(classKey),
+        speed,
+        shop,
+        tonumber(optimum) or shop
+    )
+    return true,
+        string.format(
+            "field %s queued: %s at %.1f km/h (shop %.1f)",
+            tostring(fieldId),
+            tostring(classKey),
+            speed,
+            shop
+        )
 end
 
 function TerraLogicSoilManager:updateVirtualImplementPass()
     local job = self.virtualPassJob
-    if job == nil or self.rasterReady ~= true then return end
+    if job == nil or self.rasterReady ~= true then
+        return
+    end
     local budget = self.VIRTUAL_PASS_CELLS_PER_FRAME
     while budget > 0 and job.layerIndex <= #job.layers do
         local layer = job.layers[job.layerIndex]
@@ -5611,40 +6019,47 @@ function TerraLogicSoilManager:updateVirtualImplementPass()
         job.testedCells = job.testedCells + 1
         if npcPointInPolygon(x, z, job.polygon) then
             local surface = TerraLogicQualityManager ~= nil
-                and TerraLogicQualityManager:getSurfaceTypeAtWorldPosition(x, z)
+                    and TerraLogicQualityManager:getSurfaceTypeAtWorldPosition(x, z)
                 or "field"
             if surface == "field" or surface == "grassField" then
                 job.fieldCells = job.fieldCells + 1
                 if layer.id == "recoveryAge" then
                     local rule = RECOVERY_AGE_WORK[job.classKey]
                     local age = self:getRecoveryAgeAtWorldPosition(x, z)
-                    local engagement = getVirtualPassEngagement(
-                        job.classKey, job.speedKph, job.shopSpeedKph)
+                    local engagement = getVirtualPassEngagement(job.classKey, job.speedKph, job.shopSpeedKph)
                     local continuity = getBiologicalContinuityFromAge(age)
-                    local nextContinuity = self:applyContinuityRule(
-                        continuity, job.classKey, engagement)
-                    local nextAge = nextContinuity < continuity
-                        and getAgeFromBiologicalContinuity(nextContinuity) or age
-                    if nextAge ~= age
-                        and self:setRecoveryAgeCell(ix, iz, nextAge) then
+                    local nextContinuity = self:applyContinuityRule(continuity, job.classKey, engagement)
+                    local nextAge = nextContinuity < continuity and getAgeFromBiologicalContinuity(nextContinuity)
+                        or age
+                    if nextAge ~= age and self:setRecoveryAgeCell(ix, iz, nextAge) then
                         job.changedCells = job.changedCells + 1
                     end
                 else
                     local state = self:getStateAtWorldPosition(x, z)
                     local soilType = self:getPFSoilTypeAtWorldPosition(x, z)
                     local projected = self:previewOperationFromState(
-                        state, soilType, job.classKey, job.workDepthCm,
-                        job.speedKph, job.shopSpeedKph, ix, iz, x, z)
+                        state,
+                        soilType,
+                        job.classKey,
+                        job.workDepthCm,
+                        job.speedKph,
+                        job.shopSpeedKph,
+                        ix,
+                        iz,
+                        x,
+                        z
+                    )
                     local nextValue = projected[layer.id]
                     local current = state[layer.id]
-                    if nextValue ~= nil and math.abs(
-                            (tonumber(nextValue) or 0)-(tonumber(current) or 0))
-                        >= 0.0001 then
+                    if
+                        nextValue ~= nil
+                        and math.abs((tonumber(nextValue) or 0) - (tonumber(current) or 0))
+                            >= 0.0001
+                    then
                         -- One revision per affected network tile is emitted
                         -- after the bulk job. Incrementing it for every cell
                         -- would create avoidable traffic and rapid overflow.
-                        self:setStateCell(
-                            layer.id, ix, iz, nextValue, true)
+                        self:setStateCell(layer.id, ix, iz, nextValue, true)
                         job.changedLayers[layer.id] = true
                         job.changedCells = job.changedCells + 1
                     end
@@ -5667,24 +6082,36 @@ function TerraLogicSoilManager:updateVirtualImplementPass()
     end
     if job.layerIndex > #job.layers then
         for layerId in pairs(job.changedLayers) do
-            self:markServerNetworkRegionChanged(layerId,
-                job.bounds.minX, job.bounds.minZ,
-                job.bounds.maxX, job.bounds.maxZ)
+            self:markServerNetworkRegionChanged(
+                layerId,
+                job.bounds.minX,
+                job.bounds.minZ,
+                job.bounds.maxX,
+                job.bounds.maxZ
+            )
         end
         self.virtualPassLastResult = {
-            fieldId=job.fieldId, classKey=job.classKey,
-            speedKph=job.speedKph, shopSpeedKph=job.shopSpeedKph,
-            testedCells=job.testedCells, fieldCells=job.fieldCells,
-            changedCells=job.changedCells
+            fieldId = job.fieldId,
+            classKey = job.classKey,
+            speedKph = job.speedKph,
+            shopSpeedKph = job.shopSpeedKph,
+            testedCells = job.testedCells,
+            fieldCells = job.fieldCells,
+            changedCells = job.changedCells,
         }
         self.virtualPassJob = nil
         self.dirty, self.visualizationDirty = true, true
         self.overlayRefreshTime = 0
         Logging.info(
             "[FS25_TerraLogic] Virtual pass complete: field=%s class=%s speed=%.1f shop=%.1f tested=%d field=%d changed=%d",
-            tostring(job.fieldId), tostring(job.classKey), job.speedKph,
-            job.shopSpeedKph, job.testedCells, job.fieldCells,
-            job.changedCells)
+            tostring(job.fieldId),
+            tostring(job.classKey),
+            job.speedKph,
+            job.shopSpeedKph,
+            job.testedCells,
+            job.fieldCells,
+            job.changedCells
+        )
     end
 end
 
@@ -5692,19 +6119,28 @@ function TerraLogicSoilManager:getVirtualImplementPassStatus()
     local job = self.virtualPassJob
     if job ~= nil then
         local totalLayers = math.max(#job.layers, 1)
-        local progress = math.clamp(job.testedCells
-            / math.max(tonumber(job.totalCandidateCells) or 1, 1), 0, 0.99)
+        local progress = math.clamp(job.testedCells / math.max(tonumber(job.totalCandidateCells) or 1, 1), 0, 0.99)
         return string.format(
             "running: field %s, %s %.1f/%.1f km/h, layer %d/%d (~%.0f%%)",
-            tostring(job.fieldId), tostring(job.classKey), job.speedKph,
-            job.shopSpeedKph, job.layerIndex, totalLayers, progress*100)
+            tostring(job.fieldId),
+            tostring(job.classKey),
+            job.speedKph,
+            job.shopSpeedKph,
+            job.layerIndex,
+            totalLayers,
+            progress * 100
+        )
     end
     local last = self.virtualPassLastResult
     if last ~= nil then
         return string.format(
             "idle; last: field %s, %s %.1f/%.1f km/h, %d cells changed",
-            tostring(last.fieldId), tostring(last.classKey), last.speedKph,
-            last.shopSpeedKph, last.changedCells)
+            tostring(last.fieldId),
+            tostring(last.classKey),
+            last.speedKph,
+            last.shopSpeedKph,
+            last.changedCells
+        )
     end
     return "idle; no virtual pass run this session"
 end
@@ -5716,12 +6152,17 @@ end
 -- never authorize neighbouring or interpolated non-field cells.
 -- Shared soil susceptibility, excluding load, coverage and distance to target.
 -- Moisture's target shifts remain separate; frost only reduces the impulse.
-local NEUTRAL_TRAFFIC_TEXTURE = {surface=1, deep=1}
+local NEUTRAL_TRAFFIC_TEXTURE = { surface = 1, deep = 1 }
 function TerraLogicSoilManager:getTrafficSensitivityFactors(
-        soilType, resilience, surfaceMoisture, deepMoisture,
-        surfaceFrozen, deepFrozen, texture)
-    texture = texture or TerraLogicSoilProfiles:getPFTrafficResponse(soilType)
-        or NEUTRAL_TRAFFIC_TEXTURE
+    soilType,
+    resilience,
+    surfaceMoisture,
+    deepMoisture,
+    surfaceFrozen,
+    deepFrozen,
+    texture
+)
+    texture = texture or TerraLogicSoilProfiles:getPFTrafficResponse(soilType) or NEUTRAL_TRAFFIC_TEXTURE
     local biology = 1.30 - 0.60 * clamp01(resilience or 0.50)
     -- Keep the physical suction/texture response as the single moisture
     -- input, but give liquid subsoil a clearer dry/wet contrast. FC stays at
@@ -5729,33 +6170,35 @@ function TerraLogicSoilManager:getTrafficSensitivityFactors(
     -- Frozen ground retains its separate, existing protection multiplier.
     local deepMoistureResponse = tonumber(deepMoisture) or 1
     if not deepFrozen then
-        deepMoistureResponse = math.clamp(
-            1.11 * (math.max(deepMoistureResponse, 0) / 1.11) ^ 5,
-            0.25, 1.60)
+        deepMoistureResponse = math.clamp(1.11 * (math.max(deepMoistureResponse, 0) / 1.11) ^ 5, 0.25, 1.60)
     end
-    return (texture.surface or 1) * biology * (surfaceMoisture or 1)
-            * (surfaceFrozen and 0.20 or 1),
-        (texture.deep or 1) * biology * deepMoistureResponse
-            * (deepFrozen and 0.35 or 1) * self.DEEP_TRAFFIC_RATE
+    return (texture.surface or 1) * biology * (surfaceMoisture or 1) * (surfaceFrozen and 0.20 or 1),
+        (texture.deep or 1) * biology * deepMoistureResponse * (deepFrozen and 0.35 or 1) * self.DEEP_TRAFFIC_RATE
 end
 
 function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
-    if g_server == nil or impact == nil then return false end
-    if self.deepMapMigration ~= nil then return false end
+    if g_server == nil or impact == nil then
+        return false
+    end
+    if self.deepMapMigration ~= nil then
+        return false
+    end
     local inputCellSize = tonumber(impact.cellSize) or self.WHEEL_CELL_SIZE
     local x = (ix + 0.5) * inputCellSize
     local z = (iz + 0.5) * inputCellSize
-    local surface = TerraLogicQualityManager ~= nil
-        and TerraLogicQualityManager:getSurfaceTypeAtWorldPosition(x, z) or nil
-    if surface ~= "field" and surface ~= "grassField" then return false end
+    local surface = TerraLogicQualityManager ~= nil and TerraLogicQualityManager:getSurfaceTypeAtWorldPosition(x, z)
+        or nil
+    if surface ~= "field" and surface ~= "grassField" then
+        return false
+    end
 
     local state = self:getStateAtWorldPosition(x, z)
     local beforeState = {
-        surfaceCompaction=state.surfaceCompaction,
-        deepCompaction=state.deepCompaction,
-        aggregateSize=state.aggregateSize,
-        roughness=state.roughness,
-        resilience=state.resilience
+        surfaceCompaction = state.surfaceCompaction,
+        deepCompaction = state.deepCompaction,
+        aggregateSize = state.aggregateSize,
+        roughness = state.roughness,
+        resilience = state.resilience,
     }
     local surfaceBefore = state.surfaceCompaction
     local deepBefore = state.deepCompaction
@@ -5763,24 +6206,18 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
     -- Resilience remains a bounded susceptibility modifier and never replaces
     -- axle load or ground contact pressure. The steeper 0.70..1.30 range makes several
     -- seasons of biological progress tangible while preserving hierarchy.
-    local resilience = clamp01(state.resilience
-        or TerraLogicSoilProfiles.DEFAULTS.resilience)
+    local resilience = clamp01(state.resilience or TerraLogicSoilProfiles.DEFAULTS.resilience)
     local resilienceTrafficMultiplier = 1.30 - 0.60 * resilience
     local moistureSoilType = self:getPFSoilTypeAtWorldPosition(x, z)
-    local trafficResponse = TerraLogicSoilProfiles:getPFTrafficResponse(
-        moistureSoilType)
+    local trafficResponse = TerraLogicSoilProfiles:getPFTrafficResponse(moistureSoilType)
     local moistureSurfaceMultiplier, moistureDeepMultiplier = 1, 1
     local moistureState = nil
     local moistureMechanics = nil
     if TerraLogicSoilMoistureManager ~= nil then
         moistureSurfaceMultiplier, moistureDeepMultiplier =
-            TerraLogicSoilMoistureManager:getTrafficMultipliers(
-                moistureSoilType, x, z)
-        moistureState = TerraLogicSoilMoistureManager:getStateAtWorldPosition(
-            x, z)
-        moistureMechanics =
-            TerraLogicSoilMoistureManager:getMechanicalResponse(
-                moistureSoilType, nil, 5, x, z)
+            TerraLogicSoilMoistureManager:getTrafficMultipliers(moistureSoilType, x, z)
+        moistureState = TerraLogicSoilMoistureManager:getStateAtWorldPosition(x, z)
+        moistureMechanics = TerraLogicSoilMoistureManager:getMechanicalResponse(moistureSoilType, nil, 5, x, z)
     end
     local changed = false
     local changedLayerIds, changedLayerCount = {}, 0
@@ -5792,33 +6229,31 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
     local structureRoughnessTarget, structureRoughnessStrength = nil, 0
 
     local function moveTowards(layerId, target, strength)
-        if target == nil or strength == nil or strength <= 0 then return end
+        if target == nil or strength == nil or strength <= 0 then
+            return
+        end
         local current = state[layerId]
         -- Traffic can only worsen these four states. A light wheel must never
         -- "repair" soil that was previously compacted or smeared more heavily.
-        if target <= current then return end
-        local nextValue = clamp01(current
-            + (clamp01(target) - current) * clamp01(strength))
+        if target <= current then
+            return
+        end
+        local nextValue = clamp01(current + (clamp01(target) - current) * clamp01(strength))
         -- Deep traffic and the continuous sub-50-kPa surface response can be
         -- smaller than one visible raster step. Preserve those changes in the
         -- existing in-session precision cache so repeated light passes build
         -- up instead of disappearing. Standard surface traffic retains its
         -- established one-thousandth write threshold.
         local preserveWeakTraffic = layerId == "deepCompaction"
-            or (layerId == "surfaceCompaction"
-                and impact.surfaceLowPressureResponse == true)
+            or (layerId == "surfaceCompaction" and impact.surfaceLowPressureResponse == true)
         local minimumDelta = preserveWeakTraffic and 0.000001 or 0.001
         if math.abs(nextValue - current) > minimumDelta then
-            local _, layerIx, layerIz = self:setStateAtWorldPosition(
-                layerId, x, z, nextValue)
+            local _, layerIx, layerIz = self:setStateAtWorldPosition(layerId, x, z, nextValue)
             state[layerId] = nextValue
             if preserveWeakTraffic then
-                self.continuousTrafficValues = self.continuousTrafficValues
-                    or {}
-                self.continuousTrafficValues[layerId] =
-                    self.continuousTrafficValues[layerId] or {}
-                self.continuousTrafficValues[layerId][
-                    getCellKey(layerIx, layerIz)] = nextValue
+                self.continuousTrafficValues = self.continuousTrafficValues or {}
+                self.continuousTrafficValues[layerId] = self.continuousTrafficValues[layerId] or {}
+                self.continuousTrafficValues[layerId][getCellKey(layerIx, layerIz)] = nextValue
             end
             changed = true
             if not changedLayerIds[layerId] then
@@ -5827,24 +6262,28 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
             end
             activeLayerChanged = activeLayerChanged or layerId == activeLayerId
             self.lastWrite = {
-                classKey = "wheelCompaction", layerId = layerId,
-                ix = layerIx, iz = layerIz, beforeValue = current,
-                value = nextValue, delta = nextValue - current,
+                classKey = "wheelCompaction",
+                layerId = layerId,
+                ix = layerIx,
+                iz = layerIz,
+                beforeValue = current,
+                value = nextValue,
+                delta = nextValue - current,
                 sourceName = impact.sourceVehicleName,
                 sourceConfigFileName = impact.sourceConfigFileName,
-                time = g_currentMission ~= nil and g_currentMission.time or 0
+                time = g_currentMission ~= nil and g_currentMission.time or 0,
             }
         end
     end
 
     local function moveStructureTowards(layerId, target, strength)
-        if target == nil or strength == nil or strength <= 0 then return end
+        if target == nil or strength == nil or strength <= 0 then
+            return
+        end
         local current = state[layerId]
-        local nextValue = clamp01(current
-            + (clamp01(target) - current) * clamp01(strength))
+        local nextValue = clamp01(current + (clamp01(target) - current) * clamp01(strength))
         if math.abs(nextValue - current) > 0.001 then
-            local _, layerIx, layerIz = self:setStateAtWorldPosition(
-                layerId, x, z, nextValue)
+            local _, layerIx, layerIz = self:setStateAtWorldPosition(layerId, x, z, nextValue)
             state[layerId] = nextValue
             -- Aggregate and roughness use a six-bit raster. Keep the exact
             -- in-session value as well, otherwise a realistic weak tyre pass
@@ -5852,10 +6291,8 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
             -- over repeated traffic. Saving still rounds to the authoritative
             -- raster and therefore does not add savegame or network payload.
             self.continuousTrafficValues = self.continuousTrafficValues or {}
-            self.continuousTrafficValues[layerId] =
-                self.continuousTrafficValues[layerId] or {}
-            self.continuousTrafficValues[layerId][
-                getCellKey(layerIx, layerIz)] = nextValue
+            self.continuousTrafficValues[layerId] = self.continuousTrafficValues[layerId] or {}
+            self.continuousTrafficValues[layerId][getCellKey(layerIx, layerIz)] = nextValue
             changed = true
             if not changedLayerIds[layerId] then
                 changedLayerIds[layerId] = true
@@ -5863,45 +6300,47 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
             end
             activeLayerChanged = activeLayerChanged or layerId == activeLayerId
             self.lastWrite = {
-                classKey = "wheelStructure", layerId = layerId,
-                ix = layerIx, iz = layerIz, beforeValue = current,
-                value = nextValue, delta = nextValue - current,
+                classKey = "wheelStructure",
+                layerId = layerId,
+                ix = layerIx,
+                iz = layerIz,
+                beforeValue = current,
+                value = nextValue,
+                delta = nextValue - current,
                 sourceName = impact.sourceVehicleName,
                 sourceConfigFileName = impact.sourceConfigFileName,
-                time = g_currentMission ~= nil and g_currentMission.time or 0
+                time = g_currentMission ~= nil and g_currentMission.time or 0,
             }
         end
     end
 
-    local textureSurfaceMultiplier = trafficResponse ~= nil
-        and trafficResponse.surface or 1
-    local textureDeepMultiplier = trafficResponse ~= nil
-        and trafficResponse.deep or 1
+    local textureSurfaceMultiplier = trafficResponse ~= nil and trafficResponse.surface or 1
+    local textureDeepMultiplier = trafficResponse ~= nil and trafficResponse.deep or 1
     -- Moisture changes soil strength and therefore both the immediate impulse
     -- and the load-dependent equilibrium. Previously it only multiplied the
     -- impulse, which meant wet soil reached exactly the same modest ceiling as
     -- dry soil. The asymmetric shifts keep dry ground protective without
     -- making it immune, while allowing ordinary heavy vehicles to create
     -- severe compaction under genuinely wet conditions.
-    local function moistureAdjustedTarget(baseTarget, multiplier,
-            wetShift, dryShift)
-        if baseTarget == nil then return nil end
+    local function moistureAdjustedTarget(baseTarget, multiplier, wetShift, dryShift)
+        if baseTarget == nil then
+            return nil
+        end
         -- Physical moisture response spans x0.72 (dry) to x1.50 (saturated).
         -- The HUD reference pass and map writes share these adjusted targets.
         local wet = clamp01(((tonumber(multiplier) or 1) - 1) / 0.50)
         local dry = clamp01((1 - (tonumber(multiplier) or 1)) / 0.28)
         return clamp01(baseTarget + wetShift * wet - dryShift * dry)
     end
-    local appliedSurfaceTarget = moistureAdjustedTarget(
-        impact.surfaceTarget, moistureSurfaceMultiplier, 0.18, 0.08)
-    local appliedDeepTarget = moistureAdjustedTarget(
-        impact.deepTarget, moistureDeepMultiplier, 0.15, 0.06)
+    local appliedSurfaceTarget = moistureAdjustedTarget(impact.surfaceTarget, moistureSurfaceMultiplier, 0.18, 0.08)
+    local appliedDeepTarget = moistureAdjustedTarget(impact.deepTarget, moistureDeepMultiplier, 0.15, 0.06)
     -- Difficulty changes only new wheel/axle compaction. Keep 100% bit-for-bit
     -- unchanged; never rescale stored soil, recovery, strength or seedbed work.
     -- The returned detail feeds the very same targets into the HUD reference.
     local compactionIntensity = TerraLogicSettings ~= nil
-        and TerraLogicSettings.getCompactionIntensity ~= nil
-        and TerraLogicSettings:getCompactionIntensity() or 1
+            and TerraLogicSettings.getCompactionIntensity ~= nil
+            and TerraLogicSettings:getCompactionIntensity()
+        or 1
     if compactionIntensity ~= 1 then
         if appliedSurfaceTarget ~= nil then
             appliedSurfaceTarget = clamp01(appliedSurfaceTarget * compactionIntensity)
@@ -5910,27 +6349,28 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
             appliedDeepTarget = clamp01(appliedDeepTarget * compactionIntensity)
         end
     end
-    local surfaceFrostProtection = moistureState ~= nil
-        and moistureState.surfaceFrozen and 0.20 or 1
-    local deepFrostProtection = moistureState ~= nil
-        and moistureState.subsoilFrozen and 0.35 or 1
+    local surfaceFrostProtection = moistureState ~= nil and moistureState.surfaceFrozen and 0.20 or 1
+    local deepFrostProtection = moistureState ~= nil and moistureState.subsoilFrozen and 0.35 or 1
     local surfaceSensitivity, deepSensitivity = self:getTrafficSensitivityFactors(
-        moistureSoilType, resilience, moistureSurfaceMultiplier, moistureDeepMultiplier,
-        surfaceFrostProtection < 1, deepFrostProtection < 1, trafficResponse)
+        moistureSoilType,
+        resilience,
+        moistureSurfaceMultiplier,
+        moistureDeepMultiplier,
+        surfaceFrostProtection < 1,
+        deepFrostProtection < 1,
+        trafficResponse
+    )
     -- A one-metre surface cell stores its mean state. The wheel manager
     -- supplies the union of the projected tyre/belt strips inside that cell;
     -- narrow support wheels therefore retain their local pressure target but
     -- no longer compact an entire one-metre-wide strip at full strength.
-    local surfaceCoverage = impact.surfaceTarget ~= nil
-        and clamp01(tonumber(impact.surfaceCoverage) or 1) or 0
-    local appliedSurfaceStrength = (tonumber(impact.surfaceStrength) or 0)
-        * surfaceSensitivity * surfaceCoverage
+    local surfaceCoverage = impact.surfaceTarget ~= nil and clamp01(tonumber(impact.surfaceCoverage) or 1) or 0
+    local appliedSurfaceStrength = (tonumber(impact.surfaceStrength) or 0) * surfaceSensitivity * surfaceCoverage
     -- A two-metre deep-compaction cell stores the mean state of 4 m2. The
     -- wheel manager supplies the union of the axle's projected subsoil stress
     -- bands inside that cell.  Legacy callers without this field retain the
     -- former full-cell behaviour.
-    local deepCoverage = impact.deepTarget ~= nil
-        and clamp01(tonumber(impact.deepCoverage) or 1) or 0
+    local deepCoverage = impact.deepTarget ~= nil and clamp01(tonumber(impact.deepCoverage) or 1) or 0
     -- A wider stress band spreads a fixed axle load over more ground; it
     -- must not simply add a stronger impulse through greater cell coverage.
     -- Anchor the distribution at a 600-mm tyre plus the existing 350-mm
@@ -5939,14 +6379,14 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
     -- The stress model already accounts for contact width AND length. Applying
     -- the legacy inverse-width amplitude again would count that benefit twice.
     -- Preserve the former response for any legacy/non-wheel impact producers.
-    local deepDistributionFactor = impact.deepStressModel == true and 1 or
-        (deepBandWidth > 0 and 0.95 / math.max(deepBandWidth, 0.35) or 1)
+    local deepDistributionFactor = impact.deepStressModel == true and 1
+        or (deepBandWidth > 0 and 0.95 / math.max(deepBandWidth, 0.35) or 1)
     local appliedDeepStrength = (tonumber(impact.deepStrength) or 0)
-        * deepSensitivity * deepCoverage * deepDistributionFactor
-    moveTowards("surfaceCompaction", appliedSurfaceTarget,
-        appliedSurfaceStrength)
-    moveTowards("deepCompaction", appliedDeepTarget,
-        appliedDeepStrength)
+        * deepSensitivity
+        * deepCoverage
+        * deepDistributionFactor
+    moveTowards("surfaceCompaction", appliedSurfaceTarget, appliedSurfaceStrength)
+    moveTowards("deepCompaction", appliedDeepTarget, appliedDeepStrength)
 
     -- Normal rolling acts on the two-metre seedbed cell only once per physical
     -- pass. Contact pressure supplies the mechanical driver; texture,
@@ -5954,68 +6394,54 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
     -- crumbling, dry pulverization, smoothing or wet clodding/rutting.
     if impact.structurePass == true and surface == "field" then
         local pressureDriver = clamp01(impact.structurePressureDriver)
-        local drySeverity = moistureMechanics ~= nil
-            and clamp01(moistureMechanics.drySeverity) or 0
-        local wetSeverity = moistureMechanics ~= nil
-            and clamp01(moistureMechanics.wetSeverity) or 0
+        local drySeverity = moistureMechanics ~= nil and clamp01(moistureMechanics.drySeverity) or 0
+        local wetSeverity = moistureMechanics ~= nil and clamp01(moistureMechanics.wetSeverity) or 0
         local structureResilienceMultiplier = 1.10 - 0.20 * resilience
         local baseStrength = (0.018 + 0.075 * pressureDriver)
-            * textureSurfaceMultiplier * structureResilienceMultiplier
-            * (moistureState ~= nil and moistureState.surfaceFrozen
-                and 0.15 or 1)
+            * textureSurfaceMultiplier
+            * structureResilienceMultiplier
+            * (moistureState ~= nil and moistureState.surfaceFrozen and 0.15 or 1)
         local aggregate = state.aggregateSize
         if wetSeverity > 0.15 then
             structureMode = "wet clodding/rutting"
             structureAggregateTarget = 0.38
-            structureAggregateStrength = baseStrength
-                * (0.25 + 0.45 * wetSeverity)
+            structureAggregateStrength = baseStrength * (0.25 + 0.45 * wetSeverity)
         elseif aggregate < 0.50 then
-            structureMode = drySeverity > 0.20
-                and "dry clod crushing" or "clod crumbling"
-            structureAggregateTarget = 0.50
-                + 0.12 * drySeverity * pressureDriver
-            structureAggregateStrength = baseStrength
-                * (0.80 + 0.35 * drySeverity)
+            structureMode = drySeverity > 0.20 and "dry clod crushing" or "clod crumbling"
+            structureAggregateTarget = 0.50 + 0.12 * drySeverity * pressureDriver
+            structureAggregateStrength = baseStrength * (0.80 + 0.35 * drySeverity)
         elseif drySeverity > 0.20 and pressureDriver > 0.20 then
             structureMode = "dry pulverization"
             structureAggregateTarget = 0.62
-            structureAggregateStrength = baseStrength
-                * 0.35 * drySeverity
+            structureAggregateStrength = baseStrength * 0.35 * drySeverity
         else
-            structureMode = moistureState ~= nil
-                and moistureState.surfaceFrozen
-                and "frozen surface (limited)" or "surface smoothing"
+            structureMode = moistureState ~= nil and moistureState.surfaceFrozen and "frozen surface (limited)"
+                or "surface smoothing"
         end
         if wetSeverity > 0.25 then
             structureRoughnessTarget = 0.62
-            structureRoughnessStrength = baseStrength
-                * (0.35 + 0.65 * wetSeverity)
+            structureRoughnessStrength = baseStrength * (0.35 + 0.65 * wetSeverity)
         else
             structureRoughnessTarget = 0.08
-            structureRoughnessStrength = baseStrength
-                * (0.65 + 0.20 * drySeverity)
+            structureRoughnessStrength = baseStrength * (0.65 + 0.20 * drySeverity)
         end
         if moistureState ~= nil and moistureState.surfaceFrozen then
             structureMode = "frozen surface (limited)"
         end
-        moveStructureTowards("aggregateSize",
-            structureAggregateTarget, structureAggregateStrength)
-        moveStructureTowards("roughness",
-            structureRoughnessTarget, structureRoughnessStrength)
+        moveStructureTowards("aggregateSize", structureAggregateTarget, structureAggregateStrength)
+        moveStructureTowards("roughness", structureRoughnessTarget, structureRoughnessStrength)
     end
 
     -- Deep increments already include coverage. Integrate their area into
     -- the biology cell; no second coverage multiplier or per-sample minimum.
-    local deepIncrease = math.max(
-        (state.deepCompaction or deepBefore) - deepBefore, 0)
-    local surfaceIncrease = math.max(
-        (state.surfaceCompaction or surfaceBefore) - surfaceBefore, 0)
+    local deepIncrease = math.max((state.deepCompaction or deepBefore) - deepBefore, 0)
+    local surfaceIncrease = math.max((state.surfaceCompaction or surfaceBefore) - surfaceBefore, 0)
     if deepIncrease > 0 then
         local resilienceIx = math.floor(x / self.RESILIENCE_CELL_SIZE)
         local resilienceIz = math.floor(z / self.RESILIENCE_CELL_SIZE)
         local resilienceKey = getCellKey(resilienceIx, resilienceIz)
-        local areaShare = math.min(inputCellSize * inputCellSize
-            / (self.RESILIENCE_CELL_SIZE * self.RESILIENCE_CELL_SIZE), 1)
+        local areaShare =
+            math.min(inputCellSize * inputCellSize / (self.RESILIENCE_CELL_SIZE * self.RESILIENCE_CELL_SIZE), 1)
         -- Calibrated to the former local response at a 1 pp deep increment.
         -- Exponential integration preserves subdivision invariance.
         local exposure = 0.35 * deepIncrease * areaShare
@@ -6024,16 +6450,13 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
         if nextResilience < currentResilience then
             local channels = getLayerChannels("resilience")
             if encode(nextResilience, channels) ~= encode(currentResilience, channels) then
-                self:setStateCell("resilience", resilienceIx, resilienceIz,
-                    nextResilience)
-                activeLayerChanged = activeLayerChanged
-                    or activeLayerId == "resilience"
+                self:setStateCell("resilience", resilienceIx, resilienceIz, nextResilience)
+                activeLayerChanged = activeLayerChanged or activeLayerId == "resilience"
                 self:markResilienceChanged()
             end
             -- Retain sub-raster changes without map/network invalidations.
             self.continuousTrafficValues = self.continuousTrafficValues or {}
-            self.continuousTrafficValues.resilience =
-                self.continuousTrafficValues.resilience or {}
+            self.continuousTrafficValues.resilience = self.continuousTrafficValues.resilience or {}
             self.continuousTrafficValues.resilience[resilienceKey] = nextResilience
             state.resilience = nextResilience
             changed = true
@@ -6055,32 +6478,30 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
         structureMode = "wheel slip/shear"
         local slipStructureMultiplier = textureSurfaceMultiplier
             * (1.10 - 0.20 * resilience)
-            * (moistureState ~= nil and moistureState.surfaceFrozen
-                and 0.20 or 1)
+            * (moistureState ~= nil and moistureState.surfaceFrozen and 0.20 or 1)
         if surface == "field" then
             structureAggregateTarget = 0.88
-            structureAggregateStrength = (0.08 + 0.24 * slip)
-                * slipStructureMultiplier
+            structureAggregateStrength = (0.08 + 0.24 * slip) * slipStructureMultiplier
         else
             structureAggregateTarget = nil
             structureAggregateStrength = 0
         end
         structureRoughnessTarget = 0.72
-        structureRoughnessStrength = (0.07 + 0.25 * slip)
-            * slipStructureMultiplier
-        moveStructureTowards("aggregateSize",
-            structureAggregateTarget, structureAggregateStrength)
-        moveStructureTowards("roughness",
-            structureRoughnessTarget, structureRoughnessStrength)
+        structureRoughnessStrength = (0.07 + 0.25 * slip) * slipStructureMultiplier
+        moveStructureTowards("aggregateSize", structureAggregateTarget, structureAggregateStrength)
+        moveStructureTowards("roughness", structureRoughnessTarget, structureRoughnessStrength)
     end
 
     if changed then
         self.dirty = true
         self.lastPass = {
-            classKey = "wheelCompaction", coverage = 0,
-            touchedCells = 1, eligibleCells = 1,
-            changedCells = 1, changedLayers = changedLayerCount,
-            time = g_currentMission ~= nil and g_currentMission.time or 0
+            classKey = "wheelCompaction",
+            coverage = 0,
+            touchedCells = 1,
+            eligibleCells = 1,
+            changedCells = 1,
+            changedLayers = changedLayerCount,
+            time = g_currentMission ~= nil and g_currentMission.time or 0,
         }
     end
     if activeLayerChanged then
@@ -6091,148 +6512,125 @@ function TerraLogicSoilManager:applyWheelCompactionCell(ix, iz, impact)
         self.visualizationDirty = true
     end
     local afterState = {
-        surfaceCompaction=state.surfaceCompaction,
-        deepCompaction=state.deepCompaction,
-        aggregateSize=state.aggregateSize,
-        roughness=state.roughness,
-        resilience=state.resilience
+        surfaceCompaction = state.surfaceCompaction,
+        deepCompaction = state.deepCompaction,
+        aggregateSize = state.aggregateSize,
+        roughness = state.roughness,
+        resilience = state.resilience,
     }
     local detail = {
-        time=g_currentMission ~= nil and g_currentMission.time or 0,
-        x=x, z=z, inputCellSize=inputCellSize,
-        fieldConfirmed=impact.fieldConfirmed == true,
-        soilTypeIndex=tonumber(moistureSoilType) or 0,
-        soilName=moistureState ~= nil
-            and moistureState.profileName or "Generic",
-        pfActive=moistureState ~= nil and moistureState.pfActive == true,
-        moistureSurface=moistureState ~= nil
-            and moistureState.surface or 0.5,
-        moistureSubsoil=moistureState ~= nil
-            and moistureState.subsoil or 0.5,
-        liquidSurface=moistureState ~= nil
-            and moistureState.liquidSurface or 0.5,
-        surfaceFrozen=moistureState ~= nil
-            and moistureState.surfaceFrozen == true,
-        drySeverity=moistureMechanics ~= nil
-            and moistureMechanics.drySeverity or 0,
-        wetSeverity=moistureMechanics ~= nil
-            and moistureMechanics.wetSeverity or 0,
-        trafficSurfaceMultiplier=moistureSurfaceMultiplier,
-        trafficDeepMultiplier=moistureDeepMultiplier,
-        surfaceTrafficSensitivity=surfaceSensitivity,
-        deepTrafficSensitivity=deepSensitivity,
-        textureSurfaceMultiplier=textureSurfaceMultiplier,
-        textureDeepMultiplier=textureDeepMultiplier,
-        resilience=resilience,
-        resilienceTrafficMultiplier=resilienceTrafficMultiplier,
-        surfaceBaseTarget=tonumber(impact.surfaceTarget) or 0,
-        surfaceTarget=tonumber(appliedSurfaceTarget) or 0,
-        surfaceBaseStrength=tonumber(impact.surfaceStrength) or 0,
-        surfaceCoverage=surfaceCoverage,
-        surfaceAppliedStrength=appliedSurfaceStrength,
-        surfaceLowPressureResponse=
-            impact.surfaceLowPressureResponse == true,
-        deepBaseTarget=tonumber(impact.deepTarget) or 0,
-        compactionIntensity=compactionIntensity,
-        deepTarget=tonumber(appliedDeepTarget) or 0,
-        deepBaseStrength=tonumber(impact.deepStrength) or 0,
-        deepCoverage=deepCoverage,
-        deepCoveredWidthM=tonumber(impact.deepCoveredWidthM) or 0,
-        deepDistributionFactor=deepDistributionFactor,
-        deepAppliedStrength=appliedDeepStrength,
-        structurePass=impact.structurePass == true,
-        structureMode=structureMode,
-        structurePressureDriver=tonumber(
-            impact.structurePressureDriver) or 0,
-        pressureKPa=tonumber(impact.structurePressureKPa)
-            or tonumber(impact.surfacePressureKPa) or 0,
-        wheelLoadT=tonumber(impact.structureWheelLoadT)
-            or tonumber(impact.surfaceWheelLoadT) or 0,
-        tireWidthM=tonumber(impact.structureWidthM)
-            or tonumber(impact.surfaceWidthM) or 0,
-        tireDiameterM=tonumber(impact.structureDiameterM)
-            or tonumber(impact.surfaceDiameterM) or 0,
-        contactLengthM=tonumber(impact.structureContactLengthM)
-            or tonumber(impact.surfaceContactLengthM) or 0,
-        tireCount=tonumber(impact.structureTireCount)
-            or tonumber(impact.surfaceTireCount) or 0,
-        crawler=impact.structureCrawler == true
-            or impact.surfaceCrawler == true,
-        wheelIndex=tonumber(impact.surfaceWheelIndex) or 0,
-        wheelNodeName=tostring(impact.surfaceWheelNodeName or ""),
-        wheelExternalFilename=tostring(
-            impact.surfaceWheelExternalFilename or ""),
-        wheelVisualCount=tonumber(impact.surfaceWheelVisualCount) or 0,
-        wheelRestLoadT=tonumber(impact.surfaceWheelRestLoadT) or 0,
-        workingImplementSurfaceSuppressed=
-            impact.workingImplementSurfaceSuppressed == true,
-        suppressedSurfaceContacts=tonumber(
-            impact.suppressedSurfaceContacts) or 0,
-        maxSuppressedSurfaceTarget=tonumber(
-            impact.maxSuppressedSurfaceTarget) or 0,
-        maxSuppressedSurfaceStrength=tonumber(
-            impact.maxSuppressedSurfaceStrength) or 0,
-        maxSuppressedPressureKPa=tonumber(
-            impact.maxSuppressedPressureKPa) or 0,
-        maxSuppressedWheelLoadT=tonumber(
-            impact.maxSuppressedWheelLoadT) or 0,
-        maxSuppressedWheelIndex=tonumber(
-            impact.maxSuppressedWheelIndex) or 0,
-        maxSuppressedWheelNodeName=tostring(
-            impact.maxSuppressedWheelNodeName or ""),
-        maxSuppressedWheelExternalFilename=tostring(
-            impact.maxSuppressedWheelExternalFilename or ""),
-        maxSuppressedWheelRestLoadT=tonumber(
-            impact.maxSuppressedWheelRestLoadT) or 0,
-        maxSuppressedWheelVisualCount=tonumber(
-            impact.maxSuppressedWheelVisualCount) or 0,
-        implementRuntimeState=impact.implementRuntimeState,
-        vehicleName=tostring(impact.sourceVehicleName or "vehicle"),
-        configFileName=tostring(impact.sourceConfigFileName or ""),
-        vehicleMassT=tonumber(impact.sourceVehicleMassT) or 0,
-        supportedLoadT=tonumber(impact.sourceSupportedLoadT) or 0,
-        wheelCount=tonumber(impact.sourceWheelCount) or 0,
-        axleCount=tonumber(impact.sourceAxleCount) or 0,
-        maxAxleLoadT=tonumber(impact.sourceMaxAxleLoadT) or 0,
-        meanAxleLoadT=tonumber(impact.sourceMeanAxleLoadT) or 0,
-        meanPressureKPa=tonumber(impact.sourceMeanPressureKPa) or 0,
-        maxPressureKPa=tonumber(impact.sourceMaxPressureKPa) or 0,
-        slipSeverity=slip,
-        correctedSlip=tonumber(impact.correctedSlip) or 0,
-        rawSlip=tonumber(impact.rawSlip) or 0,
-        aggregateTarget=structureAggregateTarget,
-        aggregateStrength=structureAggregateStrength,
-        roughnessTarget=structureRoughnessTarget,
-        roughnessStrength=structureRoughnessStrength,
-        before=beforeState, after=afterState,
-        changed=changed, changedLayers=changedLayerIds,
-        changedLayerCount=changedLayerCount
+        time = g_currentMission ~= nil and g_currentMission.time or 0,
+        x = x,
+        z = z,
+        inputCellSize = inputCellSize,
+        fieldConfirmed = impact.fieldConfirmed == true,
+        soilTypeIndex = tonumber(moistureSoilType) or 0,
+        soilName = moistureState ~= nil and moistureState.profileName or "Generic",
+        pfActive = moistureState ~= nil and moistureState.pfActive == true,
+        moistureSurface = moistureState ~= nil and moistureState.surface or 0.5,
+        moistureSubsoil = moistureState ~= nil and moistureState.subsoil or 0.5,
+        liquidSurface = moistureState ~= nil and moistureState.liquidSurface or 0.5,
+        surfaceFrozen = moistureState ~= nil and moistureState.surfaceFrozen == true,
+        drySeverity = moistureMechanics ~= nil and moistureMechanics.drySeverity or 0,
+        wetSeverity = moistureMechanics ~= nil and moistureMechanics.wetSeverity or 0,
+        trafficSurfaceMultiplier = moistureSurfaceMultiplier,
+        trafficDeepMultiplier = moistureDeepMultiplier,
+        surfaceTrafficSensitivity = surfaceSensitivity,
+        deepTrafficSensitivity = deepSensitivity,
+        textureSurfaceMultiplier = textureSurfaceMultiplier,
+        textureDeepMultiplier = textureDeepMultiplier,
+        resilience = resilience,
+        resilienceTrafficMultiplier = resilienceTrafficMultiplier,
+        surfaceBaseTarget = tonumber(impact.surfaceTarget) or 0,
+        surfaceTarget = tonumber(appliedSurfaceTarget) or 0,
+        surfaceBaseStrength = tonumber(impact.surfaceStrength) or 0,
+        surfaceCoverage = surfaceCoverage,
+        surfaceAppliedStrength = appliedSurfaceStrength,
+        surfaceLowPressureResponse = impact.surfaceLowPressureResponse == true,
+        deepBaseTarget = tonumber(impact.deepTarget) or 0,
+        compactionIntensity = compactionIntensity,
+        deepTarget = tonumber(appliedDeepTarget) or 0,
+        deepBaseStrength = tonumber(impact.deepStrength) or 0,
+        deepCoverage = deepCoverage,
+        deepCoveredWidthM = tonumber(impact.deepCoveredWidthM) or 0,
+        deepDistributionFactor = deepDistributionFactor,
+        deepAppliedStrength = appliedDeepStrength,
+        structurePass = impact.structurePass == true,
+        structureMode = structureMode,
+        structurePressureDriver = tonumber(impact.structurePressureDriver) or 0,
+        pressureKPa = tonumber(impact.structurePressureKPa) or tonumber(impact.surfacePressureKPa) or 0,
+        wheelLoadT = tonumber(impact.structureWheelLoadT) or tonumber(impact.surfaceWheelLoadT) or 0,
+        tireWidthM = tonumber(impact.structureWidthM) or tonumber(impact.surfaceWidthM) or 0,
+        tireDiameterM = tonumber(impact.structureDiameterM) or tonumber(impact.surfaceDiameterM) or 0,
+        contactLengthM = tonumber(impact.structureContactLengthM) or tonumber(impact.surfaceContactLengthM) or 0,
+        tireCount = tonumber(impact.structureTireCount) or tonumber(impact.surfaceTireCount) or 0,
+        crawler = impact.structureCrawler == true or impact.surfaceCrawler == true,
+        wheelIndex = tonumber(impact.surfaceWheelIndex) or 0,
+        wheelNodeName = tostring(impact.surfaceWheelNodeName or ""),
+        wheelExternalFilename = tostring(impact.surfaceWheelExternalFilename or ""),
+        wheelVisualCount = tonumber(impact.surfaceWheelVisualCount) or 0,
+        wheelRestLoadT = tonumber(impact.surfaceWheelRestLoadT) or 0,
+        workingImplementSurfaceSuppressed = impact.workingImplementSurfaceSuppressed == true,
+        suppressedSurfaceContacts = tonumber(impact.suppressedSurfaceContacts) or 0,
+        maxSuppressedSurfaceTarget = tonumber(impact.maxSuppressedSurfaceTarget) or 0,
+        maxSuppressedSurfaceStrength = tonumber(impact.maxSuppressedSurfaceStrength) or 0,
+        maxSuppressedPressureKPa = tonumber(impact.maxSuppressedPressureKPa) or 0,
+        maxSuppressedWheelLoadT = tonumber(impact.maxSuppressedWheelLoadT) or 0,
+        maxSuppressedWheelIndex = tonumber(impact.maxSuppressedWheelIndex) or 0,
+        maxSuppressedWheelNodeName = tostring(impact.maxSuppressedWheelNodeName or ""),
+        maxSuppressedWheelExternalFilename = tostring(impact.maxSuppressedWheelExternalFilename or ""),
+        maxSuppressedWheelRestLoadT = tonumber(impact.maxSuppressedWheelRestLoadT) or 0,
+        maxSuppressedWheelVisualCount = tonumber(impact.maxSuppressedWheelVisualCount) or 0,
+        implementRuntimeState = impact.implementRuntimeState,
+        vehicleName = tostring(impact.sourceVehicleName or "vehicle"),
+        configFileName = tostring(impact.sourceConfigFileName or ""),
+        vehicleMassT = tonumber(impact.sourceVehicleMassT) or 0,
+        supportedLoadT = tonumber(impact.sourceSupportedLoadT) or 0,
+        wheelCount = tonumber(impact.sourceWheelCount) or 0,
+        axleCount = tonumber(impact.sourceAxleCount) or 0,
+        maxAxleLoadT = tonumber(impact.sourceMaxAxleLoadT) or 0,
+        meanAxleLoadT = tonumber(impact.sourceMeanAxleLoadT) or 0,
+        meanPressureKPa = tonumber(impact.sourceMeanPressureKPa) or 0,
+        maxPressureKPa = tonumber(impact.sourceMaxPressureKPa) or 0,
+        slipSeverity = slip,
+        correctedSlip = tonumber(impact.correctedSlip) or 0,
+        rawSlip = tonumber(impact.rawSlip) or 0,
+        aggregateTarget = structureAggregateTarget,
+        aggregateStrength = structureAggregateStrength,
+        roughnessTarget = structureRoughnessTarget,
+        roughnessStrength = structureRoughnessStrength,
+        before = beforeState,
+        after = afterState,
+        changed = changed,
+        changedLayers = changedLayerIds,
+        changedLayerCount = changedLayerCount,
     }
     detail.delta = {
-        surfaceCompaction=afterState.surfaceCompaction
-            - beforeState.surfaceCompaction,
-        deepCompaction=afterState.deepCompaction
-            - beforeState.deepCompaction,
-        aggregateSize=afterState.aggregateSize-beforeState.aggregateSize,
-        roughness=afterState.roughness-beforeState.roughness,
-        resilience=afterState.resilience-beforeState.resilience
+        surfaceCompaction = afterState.surfaceCompaction - beforeState.surfaceCompaction,
+        deepCompaction = afterState.deepCompaction - beforeState.deepCompaction,
+        aggregateSize = afterState.aggregateSize - beforeState.aggregateSize,
+        roughness = afterState.roughness - beforeState.roughness,
+        resilience = afterState.resilience - beforeState.resilience,
     }
     self.lastWheelImpactDebug = detail
     return changed, detail
 end
 
 local function applyRule(current, rule, strengthMultiplier, targetOffset)
-    if rule == nil then return current end
-    local target = clamp01((tonumber(rule.target) or 0)
-        + (tonumber(targetOffset) or 0))
-    if rule.mode == "reduceOnly" and current <= target then return current end
-    if rule.mode == "increaseOnly" and current >= target then return current end
-    local strength = clamp01(clamp01(rule.strength)
-        * math.max(tonumber(strengthMultiplier) or 1, 0))
+    if rule == nil then
+        return current
+    end
+    local target = clamp01((tonumber(rule.target) or 0) + (tonumber(targetOffset) or 0))
+    if rule.mode == "reduceOnly" and current <= target then
+        return current
+    end
+    if rule.mode == "increaseOnly" and current >= target then
+        return current
+    end
+    local strength = clamp01(clamp01(rule.strength) * math.max(tonumber(strengthMultiplier) or 1, 0))
     local delta = (target - current) * strength
     if rule.maxDelta ~= nil then
-        local cap = math.max(tonumber(rule.maxDelta) or 0, 0)
-            * clamp01(tonumber(strengthMultiplier) or 1)
+        local cap = math.max(tonumber(rule.maxDelta) or 0, 0) * clamp01(tonumber(strengthMultiplier) or 1)
         delta = math.max(-cap, math.min(cap, delta))
     end
     return clamp01(current + delta)
@@ -6241,18 +6639,16 @@ end
 -- Applies the environmental soil reaction once and caps its per-pass delta.
 -- Keeping this helper shared is important: Planner/virtual-pass previews and
 -- actual WorkArea writes must never disagree about moisture consequences.
-local function applyMoistureSoilReaction(
-        classKey, layerId, nextValue, response, engagement)
-    local rule, severity, maximumDelta = getMoistureAdverseRule(
-        classKey, layerId, response)
-    if rule == nil or severity <= 0 then return nextValue end
+local function applyMoistureSoilReaction(classKey, layerId, nextValue, response, engagement)
+    local rule, severity, maximumDelta = getMoistureAdverseRule(classKey, layerId, response)
+    if rule == nil or severity <= 0 then
+        return nextValue
+    end
     local engaged = clamp01(engagement or 1)
     local reacted = applyRule(nextValue, rule, severity * engaged)
-    local cap = math.max(tonumber(maximumDelta) or 0, 0)
-        * severity * engaged
+    local cap = math.max(tonumber(maximumDelta) or 0, 0) * severity * engaged
     if cap > 0 then
-        reacted = math.max(nextValue - cap,
-            math.min(nextValue + cap, reacted))
+        reacted = math.max(nextValue - cap, math.min(nextValue + cap, reacted))
     end
     return clamp01(reacted)
 end
@@ -6261,10 +6657,8 @@ end
 -- pass without allocating another density map. Server, clients and a reloaded
 -- save therefore resolve the same local pattern.
 local function getOperationCellVariation(ix, iz, layerId)
-    local salt = layerId == "aggregateSize" and 193
-        or (layerId == "rollerImpact" and 617 or 389)
-    local value = (math.abs(ix) * 73856093 + math.abs(iz) * 19349663
-        + salt * 83492791) % 104729
+    local salt = layerId == "aggregateSize" and 193 or (layerId == "rollerImpact" and 617 or 389)
+    local value = (math.abs(ix) * 73856093 + math.abs(iz) * 19349663 + salt * 83492791) % 104729
     return value / 104729 * 2 - 1
 end
 
@@ -6274,56 +6668,59 @@ end
 -- by texture, current moisture and resilience. Secondary tools never call
 -- this helper: their aggregate rules are strictly fragmentation-only.
 local INVERSION_COARSENING_LIMIT = {
-    [0]=0.16, -- generic fallback
-    [1]=0.08, -- loamy sand: little cohesion, few newly formed clods
-    [2]=0.14, -- sandy loam
-    [3]=0.20, -- loam
-    [4]=0.28  -- silty clay can lift coherent blocks/furrow slices
+    [0] = 0.16, -- generic fallback
+    [1] = 0.08, -- loamy sand: little cohesion, few newly formed clods
+    [2] = 0.14, -- sandy loam
+    [3] = 0.20, -- loam
+    [4] = 0.28, -- silty clay can lift coherent blocks/furrow slices
 }
 
 local function getBoundedInversionRule(
-        classKey, layerId, current, rule, targetOffset,
-        soilTypeIndex, moistureResponse, resilience)
-    if layerId ~= "aggregateSize"
+    classKey,
+    layerId,
+    current,
+    rule,
+    targetOffset,
+    soilTypeIndex,
+    moistureResponse,
+    resilience
+)
+    if
+        layerId ~= "aggregateSize"
         or (classKey ~= "plow" and classKey ~= "spader")
-        or current <= 0.50 or rule == nil then
+        or current <= 0.50
+        or rule == nil
+    then
         return rule, targetOffset, false
     end
     local texture = tonumber(soilTypeIndex) or 0
-    local maximumShift = INVERSION_COARSENING_LIMIT[texture]
-        or INVERSION_COARSENING_LIMIT[0]
-    local dry = moistureResponse ~= nil
-        and clamp01(moistureResponse.drySeverity) or 0
-    local wet = moistureResponse ~= nil
-        and clamp01(moistureResponse.wetSeverity) or 0
-    local cohesion = texture == 4 and 1
-        or (texture == 3 and 0.65 or (texture == 2 and 0.35 or 0.10))
+    local maximumShift = INVERSION_COARSENING_LIMIT[texture] or INVERSION_COARSENING_LIMIT[0]
+    local dry = moistureResponse ~= nil and clamp01(moistureResponse.drySeverity) or 0
+    local wet = moistureResponse ~= nil and clamp01(moistureResponse.wetSeverity) or 0
+    local cohesion = texture == 4 and 1 or (texture == 3 and 0.65 or (texture == 2 and 0.35 or 0.10))
     -- Cohesive soils can form hard dry or plastic wet clods. Sandy soils do
     -- not gain the same reverse transition merely because they are extreme.
-    local moistureFactor = 1
-        + dry * (0.18 * cohesion - 0.04)
-        + wet * (0.24 * cohesion - 0.03)
+    local moistureFactor = 1 + dry * (0.18 * cohesion - 0.04) + wet * (0.24 * cohesion - 0.03)
     local stabilityFactor = 0.82 + 0.18 * clamp01(resilience)
-    maximumShift = math.max(maximumShift
-        * moistureFactor * stabilityFactor, 0.03)
-    local physicalTarget = clamp01((tonumber(rule.target) or 0)
-        + (tonumber(targetOffset) or 0))
-    local boundedTarget = math.max(physicalTarget,
-        current - maximumShift)
+    maximumShift = math.max(maximumShift * moistureFactor * stabilityFactor, 0.03)
+    local physicalTarget = clamp01((tonumber(rule.target) or 0) + (tonumber(targetOffset) or 0))
+    local boundedTarget = math.max(physicalTarget, current - maximumShift)
     local boundedRule = {}
-    for key, value in pairs(rule) do boundedRule[key] = value end
+    for key, value in pairs(rule) do
+        boundedRule[key] = value
+    end
     boundedRule.target = boundedTarget
     return boundedRule, 0, true
 end
 
 local function getVirtualPassSpeedState(classKey, speedKph, shopSpeedKph)
-    local profile = TerraLogicImplementProfiles ~= nil
-        and TerraLogicImplementProfiles.PROFILES[classKey] or nil
+    local profile = TerraLogicImplementProfiles ~= nil and TerraLogicImplementProfiles.PROFILES[classKey] or nil
     local shop = math.max(tonumber(shopSpeedKph) or 0, 0)
     local speed = math.max(tonumber(speedKph) or 0, 0)
-    if profile == nil or shop <= 0 then return 0, 1, 0, shop end
-    local optimum = select(1, TerraLogicImplementProfiles.getOptimalSpeed(
-        shop, classKey, profile))
+    if profile == nil or shop <= 0 then
+        return 0, 1, 0, shop
+    end
+    local optimum = select(1, TerraLogicImplementProfiles.getOptimalSpeed(shop, classKey, profile))
     optimum = math.max(tonumber(optimum) or shop, 0.01)
     local speedRatio = speed / optimum
     local severity = 0
@@ -6332,8 +6729,7 @@ local function getVirtualPassSpeedState(classKey, speedKph, shopSpeedKph)
         local base = t * t * (3 - 2 * t)
         severity = 1 - (1 - base) ^ 1.35
     end
-    local engagement = getVirtualPassEngagement(
-        classKey, speedKph, shopSpeedKph)
+    local engagement = getVirtualPassEngagement(classKey, speedKph, shopSpeedKph)
     return severity, engagement, speedRatio, optimum
 end
 
@@ -6342,107 +6738,133 @@ end
 -- bounded inversion and (when supplied) speed/engagement consequences. Wear is
 -- assumed to be zero and vehicle traffic remains separate.
 function TerraLogicSoilManager:previewOperationFromState(
-        state, soilTypeIndex, classKey, workDepthCm,
-        speedKph, shopSpeedKph, variationIx, variationIz, x, z)
+    state,
+    soilTypeIndex,
+    classKey,
+    workDepthCm,
+    speedKph,
+    shopSpeedKph,
+    variationIx,
+    variationIz,
+    x,
+    z
+)
     local projected = {}
-    for _, layerId in ipairs({"surfaceCompaction", "deepCompaction",
-            "aggregateSize", "roughness", "resilience"}) do
+    for _, layerId in ipairs({
+        "surfaceCompaction",
+        "deepCompaction",
+        "aggregateSize",
+        "roughness",
+        "resilience",
+    }) do
         projected[layerId] = clamp01(state ~= nil and state[layerId] or 0.5)
     end
-    local profile = TerraLogicSoilProfiles ~= nil
-        and TerraLogicSoilProfiles:getProfile(classKey) or nil
-    if profile == nil then return projected end
-    local overspeedSeverity, engagement = getVirtualPassSpeedState(
-        classKey, speedKph, shopSpeedKph)
+    local profile = TerraLogicSoilProfiles ~= nil and TerraLogicSoilProfiles:getProfile(classKey) or nil
+    if profile == nil then
+        return projected
+    end
+    local overspeedSeverity, engagement = getVirtualPassSpeedState(classKey, speedKph, shopSpeedKph)
     local rollerContact = classKey == "roller"
-        and TerraLogicSoilProfiles:getRollerContactEfficiency(
-            projected, speedKph, shopSpeedKph) or 1
+            and TerraLogicSoilProfiles:getRollerContactEfficiency(projected, speedKph, shopSpeedKph)
+        or 1
     local overspeed = profile.overspeed
-    for _, layerId in ipairs({"surfaceCompaction", "deepCompaction",
-            "aggregateSize", "roughness"}) do
+    for _, layerId in ipairs({ "surfaceCompaction", "deepCompaction", "aggregateSize", "roughness" }) do
         local rule = profile[layerId]
         if rule ~= nil then
             local current = projected[layerId]
             local moistureResponse = TerraLogicSoilMoistureManager ~= nil
-                and TerraLogicSoilMoistureManager:getMechanicalResponse(
-                    soilTypeIndex, classKey, workDepthCm or 0, x, z) or nil
-            local soilResponse = TerraLogicSoilProfiles:getPFSoilResponse(
-                soilTypeIndex, classKey)
-            local textureStrength = soilResponse ~= nil
-                and tonumber(soilResponse.strength[layerId]) or 1
-            local effectiveness = moistureResponse ~= nil
-                and tonumber(moistureResponse.soilEffectiveness) or 1
+                    and TerraLogicSoilMoistureManager:getMechanicalResponse(
+                        soilTypeIndex,
+                        classKey,
+                        workDepthCm or 0,
+                        x,
+                        z
+                    )
+                or nil
+            local soilResponse = TerraLogicSoilProfiles:getPFSoilResponse(soilTypeIndex, classKey)
+            local textureStrength = soilResponse ~= nil and tonumber(soilResponse.strength[layerId]) or 1
+            local effectiveness = moistureResponse ~= nil and tonumber(moistureResponse.soilEffectiveness) or 1
             local minimumStrength = overspeed ~= nil
-                and overspeed.strengthScale ~= nil
-                and tonumber(overspeed.strengthScale[layerId]) or 1
-            local speedStrength = 1 - overspeedSeverity
-                * (1 - clamp01(minimumStrength))
-            local targetOffset = soilResponse ~= nil
-                and tonumber(soilResponse.targetOffset[layerId]) or 0
-            local effectiveRule, effectiveOffset, inversionBounded =
-                getBoundedInversionRule(classKey, layerId, current, rule,
-                    targetOffset, soilTypeIndex, moistureResponse,
-                    projected.resilience)
-            local nextValue = applyRule(current, effectiveRule,
-                textureStrength * effectiveness * speedStrength * engagement
-                    * rollerContact,
-                effectiveOffset)
-            if inversionBounded and nextValue < 0.50
-                and math.abs(nextValue - 0.50)
-                    < math.abs(current - 0.50) then
+                    and overspeed.strengthScale ~= nil
+                    and tonumber(overspeed.strengthScale[layerId])
+                or 1
+            local speedStrength = 1 - overspeedSeverity * (1 - clamp01(minimumStrength))
+            local targetOffset = soilResponse ~= nil and tonumber(soilResponse.targetOffset[layerId]) or 0
+            local effectiveRule, effectiveOffset, inversionBounded = getBoundedInversionRule(
+                classKey,
+                layerId,
+                current,
+                rule,
+                targetOffset,
+                soilTypeIndex,
+                moistureResponse,
+                projected.resilience
+            )
+            local nextValue = applyRule(
+                current,
+                effectiveRule,
+                textureStrength * effectiveness * speedStrength * engagement * rollerContact,
+                effectiveOffset
+            )
+            if inversionBounded and nextValue < 0.50 and math.abs(nextValue - 0.50) < math.abs(current - 0.50) then
                 nextValue = clamp01(1 - current)
             end
-            local speedRule = overspeedSeverity > 0 and overspeed ~= nil
-                and overspeed.effects ~= nil and overspeed.effects[layerId]
+            local speedRule = overspeedSeverity > 0
+                    and overspeed ~= nil
+                    and overspeed.effects ~= nil
+                    and overspeed.effects[layerId]
                 or nil
             if speedRule ~= nil then
-                local effectSeverity = overspeedSeverity ^ math.max(
-                    tonumber(overspeed.effectSeverityExponent) or 1, 0.25)
-                nextValue = applyRule(nextValue, speedRule,
-                    effectSeverity * textureStrength * engagement ^ 0.75)
+                local effectSeverity = overspeedSeverity
+                    ^ math.max(tonumber(overspeed.effectSeverityExponent) or 1, 0.25)
+                nextValue = applyRule(nextValue, speedRule, effectSeverity * textureStrength * engagement ^ 0.75)
             end
-            if classKey == "roller" and layerId == "surfaceCompaction"
+            if
+                classKey == "roller"
+                and layerId == "surfaceCompaction"
                 and overspeedSeverity > 0
-                and variationIx ~= nil and variationIz ~= nil then
+                and variationIx ~= nil
+                and variationIz ~= nil
+            then
                 -- Fast rolling does not uniformly compact the whole field
                 -- harder. Intermittent re-contact instead creates small local
                 -- load peaks, strongest on a rough surface. Keep them modest
                 -- and deterministic so previews and real passes agree without
                 -- forming a repeating travel-direction stripe.
-                local positiveNoise = math.max(getOperationCellVariation(
-                    variationIx, variationIz, "rollerImpact"), 0)
-                local spike = 0.025 * overspeedSeverity
-                    * (1 - rollerContact) * positiveNoise * positiveNoise
+                local positiveNoise = math.max(getOperationCellVariation(variationIx, variationIz, "rollerImpact"), 0)
+                local spike = 0.025 * overspeedSeverity * (1 - rollerContact) * positiveNoise * positiveNoise
                 nextValue = clamp01(nextValue + spike * (1 - nextValue))
             end
             local variability = overspeed ~= nil
-                and overspeed.variability ~= nil
-                and tonumber(overspeed.variability[layerId]) or 0
-            if classKey == "plow" and variability > 0
+                    and overspeed.variability ~= nil
+                    and tonumber(overspeed.variability[layerId])
+                or 0
+            if
+                classKey == "plow"
+                and variability > 0
                 and overspeedSeverity > 0
-                and variationIx ~= nil and variationIz ~= nil then
-                local variation = getOperationCellVariation(
-                    variationIx, variationIz, layerId)
-                local amplitude = variability * math.sqrt(overspeedSeverity)
+                and variationIx ~= nil
+                and variationIz ~= nil
+            then
+                local variation = getOperationCellVariation(variationIx, variationIz, layerId)
+                local amplitude = variability
+                    * math.sqrt(overspeedSeverity)
                     * math.sqrt(engagement)
                     * (0.75 + 0.25 * textureStrength)
                 nextValue = clamp01(nextValue + variation * amplitude)
             end
-            nextValue = applyMoistureSoilReaction(
-                classKey, layerId, nextValue, moistureResponse, engagement)
+            nextValue = applyMoistureSoilReaction(classKey, layerId, nextValue, moistureResponse, engagement)
             projected[layerId] = nextValue
         end
     end
     local resilienceResponse = RESILIENCE_TILLAGE[classKey]
     if resilienceResponse ~= nil and resilienceResponse < 0 then
-        resilienceResponse = -scaleSlowStrength(
-            -resilienceResponse, getResilienceTillageLossScale())
+        resilienceResponse = -scaleSlowStrength(-resilienceResponse, getResilienceTillageLossScale())
     end
     if resilienceResponse ~= nil then
         resilienceResponse = resilienceResponse * engagement
         local current = projected.resilience
-        projected.resilience = resilienceResponse >= 0
-            and clamp01(current + resilienceResponse * (1-current))
+        projected.resilience = resilienceResponse >= 0 and clamp01(current + resilienceResponse * (1 - current))
             or clamp01(current + resilienceResponse * current)
     end
     return projected
@@ -6455,13 +6877,13 @@ end
 -- unlocked speeds physically visible in the persistent soil state.
 local function getSoilOverspeed(implement)
     local spec = implement ~= nil and implement.spec_terraLogic or nil
-    local referenceSpeed = spec ~= nil
-        and tonumber(spec.optimalSpeed or spec.ratedSpeed) or nil
-    local speed = implement ~= nil and implement.getLastSpeed ~= nil
-        and math.abs(tonumber(implement:getLastSpeed(true)) or 0) or 0
+    local referenceSpeed = spec ~= nil and tonumber(spec.optimalSpeed or spec.ratedSpeed) or nil
+    local speed = implement ~= nil
+            and implement.getLastSpeed ~= nil
+            and math.abs(tonumber(implement:getLastSpeed(true)) or 0)
+        or 0
     if referenceSpeed == nil or referenceSpeed <= 0 or speed <= referenceSpeed then
-        return 0, speed, referenceSpeed or 0,
-            referenceSpeed ~= nil and speed / math.max(referenceSpeed, 0.01) or 0
+        return 0, speed, referenceSpeed or 0, referenceSpeed ~= nil and speed / math.max(referenceSpeed, 0.01) or 0
     end
     local ratio = speed / referenceSpeed
     local t = clamp01((ratio - 1) / 1.5)
@@ -6482,8 +6904,7 @@ end
 -- by Lua's number type and can also be unioned across split/overlapping
 -- WorkAreas without allocating one table per sub-sample.
 local WORK_AREA_COVERAGE_SUBDIVISIONS = 7
-local WORK_AREA_COVERAGE_SAMPLES =
-    WORK_AREA_COVERAGE_SUBDIVISIONS * WORK_AREA_COVERAGE_SUBDIVISIONS
+local WORK_AREA_COVERAGE_SAMPLES = WORK_AREA_COVERAGE_SUBDIVISIONS * WORK_AREA_COVERAGE_SUBDIVISIONS
 -- Adjacent bouts on a long field can reach the same raster cell several
 -- minutes later. Keep complete and incomplete occupancy masks for the whole
 -- operation window. Expiring complete cells on the short callback cooldown
@@ -6525,11 +6946,11 @@ local COVERAGE_MASK_LOW_BITS = 24
 local COVERAGE_MASK_LOW_BASE = 2 ^ COVERAGE_MASK_LOW_BITS
 local COVERAGE_FULL_MASK = 2 ^ WORK_AREA_COVERAGE_SAMPLES - 1
 local COVERAGE_BIT_VALUES = {}
-for index=0,WORK_AREA_COVERAGE_SAMPLES-1 do
+for index = 0, WORK_AREA_COVERAGE_SAMPLES - 1 do
     COVERAGE_BIT_VALUES[index] = 2 ^ index
 end
 local COVERAGE_BYTE_COUNTS = {}
-for value=0,255 do
+for value = 0, 255 do
     local count, remaining = 0, value
     while remaining > 0 do
         count = count + remaining % 2
@@ -6545,14 +6966,13 @@ local function splitCoverageMask(mask)
 end
 
 local function joinCoverageMask(low, high)
-    return (tonumber(low) or 0)
-        + (tonumber(high) or 0) * COVERAGE_MASK_LOW_BASE
+    return (tonumber(low) or 0) + (tonumber(high) or 0) * COVERAGE_MASK_LOW_BASE
 end
 
 local function countCoverageWord(value)
     local remaining = tonumber(value) or 0
     local count = 0
-    for _=1,4 do
+    for _ = 1, 4 do
         local byte = remaining % 256
         count = count + COVERAGE_BYTE_COUNTS[byte]
         remaining = math.floor(remaining / 256)
@@ -6568,32 +6988,26 @@ local function coverageMaskContains(mask, bitValue)
             local low = (tonumber(mask) or 0) % COVERAGE_MASK_LOW_BASE
             return bit32.band(low, bitValue) ~= 0
         end
-        local high = math.floor((tonumber(mask) or 0)
-            / COVERAGE_MASK_LOW_BASE)
-        return bit32.band(high,
-            bitValue / COVERAGE_MASK_LOW_BASE) ~= 0
+        local high = math.floor((tonumber(mask) or 0) / COVERAGE_MASK_LOW_BASE)
+        return bit32.band(high, bitValue / COVERAGE_MASK_LOW_BASE) ~= 0
     end
     return math.floor((tonumber(mask) or 0) / bitValue) % 2 >= 1
 end
 
 local function mergeCoverageMask(existingMask, incomingMask)
-    if bit32 ~= nil and bit32.band ~= nil and bit32.bor ~= nil
-        and bit32.bnot ~= nil then
+    if bit32 ~= nil and bit32.band ~= nil and bit32.bor ~= nil and bit32.bnot ~= nil then
         local existingLow, existingHigh = splitCoverageMask(existingMask)
         local incomingLow, incomingHigh = splitCoverageMask(incomingMask)
         local addedLow = bit32.band(incomingLow, bit32.bnot(existingLow))
         local addedHigh = bit32.band(incomingHigh, bit32.bnot(existingHigh))
-        return joinCoverageMask(
-                bit32.bor(existingLow, incomingLow),
-                bit32.bor(existingHigh, incomingHigh)),
+        return joinCoverageMask(bit32.bor(existingLow, incomingLow), bit32.bor(existingHigh, incomingHigh)),
             countCoverageWord(addedLow) + countCoverageWord(addedHigh)
     end
     local merged = tonumber(existingMask) or 0
     local added = 0
-    for index=0,WORK_AREA_COVERAGE_SAMPLES-1 do
+    for index = 0, WORK_AREA_COVERAGE_SAMPLES - 1 do
         local bitValue = COVERAGE_BIT_VALUES[index]
-        if coverageMaskContains(incomingMask, bitValue)
-            and not coverageMaskContains(merged, bitValue) then
+        if coverageMaskContains(incomingMask, bitValue) and not coverageMaskContains(merged, bitValue) then
             merged = merged + bitValue
             added = added + 1
         end
@@ -6607,14 +7021,12 @@ local function intersectCoverageMask(a, b)
         local bLow, bHigh = splitCoverageMask(b)
         local low = bit32.band(aLow, bLow)
         local high = bit32.band(aHigh, bHigh)
-        return joinCoverageMask(low, high),
-            countCoverageWord(low) + countCoverageWord(high)
+        return joinCoverageMask(low, high), countCoverageWord(low) + countCoverageWord(high)
     end
     local result, count = 0, 0
-    for index=0,WORK_AREA_COVERAGE_SAMPLES-1 do
+    for index = 0, WORK_AREA_COVERAGE_SAMPLES - 1 do
         local bitValue = COVERAGE_BIT_VALUES[index]
-        if coverageMaskContains(a, bitValue)
-            and coverageMaskContains(b, bitValue) then
+        if coverageMaskContains(a, bitValue) and coverageMaskContains(b, bitValue) then
             result = result + bitValue
             count = count + 1
         end
@@ -6628,14 +7040,12 @@ local function subtractCoverageMask(a, b)
         local bLow, bHigh = splitCoverageMask(b)
         local low = bit32.band(aLow, bit32.bnot(bLow))
         local high = bit32.band(aHigh, bit32.bnot(bHigh))
-        return joinCoverageMask(low, high),
-            countCoverageWord(low) + countCoverageWord(high)
+        return joinCoverageMask(low, high), countCoverageWord(low) + countCoverageWord(high)
     end
     local result, count = 0, 0
-    for index=0,WORK_AREA_COVERAGE_SAMPLES-1 do
+    for index = 0, WORK_AREA_COVERAGE_SAMPLES - 1 do
         local bitValue = COVERAGE_BIT_VALUES[index]
-        if coverageMaskContains(a, bitValue)
-            and not coverageMaskContains(b, bitValue) then
+        if coverageMaskContains(a, bitValue) and not coverageMaskContains(b, bitValue) then
             result = result + bitValue
             count = count + 1
         end
@@ -6652,23 +7062,21 @@ end
 -- exact and no sample outside the live GIANTS field surface can authorize a
 -- TerraLogic write.
 local function normalizeCellsToCultivatableArea(manager, cells, cellSize)
-    if manager == nil then return cells or {} end
+    if manager == nil then
+        return cells or {}
+    end
     local result = {}
     local subdivisions = WORK_AREA_COVERAGE_SUBDIVISIONS
     for _, cell in ipairs(cells or {}) do
         local workCoverage = clamp01(cell.coverage)
         cell.rawCoverage = workCoverage
         cell.rawCoverageMask = cell.coverageMask
-        cell.rawCoveredSamples = math.floor(
-            workCoverage * WORK_AREA_COVERAGE_SAMPLES + 0.5)
-        cell.rawPhysicalCoverageMask = cell.physicalCoverageMask
-            or cell.coverageMask
-        cell.rawPhysicalCoveredSamples = tonumber(
-            cell.physicalCoveredSamples) or cell.rawCoveredSamples
+        cell.rawCoveredSamples = math.floor(workCoverage * WORK_AREA_COVERAGE_SAMPLES + 0.5)
+        cell.rawPhysicalCoverageMask = cell.physicalCoverageMask or cell.coverageMask
+        cell.rawPhysicalCoveredSamples = tonumber(cell.physicalCoveredSamples) or cell.rawCoveredSamples
         local centerX = (cell.ix + 0.5) * cellSize
         local centerZ = (cell.iz + 0.5) * cellSize
-        local centerCultivatable =
-            manager:isCultivatableTerrainAtWorldPosition(centerX, centerZ)
+        local centerCultivatable = manager:isCultivatableTerrainAtWorldPosition(centerX, centerZ)
 
         -- Interior cells remain on the cheap path. Partial WorkArea cells and
         -- cells whose centre lies outside are the only ones that can need a
@@ -6677,10 +7085,8 @@ local function normalizeCellsToCultivatableArea(manager, cells, cellSize)
             cell.coverageDenominator = WORK_AREA_COVERAGE_SAMPLES
             cell.fieldSamples = WORK_AREA_COVERAGE_SAMPLES
             cell.workedFieldSamples = cell.rawCoveredSamples
-            cell.physicalWorkedFieldSamples =
-                cell.rawPhysicalCoveredSamples
-            cell.physicalCoverage =
-                cell.rawPhysicalCoveredSamples / WORK_AREA_COVERAGE_SAMPLES
+            cell.physicalWorkedFieldSamples = cell.rawPhysicalCoveredSamples
+            cell.physicalCoverage = cell.rawPhysicalCoveredSamples / WORK_AREA_COVERAGE_SAMPLES
             cell.cultivatableCoverage = 1
             result[#result + 1] = cell
         else
@@ -6689,18 +7095,13 @@ local function normalizeCellsToCultivatableArea(manager, cells, cellSize)
             local physicalIntersectionMask = 0
             local physicalWorkedFieldSamples = 0
             local knownSamples = 0
-            local coverageLow, coverageHigh = splitCoverageMask(
-                cell.coverageMask)
-            local physicalLow, physicalHigh = splitCoverageMask(
-                cell.physicalCoverageMask or cell.coverageMask)
-            for sampleZ=0,subdivisions-1 do
-                local z = (cell.iz + (sampleZ + 0.5) / subdivisions)
-                    * cellSize
-                for sampleX=0,subdivisions-1 do
-                    local x = (cell.ix + (sampleX + 0.5) / subdivisions)
-                        * cellSize
-                    local cultivatable =
-                        manager:isCultivatableTerrainAtWorldPosition(x, z)
+            local coverageLow, coverageHigh = splitCoverageMask(cell.coverageMask)
+            local physicalLow, physicalHigh = splitCoverageMask(cell.physicalCoverageMask or cell.coverageMask)
+            for sampleZ = 0, subdivisions - 1 do
+                local z = (cell.iz + (sampleZ + 0.5) / subdivisions) * cellSize
+                for sampleX = 0, subdivisions - 1 do
+                    local x = (cell.ix + (sampleX + 0.5) / subdivisions) * cellSize
+                    local cultivatable = manager:isCultivatableTerrainAtWorldPosition(x, z)
                     if cultivatable ~= nil then
                         knownSamples = knownSamples + 1
                     end
@@ -6712,34 +7113,24 @@ local function normalizeCellsToCultivatableArea(manager, cells, cellSize)
                         local physicalSet = nil
                         if bit32 ~= nil and bit32.band ~= nil then
                             if index < COVERAGE_MASK_LOW_BITS then
-                                coverageSet = bit32.band(
-                                    coverageLow, bitValue) ~= 0
-                                physicalSet = bit32.band(
-                                    physicalLow, bitValue) ~= 0
+                                coverageSet = bit32.band(coverageLow, bitValue) ~= 0
+                                physicalSet = bit32.band(physicalLow, bitValue) ~= 0
                             else
-                                local highBit = bitValue
-                                    / COVERAGE_MASK_LOW_BASE
-                                coverageSet = bit32.band(
-                                    coverageHigh, highBit) ~= 0
-                                physicalSet = bit32.band(
-                                    physicalHigh, highBit) ~= 0
+                                local highBit = bitValue / COVERAGE_MASK_LOW_BASE
+                                coverageSet = bit32.band(coverageHigh, highBit) ~= 0
+                                physicalSet = bit32.band(physicalHigh, highBit) ~= 0
                             end
                         else
-                            coverageSet = coverageMaskContains(
-                                cell.coverageMask, bitValue)
-                            physicalSet = coverageMaskContains(
-                                cell.physicalCoverageMask
-                                    or cell.coverageMask, bitValue)
+                            coverageSet = coverageMaskContains(cell.coverageMask, bitValue)
+                            physicalSet = coverageMaskContains(cell.physicalCoverageMask or cell.coverageMask, bitValue)
                         end
                         if coverageSet then
                             intersectionMask = intersectionMask + bitValue
                             workedFieldSamples = workedFieldSamples + 1
                         end
                         if physicalSet then
-                            physicalIntersectionMask =
-                                physicalIntersectionMask + bitValue
-                            physicalWorkedFieldSamples =
-                                physicalWorkedFieldSamples + 1
+                            physicalIntersectionMask = physicalIntersectionMask + bitValue
+                            physicalWorkedFieldSamples = physicalWorkedFieldSamples + 1
                         end
                     end
                 end
@@ -6747,29 +7138,23 @@ local function normalizeCellsToCultivatableArea(manager, cells, cellSize)
 
             cell.fieldSamples = fieldSamples
             cell.workedFieldSamples = workedFieldSamples
-            cell.cultivatableCoverage = knownSamples > 0
-                and fieldSamples / knownSamples or nil
+            cell.cultivatableCoverage = knownSamples > 0 and fieldSamples / knownSamples or nil
             if knownSamples <= 0 then
                 -- A custom map without a readable ground-type channel keeps
                 -- the previous conservative WorkArea behaviour.
                 cell.coverageDenominator = WORK_AREA_COVERAGE_SAMPLES
                 cell.fieldSamples = "unknown"
                 cell.workedFieldSamples = cell.rawCoveredSamples
-                cell.physicalWorkedFieldSamples =
-                    cell.rawPhysicalCoveredSamples
-                cell.physicalCoverage =
-                    cell.rawPhysicalCoveredSamples
-                        / WORK_AREA_COVERAGE_SAMPLES
+                cell.physicalWorkedFieldSamples = cell.rawPhysicalCoveredSamples
+                cell.physicalCoverage = cell.rawPhysicalCoveredSamples / WORK_AREA_COVERAGE_SAMPLES
                 result[#result + 1] = cell
             elseif fieldSamples > 0 and workedFieldSamples > 0 then
                 cell.coverageMask = intersectionMask
                 cell.physicalCoverageMask = physicalIntersectionMask
                 cell.coverageDenominator = fieldSamples
                 cell.coverage = workedFieldSamples / fieldSamples
-                cell.physicalWorkedFieldSamples =
-                    physicalWorkedFieldSamples
-                cell.physicalCoverage =
-                    physicalWorkedFieldSamples / fieldSamples
+                cell.physicalWorkedFieldSamples = physicalWorkedFieldSamples
+                cell.physicalCoverage = physicalWorkedFieldSamples / fieldSamples
                 cell.cultivatableCoverage = fieldSamples / knownSamples
                 result[#result + 1] = cell
             end
@@ -6779,8 +7164,9 @@ local function normalizeCellsToCultivatableArea(manager, cells, cellSize)
 end
 
 local function captureWorkAreaGeometry(workArea)
-    if workArea == nil or workArea.start == nil or workArea.width == nil
-        or workArea.height == nil then return nil end
+    if workArea == nil or workArea.start == nil or workArea.width == nil or workArea.height == nil then
+        return nil
+    end
     local sx, _, sz = getWorldTranslation(workArea.start)
     local wx, _, wz = getWorldTranslation(workArea.width)
     local hx, _, hz = getWorldTranslation(workArea.height)
@@ -6789,33 +7175,45 @@ local function captureWorkAreaGeometry(workArea)
     local widthLength = math.sqrt(widthX * widthX + widthZ * widthZ)
     local heightLength = math.sqrt(heightX * heightX + heightZ * heightZ)
     local determinant = widthX * heightZ - widthZ * heightX
-    if math.abs(determinant) < 0.000001 then return nil end
+    if math.abs(determinant) < 0.000001 then
+        return nil
+    end
     return {
-        sx=sx, sz=sz, widthX=widthX, widthZ=widthZ,
-        heightX=heightX, heightZ=heightZ,
-        widthLength=widthLength, heightLength=heightLength
+        sx = sx,
+        sz = sz,
+        widthX = widthX,
+        widthZ = widthZ,
+        heightX = heightX,
+        heightZ = heightZ,
+        widthLength = widthLength,
+        heightLength = heightLength,
     }
 end
 
 local function getWorkAreaCorners(geometry, paddingM)
-    if geometry == nil then return {} end
+    if geometry == nil then
+        return {}
+    end
     local padding = math.max(tonumber(paddingM) or 0, 0)
-    local paddingU = padding
-        / math.max(geometry.widthLength, 0.01)
-    local paddingV = padding
-        / math.max(geometry.heightLength, 0.01)
+    local paddingU = padding / math.max(geometry.widthLength, 0.01)
+    local paddingV = padding / math.max(geometry.heightLength, 0.01)
     local sx, sz = geometry.sx, geometry.sz
     local widthX, widthZ = geometry.widthX, geometry.widthZ
     local heightX, heightZ = geometry.heightX, geometry.heightZ
     return {
-        {x=sx - widthX * paddingU - heightX * paddingV,
-            z=sz - widthZ * paddingU - heightZ * paddingV},
-        {x=sx + widthX * (1 + paddingU) - heightX * paddingV,
-            z=sz + widthZ * (1 + paddingU) - heightZ * paddingV},
-        {x=sx + widthX * (1 + paddingU) + heightX * (1 + paddingV),
-            z=sz + widthZ * (1 + paddingU) + heightZ * (1 + paddingV)},
-        {x=sx - widthX * paddingU + heightX * (1 + paddingV),
-            z=sz - widthZ * paddingU + heightZ * (1 + paddingV)}
+        { x = sx - widthX * paddingU - heightX * paddingV, z = sz - widthZ * paddingU - heightZ * paddingV },
+        {
+            x = sx + widthX * (1 + paddingU) - heightX * paddingV,
+            z = sz + widthZ * (1 + paddingU) - heightZ * paddingV,
+        },
+        {
+            x = sx + widthX * (1 + paddingU) + heightX * (1 + paddingV),
+            z = sz + widthZ * (1 + paddingU) + heightZ * (1 + paddingV),
+        },
+        {
+            x = sx - widthX * paddingU + heightX * (1 + paddingV),
+            z = sz - widthZ * paddingU + heightZ * (1 + paddingV),
+        },
     }
 end
 
@@ -6824,76 +7222,81 @@ local function getPaddedWorkAreaCorners(geometry)
 end
 
 local function getConvexHull(points)
-    if points == nil or #points <= 3 then return points or {} end
+    if points == nil or #points <= 3 then
+        return points or {}
+    end
     local sorted = {}
     for _, point in ipairs(points) do
-        sorted[#sorted + 1] = {x=point.x, z=point.z}
+        sorted[#sorted + 1] = { x = point.x, z = point.z }
     end
     table.sort(sorted, function(a, b)
         return a.x < b.x or (a.x == b.x and a.z < b.z)
     end)
     local function cross(o, a, b)
-        return (a.x-o.x)*(b.z-o.z) - (a.z-o.z)*(b.x-o.x)
+        return (a.x - o.x) * (b.z - o.z) - (a.z - o.z) * (b.x - o.x)
     end
     local lower = {}
     for _, point in ipairs(sorted) do
-        while #lower >= 2
-            and cross(lower[#lower-1], lower[#lower], point) <= 0 do
+        while #lower >= 2 and cross(lower[#lower - 1], lower[#lower], point) <= 0 do
             table.remove(lower)
         end
         lower[#lower + 1] = point
     end
     local upper = {}
-    for index=#sorted,1,-1 do
+    for index = #sorted, 1, -1 do
         local point = sorted[index]
-        while #upper >= 2
-            and cross(upper[#upper-1], upper[#upper], point) <= 0 do
+        while #upper >= 2 and cross(upper[#upper - 1], upper[#upper], point) <= 0 do
             table.remove(upper)
         end
         upper[#upper + 1] = point
     end
     table.remove(lower)
     table.remove(upper)
-    for _, point in ipairs(upper) do lower[#lower + 1] = point end
+    for _, point in ipairs(upper) do
+        lower[#lower + 1] = point
+    end
     return lower
 end
 
 local function prepareConvexPolygon(points)
-    if points == nil or #points < 3 then return nil end
+    if points == nil or #points < 3 then
+        return nil
+    end
     local signedArea = 0
-    for index=1,#points do
+    for index = 1, #points do
         local a = points[index]
         local b = points[index % #points + 1]
         signedArea = signedArea + a.x * b.z - b.x * a.z
     end
     local orientation = signedArea >= 0 and 1 or -1
     local edges = {}
-    for index=1,#points do
+    for index = 1, #points do
         local a = points[index]
         local b = points[index % #points + 1]
-        local dx, dz = b.x-a.x, b.z-a.z
+        local dx, dz = b.x - a.x, b.z - a.z
         edges[index] = {
-            a=-dz*orientation,
-            b=dx*orientation,
-            c=(dz*a.x-dx*a.z)*orientation
+            a = -dz * orientation,
+            b = dx * orientation,
+            c = (dz * a.x - dx * a.z) * orientation,
         }
     end
     return edges
 end
 
 local function isPointInPreparedConvexPolygon(edges, x, z)
-    if edges == nil then return false end
-    for index=1,#edges do
+    if edges == nil then
+        return false
+    end
+    for index = 1, #edges do
         local edge = edges[index]
-        if edge.a*x + edge.b*z + edge.c < -0.000001 then
+        if edge.a * x + edge.b * z + edge.c < -0.000001 then
             return false
         end
     end
     return true
 end
 
-local function isCellInsidePreparedConvexPolygon(
-        edges, minX, minZ, maxX, maxZ)
+local function isCellInsidePreparedConvexPolygon(edges, minX, minZ, maxX, maxZ)
     return isPointInPreparedConvexPolygon(edges, minX, minZ)
         and isPointInPreparedConvexPolygon(edges, maxX, minZ)
         and isPointInPreparedConvexPolygon(edges, maxX, maxZ)
@@ -6901,33 +7304,33 @@ local function isCellInsidePreparedConvexPolygon(
 end
 
 local function getWorkAreaGeometryDistance(a, b)
-    if a == nil or b == nil then return math.huge end
+    if a == nil or b == nil then
+        return math.huge
+    end
     local maximum = 0
-    for _, suffix in ipairs({"s", "w", "h", "o"}) do
+    for _, suffix in ipairs({ "s", "w", "h", "o" }) do
         local ax, az, bx, bz
         if suffix == "s" then
             ax, az, bx, bz = a.sx, a.sz, b.sx, b.sz
         elseif suffix == "w" then
-            ax, az = a.sx+a.widthX, a.sz+a.widthZ
-            bx, bz = b.sx+b.widthX, b.sz+b.widthZ
+            ax, az = a.sx + a.widthX, a.sz + a.widthZ
+            bx, bz = b.sx + b.widthX, b.sz + b.widthZ
         elseif suffix == "h" then
-            ax, az = a.sx+a.heightX, a.sz+a.heightZ
-            bx, bz = b.sx+b.heightX, b.sz+b.heightZ
+            ax, az = a.sx + a.heightX, a.sz + a.heightZ
+            bx, bz = b.sx + b.heightX, b.sz + b.heightZ
         else
-            ax, az = a.sx+a.widthX+a.heightX,
-                a.sz+a.widthZ+a.heightZ
-            bx, bz = b.sx+b.widthX+b.heightX,
-                b.sz+b.widthZ+b.heightZ
+            ax, az = a.sx + a.widthX + a.heightX, a.sz + a.widthZ + a.heightZ
+            bx, bz = b.sx + b.widthX + b.heightX, b.sz + b.widthZ + b.heightZ
         end
-        maximum = math.max(maximum,
-            math.sqrt((ax-bx)*(ax-bx) + (az-bz)*(az-bz)))
+        maximum = math.max(maximum, math.sqrt((ax - bx) * (ax - bx) + (az - bz) * (az - bz)))
     end
     return maximum
 end
 
-local function prepareWorkAreaCoverageGeometry(
-        currentGeometry, previousGeometry)
-    if currentGeometry == nil then return nil end
+local function prepareWorkAreaCoverageGeometry(currentGeometry, previousGeometry)
+    if currentGeometry == nil then
+        return nil
+    end
     local polygonPoints = getPaddedWorkAreaCorners(currentGeometry)
     local physicalPoints = getWorkAreaCorners(currentGeometry, 0)
     if previousGeometry ~= nil then
@@ -6940,7 +7343,9 @@ local function prepareWorkAreaCoverageGeometry(
     end
     local hull = getConvexHull(polygonPoints)
     local physicalHull = getConvexHull(physicalPoints)
-    if #hull < 3 then return nil end
+    if #hull < 3 then
+        return nil
+    end
     local preparedHull = prepareConvexPolygon(hull)
     local preparedPhysicalHull = prepareConvexPolygon(physicalHull)
     local minX, maxX = math.huge, -math.huge
@@ -6950,20 +7355,23 @@ local function prepareWorkAreaCoverageGeometry(
         minZ, maxZ = math.min(minZ, point.z), math.max(maxZ, point.z)
     end
     return {
-        preparedHull=preparedHull,
-        preparedPhysicalHull=preparedPhysicalHull,
-        minX=minX, maxX=maxX, minZ=minZ, maxZ=maxZ
+        preparedHull = preparedHull,
+        preparedPhysicalHull = preparedPhysicalHull,
+        minX = minX,
+        maxX = maxX,
+        minZ = minZ,
+        maxZ = maxZ,
     }
 end
 
-local function getTouchedSoilCells(
-        workArea, cellSize, previousGeometry, preparedGeometry)
+local function getTouchedSoilCells(workArea, cellSize, previousGeometry, preparedGeometry)
     local geometry = preparedGeometry
     if geometry == nil then
-        geometry = prepareWorkAreaCoverageGeometry(
-            captureWorkAreaGeometry(workArea), previousGeometry)
+        geometry = prepareWorkAreaCoverageGeometry(captureWorkAreaGeometry(workArea), previousGeometry)
     end
-    if geometry == nil then return {} end
+    if geometry == nil then
+        return {}
+    end
     local preparedHull = geometry.preparedHull
     local preparedPhysicalHull = geometry.preparedPhysicalHull
     local minX, maxX = geometry.minX, geometry.maxX
@@ -6973,41 +7381,36 @@ local function getTouchedSoilCells(
     local maxIx = math.floor((maxX - epsilon) / cellSize)
     local minIz = math.floor((minZ + epsilon) / cellSize)
     local maxIz = math.floor((maxZ - epsilon) / cellSize)
-    if maxIx < minIx then minIx, maxIx = maxIx, minIx end
-    if maxIz < minIz then minIz, maxIz = maxIz, minIz end
+    if maxIx < minIx then
+        minIx, maxIx = maxIx, minIx
+    end
+    if maxIz < minIz then
+        minIz, maxIz = maxIz, minIz
+    end
 
     local result = {}
     local subdivisions = WORK_AREA_COVERAGE_SUBDIVISIONS
-    for iz=minIz,maxIz do
-        for ix=minIx,maxIx do
+    for iz = minIz, maxIz do
+        for ix = minIx, maxIx do
             local mask, covered = 0, 0
             local physicalMask, physicalCovered = 0, 0
-            local cellMinX, cellMinZ = ix*cellSize, iz*cellSize
-            local cellMaxX, cellMaxZ = cellMinX+cellSize,
-                cellMinZ+cellSize
-            local effectFull = isCellInsidePreparedConvexPolygon(
-                preparedHull, cellMinX, cellMinZ, cellMaxX, cellMaxZ)
-            local physicalFull = isCellInsidePreparedConvexPolygon(
-                preparedPhysicalHull,
-                cellMinX, cellMinZ, cellMaxX, cellMaxZ)
+            local cellMinX, cellMinZ = ix * cellSize, iz * cellSize
+            local cellMaxX, cellMaxZ = cellMinX + cellSize, cellMinZ + cellSize
+            local effectFull = isCellInsidePreparedConvexPolygon(preparedHull, cellMinX, cellMinZ, cellMaxX, cellMaxZ)
+            local physicalFull =
+                isCellInsidePreparedConvexPolygon(preparedPhysicalHull, cellMinX, cellMinZ, cellMaxX, cellMaxZ)
             if effectFull then
-                mask, covered = COVERAGE_FULL_MASK,
-                    WORK_AREA_COVERAGE_SAMPLES
+                mask, covered = COVERAGE_FULL_MASK, WORK_AREA_COVERAGE_SAMPLES
             end
             if physicalFull then
-                physicalMask, physicalCovered = COVERAGE_FULL_MASK,
-                    WORK_AREA_COVERAGE_SAMPLES
+                physicalMask, physicalCovered = COVERAGE_FULL_MASK, WORK_AREA_COVERAGE_SAMPLES
             end
             if not effectFull or not physicalFull then
-                for sampleZ=0,subdivisions-1 do
-                    local z = (iz + (sampleZ + 0.5) / subdivisions)
-                        * cellSize
-                    for sampleX=0,subdivisions-1 do
-                        local x = (ix + (sampleX + 0.5) / subdivisions)
-                            * cellSize
-                        local effectInside = effectFull
-                            or isPointInPreparedConvexPolygon(
-                                preparedHull, x, z)
+                for sampleZ = 0, subdivisions - 1 do
+                    local z = (iz + (sampleZ + 0.5) / subdivisions) * cellSize
+                    for sampleX = 0, subdivisions - 1 do
+                        local x = (ix + (sampleX + 0.5) / subdivisions) * cellSize
+                        local effectInside = effectFull or isPointInPreparedConvexPolygon(preparedHull, x, z)
                         if effectInside then
                             local index = sampleZ * subdivisions + sampleX
                             if not effectFull then
@@ -7018,11 +7421,8 @@ local function getTouchedSoilCells(
                             -- padded closure polygon. Avoid its test for every
                             -- sample that missed the latter or belongs to a
                             -- cell already proven to be completely physical.
-                            if not physicalFull
-                                and isPointInPreparedConvexPolygon(
-                                    preparedPhysicalHull, x, z) then
-                                physicalMask = physicalMask
-                                    + COVERAGE_BIT_VALUES[index]
+                            if not physicalFull and isPointInPreparedConvexPolygon(preparedPhysicalHull, x, z) then
+                                physicalMask = physicalMask + COVERAGE_BIT_VALUES[index]
                                 physicalCovered = physicalCovered + 1
                             end
                         end
@@ -7031,12 +7431,13 @@ local function getTouchedSoilCells(
             end
             if covered > 0 then
                 result[#result + 1] = {
-                    ix=ix, iz=iz, coverageMask=mask,
-                    coverage=covered / WORK_AREA_COVERAGE_SAMPLES,
-                    physicalCoverageMask=physicalMask,
-                    physicalCoveredSamples=physicalCovered,
-                    physicalCoverage=
-                        physicalCovered / WORK_AREA_COVERAGE_SAMPLES
+                    ix = ix,
+                    iz = iz,
+                    coverageMask = mask,
+                    coverage = covered / WORK_AREA_COVERAGE_SAMPLES,
+                    physicalCoverageMask = physicalMask,
+                    physicalCoveredSamples = physicalCovered,
+                    physicalCoverage = physicalCovered / WORK_AREA_COVERAGE_SAMPLES,
                 }
             end
         end
@@ -7050,53 +7451,50 @@ end
 -- reset and receive the overlapping strip twice. Periodic pruning prevents this
 -- session-only cache from growing with every worked field cell.
 local function pruneRecentSoilCoverage(spec, now, cooldown)
-    if now < (tonumber(spec.nextSoilRecentCellsPruneTime) or 0) then return end
+    if now < (tonumber(spec.nextSoilRecentCellsPruneTime) or 0) then
+        return
+    end
     spec.nextSoilRecentCellsPruneTime = now + math.max(cooldown * 2, 10000)
     for key, entry in pairs(spec.soilRecentCells or {}) do
-        local lastSeen = type(entry) == "table"
-            and tonumber(entry.lastSeen) or tonumber(entry)
-        if lastSeen == nil
-            or now - lastSeen >= WORK_AREA_COVERAGE_RETENTION_MS then
+        local lastSeen = type(entry) == "table" and tonumber(entry.lastSeen) or tonumber(entry)
+        if lastSeen == nil or now - lastSeen >= WORK_AREA_COVERAGE_RETENTION_MS then
             spec.soilRecentCells[key] = nil
         end
     end
 end
 
-local function getCoverageEntry(
-        spec, key, cell, now, cooldown, baseValue, collectDiagnostics)
+local function getCoverageEntry(spec, key, cell, now, cooldown, baseValue, collectDiagnostics)
     spec.soilRecentCells = spec.soilRecentCells or {}
     local entry = spec.soilRecentCells[key]
-    local lastSeen = type(entry) == "table"
-        and tonumber(entry.lastSeen) or tonumber(entry)
+    local lastSeen = type(entry) == "table" and tonumber(entry.lastSeen) or tonumber(entry)
     local cacheState = "existing"
-    if type(entry) ~= "table" or lastSeen == nil
-        or now - lastSeen >= WORK_AREA_COVERAGE_RETENTION_MS then
+    if type(entry) ~= "table" or lastSeen == nil or now - lastSeen >= WORK_AREA_COVERAGE_RETENTION_MS then
         cacheState = type(entry) == "table" and "expired" or "new"
         entry = {
-            lastSeen=now, workedMask=0, physicalMask=0,
-            coverageMask=0, coverage=0, repeatCoverage=0,
-            coverageDenominator=math.max(tonumber(
-                cell.coverageDenominator) or WORK_AREA_COVERAGE_SAMPLES, 1),
-            baseValue=baseValue, lastModelValue=baseValue,
-            lastAppliedValue=baseValue
+            lastSeen = now,
+            workedMask = 0,
+            physicalMask = 0,
+            coverageMask = 0,
+            coverage = 0,
+            repeatCoverage = 0,
+            coverageDenominator = math.max(tonumber(cell.coverageDenominator) or WORK_AREA_COVERAGE_SAMPLES, 1),
+            baseValue = baseValue,
+            lastModelValue = baseValue,
+            lastAppliedValue = baseValue,
         }
         spec.soilRecentCells[key] = entry
     end
-    local gapBeforeTouch = math.max(now
-        - (tonumber(entry.lastSeen) or now), 0)
-    local coverageDenominator = math.max(tonumber(
-        cell.coverageDenominator)
-        or tonumber(entry.coverageDenominator)
-        or WORK_AREA_COVERAGE_SAMPLES, 1)
+    local gapBeforeTouch = math.max(now - (tonumber(entry.lastSeen) or now), 0)
+    local coverageDenominator = math.max(
+        tonumber(cell.coverageDenominator) or tonumber(entry.coverageDenominator) or WORK_AREA_COVERAGE_SAMPLES,
+        1
+    )
     entry.coverageDenominator = coverageDenominator
-    entry.workedMask = tonumber(entry.workedMask)
-        or tonumber(entry.coverageMask) or 0
-    entry.physicalMask = tonumber(entry.physicalMask)
-        or tonumber(entry.workedMask) or 0
+    entry.workedMask = tonumber(entry.workedMask) or tonumber(entry.coverageMask) or 0
+    entry.physicalMask = tonumber(entry.physicalMask) or tonumber(entry.workedMask) or 0
 
     local incomingEffectMask = tonumber(cell.coverageMask) or 0
-    local incomingPhysicalMask = tonumber(cell.physicalCoverageMask)
-        or incomingEffectMask
+    local incomingPhysicalMask = tonumber(cell.physicalCoverageMask) or incomingEffectMask
     local newVisit = gapBeforeTouch >= cooldown
 
     -- A visit is one continuous traversal of this cell. Split WorkAreas and
@@ -7117,50 +7515,36 @@ local function getCoverageEntry(
         cacheState = "new_visit"
     end
 
-    local newFirstMask, newFirstSamples = subtractCoverageMask(
-        incomingEffectMask, entry.workedMask)
+    local newFirstMask, newFirstSamples = subtractCoverageMask(incomingEffectMask, entry.workedMask)
     local repeatMask = 0
     if entry.visitPriorPhysicalMask ~= nil then
-        repeatMask = select(1, intersectCoverageMask(
-            incomingPhysicalMask, entry.visitPriorPhysicalMask))
+        repeatMask = select(1, intersectCoverageMask(incomingPhysicalMask, entry.visitPriorPhysicalMask))
     end
-    local newRepeatMask, newRepeatSamples = subtractCoverageMask(
-        repeatMask, entry.repeatMask or 0)
+    local newRepeatMask, newRepeatSamples = subtractCoverageMask(repeatMask, entry.repeatMask or 0)
 
     -- Closure-only samples may complete the first visual pass, but they never
     -- qualify as repeated physical work. A later real WorkArea can upgrade
     -- such a sample to physical history without receiving a false second pass.
     local applicationMask = newFirstMask
-    applicationMask = select(1, mergeCoverageMask(
-        applicationMask, newRepeatMask))
-    local mergedVisitMask, addedSamples = mergeCoverageMask(
-        entry.coverageMask, applicationMask)
+    applicationMask = select(1, mergeCoverageMask(applicationMask, newRepeatMask))
+    local mergedVisitMask, addedSamples = mergeCoverageMask(entry.coverageMask, applicationMask)
     local previousCoverage = tonumber(entry.coverage) or 0
     entry.coverageMask = mergedVisitMask
-    entry.coverage = math.min(previousCoverage
-        + addedSamples / coverageDenominator, 1)
-    entry.repeatMask = select(1, mergeCoverageMask(
-        entry.repeatMask, newRepeatMask))
-    entry.workedMask = select(1, mergeCoverageMask(
-        entry.workedMask, incomingEffectMask))
-    entry.physicalMask = select(1, mergeCoverageMask(
-        entry.physicalMask, incomingPhysicalMask))
+    entry.coverage = math.min(previousCoverage + addedSamples / coverageDenominator, 1)
+    entry.repeatMask = select(1, mergeCoverageMask(entry.repeatMask, newRepeatMask))
+    entry.workedMask = select(1, mergeCoverageMask(entry.workedMask, incomingEffectMask))
+    entry.physicalMask = select(1, mergeCoverageMask(entry.physicalMask, incomingPhysicalMask))
     entry.lastSeen = now
 
     if not collectDiagnostics then
         return entry, addedSamples > 0, previousCoverage, nil
     end
-    local visitRepeatSamples = countCoverageWord(
-        select(1, splitCoverageMask(entry.repeatMask)))
+    local visitRepeatSamples = countCoverageWord(select(1, splitCoverageMask(entry.repeatMask)))
         + countCoverageWord(select(2, splitCoverageMask(entry.repeatMask)))
-    entry.repeatCoverage = math.min(
-        visitRepeatSamples / coverageDenominator, 1)
-    local toleranceMask = select(1, subtractCoverageMask(
-        incomingEffectMask, incomingPhysicalMask))
-    local _, toleranceAddedSamples = intersectCoverageMask(
-        newFirstMask, toleranceMask)
-    local _, physicalFirstAddedSamples = intersectCoverageMask(
-        newFirstMask, incomingPhysicalMask)
+    entry.repeatCoverage = math.min(visitRepeatSamples / coverageDenominator, 1)
+    local toleranceMask = select(1, subtractCoverageMask(incomingEffectMask, incomingPhysicalMask))
+    local _, toleranceAddedSamples = intersectCoverageMask(newFirstMask, toleranceMask)
+    local _, physicalFirstAddedSamples = intersectCoverageMask(newFirstMask, incomingPhysicalMask)
     local state = "duplicate"
     if addedSamples > 0 then
         if newRepeatSamples > 0 then
@@ -7171,68 +7555,76 @@ local function getCoverageEntry(
             state = cacheState == "new_visit" and "new_visit" or cacheState
         end
     end
-    return entry, addedSamples > 0, previousCoverage, {
-        state=state,
-        gapMs=gapBeforeTouch, addedSamples=addedSamples,
-        firstAddedSamples=newFirstSamples,
-        repeatAddedSamples=newRepeatSamples,
-        physicalFirstAddedSamples=physicalFirstAddedSamples,
-        physicalSamples=tonumber(cell.physicalWorkedFieldSamples)
-            or tonumber(cell.physicalCoveredSamples) or 0,
-        toleranceSamples=toleranceAddedSamples,
-        previousCoverage=previousCoverage,
-        afterCoverage=entry.coverage,
-        repeatCoverage=entry.repeatCoverage,
-        repeatThreshold=0
-    }
+    return entry,
+        addedSamples > 0,
+        previousCoverage,
+        {
+            state = state,
+            gapMs = gapBeforeTouch,
+            addedSamples = addedSamples,
+            firstAddedSamples = newFirstSamples,
+            repeatAddedSamples = newRepeatSamples,
+            physicalFirstAddedSamples = physicalFirstAddedSamples,
+            physicalSamples = tonumber(cell.physicalWorkedFieldSamples) or tonumber(cell.physicalCoveredSamples) or 0,
+            toleranceSamples = toleranceAddedSamples,
+            previousCoverage = previousCoverage,
+            afterCoverage = entry.coverage,
+            repeatCoverage = entry.repeatCoverage,
+            repeatThreshold = 0,
+        }
 end
 
 function TerraLogicSoilManager:applyResilienceWorkArea(
-        implement, workArea, classKey, successfulArea, now, engagement,
-        touchedCells)
-    if g_server == nil then return 0 end
+    implement,
+    workArea,
+    classKey,
+    successfulArea,
+    now,
+    engagement,
+    touchedCells
+)
+    if g_server == nil then
+        return 0
+    end
     local response = RESILIENCE_TILLAGE[classKey]
     if response ~= nil and response < 0 then
-        response = -scaleSlowStrength(
-            -response, getResilienceTillageLossScale())
+        response = -scaleSlowStrength(-response, getResilienceTillageLossScale())
     end
-    if response == nil or (tonumber(successfulArea) or 0) <= 0
-        or TerraLogicQualityManager == nil then return 0 end
+    if response == nil or (tonumber(successfulArea) or 0) <= 0 or TerraLogicQualityManager == nil then
+        return 0
+    end
     response = response * math.clamp(tonumber(engagement) or 1, 0, 1)
-    if math.abs(response) < 0.00001 then return 0 end
+    if math.abs(response) < 0.00001 then
+        return 0
+    end
     local spec = implement ~= nil and implement.spec_terraLogic or nil
-    if spec == nil then return 0 end
+    if spec == nil then
+        return 0
+    end
     spec.soilRecentCells = spec.soilRecentCells or {}
     pruneRecentSoilCoverage(spec, now, self.PASS_COOLDOWN_MS)
     local changed = 0
-    for _, cell in ipairs(touchedCells or getTouchedSoilCells(
-            workArea, self.RESILIENCE_CELL_SIZE)) do
+    for _, cell in ipairs(touchedCells or getTouchedSoilCells(workArea, self.RESILIENCE_CELL_SIZE)) do
         -- One physical implement may expose consecutive work components, for
         -- example a plough followed by an integrated cultivator/packer. Keep
         -- overlapping WorkAreas of the same component deduplicated while
         -- allowing the secondary component to act on the freshly ploughed
         -- cell during the same pass.
-        local key = "resilienceWork:" .. tostring(classKey) .. ":"
-            .. getCellKey(cell.ix, cell.iz)
+        local key = "resilienceWork:" .. tostring(classKey) .. ":" .. getCellKey(cell.ix, cell.iz)
         local x = (cell.ix + 0.5) * self.RESILIENCE_CELL_SIZE
         local z = (cell.iz + 0.5) * self.RESILIENCE_CELL_SIZE
         local current = self:getValueAtWorldPosition("resilience", x, z)
-        local entry, coverageChanged = getCoverageEntry(
-            spec, key, cell, now, self.PASS_COOLDOWN_MS, current)
+        local entry, coverageChanged = getCoverageEntry(spec, key, cell, now, self.PASS_COOLDOWN_MS, current)
         if coverageChanged then
-            local cultivatable = (tonumber(
-                cell.cultivatableCoverage) or 0) > 0
+            local cultivatable = (tonumber(cell.cultivatableCoverage) or 0) > 0
             if not cultivatable then
-                local surface = TerraLogicQualityManager:
-                    getSurfaceTypeAtWorldPosition(x, z)
-                cultivatable = surface == "field"
-                    or surface == "grassField"
+                local surface = TerraLogicQualityManager:getSurfaceTypeAtWorldPosition(x, z)
+                cultivatable = surface == "field" or surface == "grassField"
             end
             if cultivatable then
                 local base = clamp01(entry.baseValue)
                 local weightedResponse = response * clamp01(entry.coverage)
-                local modelValue = weightedResponse >= 0
-                    and base + weightedResponse * (1 - base)
+                local modelValue = weightedResponse >= 0 and base + weightedResponse * (1 - base)
                     or base + weightedResponse * base
                 modelValue = clamp01(modelValue)
                 -- Anchor the next result to the value that the raster really
@@ -7240,71 +7632,71 @@ function TerraLogicSoilManager:applyResilienceWorkArea(
                 -- prevents a different rounding residue on every tiny
                 -- coverage increment while still preserving changes made by
                 -- another sequential component between callbacks.
-                local previousApplied = clamp01(
-                    entry.lastAppliedValue ~= nil
-                        and entry.lastAppliedValue or entry.baseValue)
-                local nextValue = clamp01(modelValue
-                    + current - previousApplied)
-                if math.abs(nextValue - current) > 0.001
-                    and self:setStateCell(
-                        "resilience", cell.ix, cell.iz, nextValue) then
+                local previousApplied =
+                    clamp01(entry.lastAppliedValue ~= nil and entry.lastAppliedValue or entry.baseValue)
+                local nextValue = clamp01(modelValue + current - previousApplied)
+                if
+                    math.abs(nextValue - current) > 0.001
+                    and self:setStateCell("resilience", cell.ix, cell.iz, nextValue)
+                then
                     entry.lastModelValue = modelValue
-                    entry.lastAppliedValue = self:getValueAtWorldPosition(
-                        "resilience", x, z)
+                    entry.lastAppliedValue = self:getValueAtWorldPosition("resilience", x, z)
                     changed = changed + 1
                 end
             end
         end
     end
-    if changed > 0 then self:markResilienceChanged() end
+    if changed > 0 then
+        self:markResilienceChanged()
+    end
     return changed
 end
 
 function TerraLogicSoilManager:applyRecoveryAgeWorkArea(
-        implement, workArea, classKey, successfulArea, now, engagement,
-        touchedCells)
+    implement,
+    workArea,
+    classKey,
+    successfulArea,
+    now,
+    engagement,
+    touchedCells
+)
     local rule = RECOVERY_AGE_WORK[classKey]
-    if rule == nil or (tonumber(successfulArea) or 0) <= 0
-        or TerraLogicQualityManager == nil then return 0 end
+    if rule == nil or (tonumber(successfulArea) or 0) <= 0 or TerraLogicQualityManager == nil then
+        return 0
+    end
     local spec = implement ~= nil and implement.spec_terraLogic or nil
-    if spec == nil then return 0 end
+    if spec == nil then
+        return 0
+    end
     engagement = math.clamp(tonumber(engagement) or 1, 0, 1)
     spec.soilRecentCells = spec.soilRecentCells or {}
     pruneRecentSoilCoverage(spec, now, self.PASS_COOLDOWN_MS)
     local changed = 0
-    for _, cell in ipairs(touchedCells or getTouchedSoilCells(
-            workArea, self.RECOVERY_CELL_SIZE)) do
-        local key = "recoveryAgeWork:" .. tostring(classKey) .. ":"
-            .. getCellKey(cell.ix, cell.iz)
+    for _, cell in ipairs(touchedCells or getTouchedSoilCells(workArea, self.RECOVERY_CELL_SIZE)) do
+        local key = "recoveryAgeWork:" .. tostring(classKey) .. ":" .. getCellKey(cell.ix, cell.iz)
         local x = (cell.ix + 0.5) * self.RECOVERY_CELL_SIZE
         local z = (cell.iz + 0.5) * self.RECOVERY_CELL_SIZE
         local age = self:getRecoveryAgeAtWorldPosition(x, z)
-        local entry, coverageChanged = getCoverageEntry(
-            spec, key, cell, now, self.PASS_COOLDOWN_MS,
-            getBiologicalContinuityFromAge(age))
+        local entry, coverageChanged =
+            getCoverageEntry(spec, key, cell, now, self.PASS_COOLDOWN_MS, getBiologicalContinuityFromAge(age))
         if coverageChanged then
-            local cultivatable = (tonumber(
-                cell.cultivatableCoverage) or 0) > 0
+            local cultivatable = (tonumber(cell.cultivatableCoverage) or 0) > 0
             if not cultivatable then
-                local surface = TerraLogicQualityManager:
-                    getSurfaceTypeAtWorldPosition(x, z)
-                cultivatable = surface == "field"
-                    or surface == "grassField"
+                local surface = TerraLogicQualityManager:getSurfaceTypeAtWorldPosition(x, z)
+                cultivatable = surface == "field" or surface == "grassField"
             end
             if cultivatable then
                 local weightedEngagement = engagement * clamp01(entry.coverage)
                 local baseContinuity = entry.baseValue
-                local modelContinuity = self:applyContinuityRule(
-                    baseContinuity, classKey, weightedEngagement)
+                local modelContinuity = self:applyContinuityRule(baseContinuity, classKey, weightedEngagement)
                 local lastContinuity = entry.lastModelValue or baseContinuity
                 local currentContinuity = getBiologicalContinuityFromAge(age)
-                local nextContinuity = math.max(rule.target,
-                    currentContinuity + modelContinuity - lastContinuity)
+                local nextContinuity = math.max(rule.target, currentContinuity + modelContinuity - lastContinuity)
                 nextContinuity = math.min(currentContinuity, nextContinuity)
-                local nextAge = nextContinuity < currentContinuity
-                    and getAgeFromBiologicalContinuity(nextContinuity) or age
-                if nextAge ~= age
-                    and self:setRecoveryAgeCell(cell.ix, cell.iz, nextAge) then
+                local nextAge = nextContinuity < currentContinuity and getAgeFromBiologicalContinuity(nextContinuity)
+                    or age
+                if nextAge ~= age and self:setRecoveryAgeCell(cell.ix, cell.iz, nextAge) then
                     entry.lastModelValue = modelContinuity
                     changed = changed + 1
                 end
@@ -7314,40 +7706,45 @@ function TerraLogicSoilManager:applyRecoveryAgeWorkArea(
     return changed
 end
 
-function TerraLogicSoilManager:applyWorkArea(
-        implement, workArea, classKey, changedArea, totalArea)
+function TerraLogicSoilManager:applyWorkArea(implement, workArea, classKey, changedArea, totalArea)
     local rawChangedArea = math.max(tonumber(changedArea) or 0, 0)
-    local rawTotalArea = totalArea ~= nil
-        and math.max(tonumber(totalArea) or 0, 0) or rawChangedArea
+    local rawTotalArea = totalArea ~= nil and math.max(tonumber(totalArea) or 0, 0) or rawChangedArea
     local successfulArea = math.max(rawChangedArea, rawTotalArea)
-    if g_server == nil then return false end
-    if self.deepMapMigration ~= nil then return false end
+    if g_server == nil then
+        return false
+    end
+    if self.deepMapMigration ~= nil then
+        return false
+    end
     local profile = TerraLogicSoilProfiles:getProfile(classKey)
-    if profile == nil or TerraLogicQualityManager == nil then return false end
+    if profile == nil or TerraLogicQualityManager == nil then
+        return false
+    end
     local spec = implement ~= nil and implement.spec_terraLogic or nil
-    if spec == nil then return false end
+    if spec == nil then
+        return false
+    end
     local now = g_currentMission ~= nil and g_currentMission.time or 0
     local currentWorkAreaGeometry = captureWorkAreaGeometry(workArea)
-    local traceLogger = TerraLogicMain ~= nil
-        and TerraLogicMain.soilTraceLogger or nil
-    local traceActive = traceLogger ~= nil and traceLogger.active == true
-        and TerraLogicMain.writeSoilTraceRecord ~= nil
+    local traceLogger = TerraLogicMain ~= nil and TerraLogicMain.soilTraceLogger or nil
+    local traceActive = traceLogger ~= nil and traceLogger.active == true and TerraLogicMain.writeSoilTraceRecord ~= nil
     local coverageDiagnosticsActive = traceActive
-        or (TerraLogicMain ~= nil
+        or (
+            TerraLogicMain ~= nil
             and TerraLogicMain.debugEnabled == true
-            and (TerraLogicMain.debugMode == "soilprocess"
-                or TerraLogicMain.debugMode == "audit_fieldwork"))
+            and (TerraLogicMain.debugMode == "soilprocess" or TerraLogicMain.debugMode == "audit_fieldwork")
+        )
     local traceCallbackId = 0
     if traceActive then
         traceLogger.callbackId = (traceLogger.callbackId or 0) + 1
         traceCallbackId = traceLogger.callbackId
     end
-    local traceImplementName = implement.getFullName ~= nil
-        and tostring(implement:getFullName())
-        or (implement.getName ~= nil and tostring(implement:getName())
-            or tostring(classKey))
+    local traceImplementName = implement.getFullName ~= nil and tostring(implement:getFullName())
+        or (implement.getName ~= nil and tostring(implement:getName()) or tostring(classKey))
     local function traceRecord(eventName, values)
-        if not traceActive then return end
+        if not traceActive then
+            return
+        end
         values = values or {}
         values.event = eventName
         values.callback_id = traceCallbackId
@@ -7369,8 +7766,7 @@ function TerraLogicSoilManager:applyWorkArea(
     end
     local groundContactActive = implement.getIsOverSpeedGroundContactActive ~= nil
         and implement:getIsOverSpeedGroundContactActive() == true
-    spec.soilPreviousWorkAreaGeometry =
-        spec.soilPreviousWorkAreaGeometry or {}
+    spec.soilPreviousWorkAreaGeometry = spec.soilPreviousWorkAreaGeometry or {}
     if not groundContactActive then
         spec.soilPreviousWorkAreaGeometry[workArea] = nil
     end
@@ -7387,47 +7783,49 @@ function TerraLogicSoilManager:applyWorkArea(
         and spec.soilContactPassArmed == true
         and groundContactActive
         and implement.getLastSpeed ~= nil
-        and math.abs(implement:getLastSpeed(true) or 0)
-            > self.MIN_SOIL_PASS_SPEED_KPH
+        and math.abs(implement:getLastSpeed(true) or 0) > self.MIN_SOIL_PASS_SPEED_KPH
     if successfulArea <= 0 and not exitGeometryActive then
         -- Remember a lowered, moving WorkArea immediately before it reaches
         -- the field. The first positive Vanilla callback otherwise starts
         -- only after part of the leading footprint has crossed the boundary,
         -- which makes field entry weaker than the interior of the same bout.
-        local trackingSpeed = implement.getLastSpeed ~= nil
-            and math.abs(implement:getLastSpeed(true) or 0) or 0
-        if groundContactActive
-            and trackingSpeed > self.MIN_SOIL_PASS_SPEED_KPH
-            and currentWorkAreaGeometry ~= nil then
+        local trackingSpeed = implement.getLastSpeed ~= nil and math.abs(implement:getLastSpeed(true) or 0) or 0
+        if groundContactActive and trackingSpeed > self.MIN_SOIL_PASS_SPEED_KPH and currentWorkAreaGeometry ~= nil then
             local history = spec.soilPreviousWorkAreaGeometry[workArea]
             if type(history) ~= "table" or history.geometry ~= nil then
                 history = {}
                 spec.soilPreviousWorkAreaGeometry[workArea] = history
             end
             history[classKey] = {
-                geometry=currentWorkAreaGeometry,
-                classKey=classKey, time=now
+                geometry = currentWorkAreaGeometry,
+                classKey = classKey,
+                time = now,
             }
         end
         traceRecord("callback_rejected", {
-            ground_contact=groundContactActive and 1 or 0,
-            armed=spec.soilContactPassArmed == true and 1 or 0,
-            exit_geometry=0, reason="no successful area",
-            speed_kph=trackingSpeed
+            ground_contact = groundContactActive and 1 or 0,
+            armed = spec.soilContactPassArmed == true and 1 or 0,
+            exit_geometry = 0,
+            reason = "no successful area",
+            speed_kph = trackingSpeed,
         })
         return false
     end
-    if exitGeometryActive then successfulArea = 1 end
+    if exitGeometryActive then
+        successfulArea = 1
+    end
     -- A combination implement can execute several central profiles in one
     -- pass. Mechanical soil response must use the depth of the component being
     -- applied, not the primary HUD class cached on the complete implement.
     local implementProfile = TerraLogicImplementProfiles ~= nil
-        and TerraLogicImplementProfiles.PROFILES ~= nil
-        and TerraLogicImplementProfiles.PROFILES[classKey] or nil
+            and TerraLogicImplementProfiles.PROFILES ~= nil
+            and TerraLogicImplementProfiles.PROFILES[classKey]
+        or nil
     local operationWorkDepthCm = implementProfile ~= nil
-        and implementProfile.work ~= nil
-        and tonumber(implementProfile.work.depthCm)
-        or tonumber(spec.workDepthCm) or 0
+            and implementProfile.work ~= nil
+            and tonumber(implementProfile.work.depthCm)
+        or tonumber(spec.workDepthCm)
+        or 0
     -- A WorkArea callback alone does not prove deliberate field work. Detached
     -- implements can wake when the player approaches, jitter a few centimetres
     -- while embedded in uneven ground and make Vanilla return a positive (and
@@ -7435,32 +7833,38 @@ function TerraLogicSoilManager:applyWorkArea(
     -- tools as working above 0.5 km/h. Applying the same universal threshold
     -- rejects that physics artefact without any vehicle/model whitelist and
     -- therefore remains compatible with AI, multiplayer and mod implements.
-    local hasSpeedSignal = implement ~= nil
-        and implement.getLastSpeed ~= nil
-    local passSpeedKph = hasSpeedSignal
-        and math.abs(implement:getLastSpeed(true) or 0) or nil
-    if hasSpeedSignal
-        and passSpeedKph <= self.MIN_SOIL_PASS_SPEED_KPH then
+    local hasSpeedSignal = implement ~= nil and implement.getLastSpeed ~= nil
+    local passSpeedKph = hasSpeedSignal and math.abs(implement:getLastSpeed(true) or 0) or nil
+    if hasSpeedSignal and passSpeedKph <= self.MIN_SOIL_PASS_SPEED_KPH then
         local now = g_currentMission ~= nil and g_currentMission.time or 0
         self.lastRejectedPass = {
-            classKey=classKey, changedArea=rawChangedArea,
-            totalArea=rawTotalArea, speedKph=passSpeedKph,
-            reason="below Vanilla working speed", time=now
+            classKey = classKey,
+            changedArea = rawChangedArea,
+            totalArea = rawTotalArea,
+            speedKph = passSpeedKph,
+            reason = "below Vanilla working speed",
+            time = now,
         }
-        if TerraLogicLogging ~= nil
-            and (spec.soilRejectedPassLogTime == nil
-                or now - spec.soilRejectedPassLogTime >= 5000) then
+        if
+            TerraLogicLogging ~= nil
+            and (spec.soilRejectedPassLogTime == nil or now - spec.soilRejectedPassLogTime >= 5000)
+        then
             spec.soilRejectedPassLogTime = now
             TerraLogicLogging.debug(
                 "[FS25_TerraLogic] Ignored inactive soil pass %s: changedArea=%.3f totalArea=%.3f speed=%.3f kph threshold=%.3f",
-                tostring(classKey), rawChangedArea, rawTotalArea,
-                passSpeedKph, self.MIN_SOIL_PASS_SPEED_KPH)
+                tostring(classKey),
+                rawChangedArea,
+                rawTotalArea,
+                passSpeedKph,
+                self.MIN_SOIL_PASS_SPEED_KPH
+            )
         end
         traceRecord("callback_rejected", {
-            ground_contact=groundContactActive and 1 or 0,
-            armed=spec.soilContactPassArmed == true and 1 or 0,
-            exit_geometry=exitGeometryActive and 1 or 0,
-            reason="below Vanilla working speed", speed_kph=passSpeedKph
+            ground_contact = groundContactActive and 1 or 0,
+            armed = spec.soilContactPassArmed == true and 1 or 0,
+            exit_geometry = exitGeometryActive and 1 or 0,
+            reason = "below Vanilla working speed",
+            speed_kph = passSpeedKph,
         })
         return false
     end
@@ -7478,95 +7882,92 @@ function TerraLogicSoilManager:applyWorkArea(
     local moistureSampleCount = 0
     local changedLayerIds = {}
     local overspeed = profile.overspeed
-    local overspeedSeverity, speedKph, speedReferenceKph, speedRatio =
-        getSoilOverspeed(implement)
+    local overspeedSeverity, speedKph, speedReferenceKph, speedRatio = getSoilOverspeed(implement)
     local previousWorkAreaGeometry = nil
     local workAreaSweepAgeMs, workAreaSweepDistanceM = 0, 0
     local workAreaSweepMaximumDistanceM = 0
     local workAreaHistory = spec.soilPreviousWorkAreaGeometry[workArea]
-    if type(workAreaHistory) == "table"
-        and workAreaHistory.geometry ~= nil then
+    if type(workAreaHistory) == "table" and workAreaHistory.geometry ~= nil then
         -- Session-only migration from the former single-class entry.
-        workAreaHistory = {[workAreaHistory.classKey or classKey]=
-            workAreaHistory}
+        workAreaHistory = { [workAreaHistory.classKey or classKey] = workAreaHistory }
         spec.soilPreviousWorkAreaGeometry[workArea] = workAreaHistory
     end
-    local previousWorkAreaEntry = type(workAreaHistory) == "table"
-        and workAreaHistory[classKey] or nil
-    if currentWorkAreaGeometry ~= nil
+    local previousWorkAreaEntry = type(workAreaHistory) == "table" and workAreaHistory[classKey] or nil
+    if
+        currentWorkAreaGeometry ~= nil
         and type(previousWorkAreaEntry) == "table"
         and previousWorkAreaEntry.classKey == classKey
-        and previousWorkAreaEntry.geometry ~= nil then
-        workAreaSweepAgeMs = math.max(now
-            - (tonumber(previousWorkAreaEntry.time) or now), 0)
-        workAreaSweepDistanceM = getWorkAreaGeometryDistance(
-            currentWorkAreaGeometry, previousWorkAreaEntry.geometry)
-        if not traceActive and not exitGeometryActive
+        and previousWorkAreaEntry.geometry ~= nil
+    then
+        workAreaSweepAgeMs = math.max(now - (tonumber(previousWorkAreaEntry.time) or now), 0)
+        workAreaSweepDistanceM = getWorkAreaGeometryDistance(currentWorkAreaGeometry, previousWorkAreaEntry.geometry)
+        if
+            not traceActive
+            and not exitGeometryActive
             and workAreaSweepAgeMs < WORK_AREA_PROCESS_INTERVAL_MS
-            and workAreaSweepDistanceM < WORK_AREA_PROCESS_DISTANCE_M then
+            and workAreaSweepDistanceM < WORK_AREA_PROCESS_DISTANCE_M
+        then
             -- Keep the last processed geometry untouched. The next accepted
             -- callback sweeps from it to the new position, so no worked area
             -- is lost and results remain distance-based instead of FPS-based.
             return false
         end
-        local expectedDistance = math.max(tonumber(speedKph) or 0, 0)
-            / 3.6 * workAreaSweepAgeMs / 1000
+        local expectedDistance = math.max(tonumber(speedKph) or 0, 0) / 3.6 * workAreaSweepAgeMs / 1000
         local maximumDistance = math.min(
-            WORK_AREA_SWEEP_DISTANCE_MARGIN_M
-                + expectedDistance * WORK_AREA_SWEEP_SPEED_FACTOR,
-            WORK_AREA_SWEEP_ABSOLUTE_LIMIT_M)
+            WORK_AREA_SWEEP_DISTANCE_MARGIN_M + expectedDistance * WORK_AREA_SWEEP_SPEED_FACTOR,
+            WORK_AREA_SWEEP_ABSOLUTE_LIMIT_M
+        )
         workAreaSweepMaximumDistanceM = maximumDistance
-        if workAreaSweepAgeMs <= WORK_AREA_SWEEP_MAX_AGE_MS
-            and workAreaSweepDistanceM <= maximumDistance then
+        if workAreaSweepAgeMs <= WORK_AREA_SWEEP_MAX_AGE_MS and workAreaSweepDistanceM <= maximumDistance then
             previousWorkAreaGeometry = previousWorkAreaEntry.geometry
         end
     end
     if currentWorkAreaGeometry ~= nil then
         workAreaHistory = spec.soilPreviousWorkAreaGeometry[workArea]
-        if type(workAreaHistory) ~= "table"
-            or workAreaHistory.geometry ~= nil then
+        if type(workAreaHistory) ~= "table" or workAreaHistory.geometry ~= nil then
             workAreaHistory = {}
             spec.soilPreviousWorkAreaGeometry[workArea] = workAreaHistory
         end
         workAreaHistory[classKey] = {
-            geometry=currentWorkAreaGeometry, classKey=classKey, time=now
+            geometry = currentWorkAreaGeometry,
+            classKey = classKey,
+            time = now,
         }
     end
     traceRecord("callback_active", {
-        ground_contact=groundContactActive and 1 or 0,
-        armed=spec.soilContactPassArmed == true and 1 or 0,
-        exit_geometry=exitGeometryActive and 1 or 0,
-        reason=exitGeometryActive and "field exit continuation"
-            or "vanilla successful area",
-        speed_kph=speedKph,
-        previous_age_ms=workAreaSweepAgeMs,
-        sweep_distance_m=workAreaSweepDistanceM,
-        sweep_max_distance_m=workAreaSweepMaximumDistanceM,
-        sweep_accepted=previousWorkAreaGeometry ~= nil and 1 or 0
+        ground_contact = groundContactActive and 1 or 0,
+        armed = spec.soilContactPassArmed == true and 1 or 0,
+        exit_geometry = exitGeometryActive and 1 or 0,
+        reason = exitGeometryActive and "field exit continuation" or "vanilla successful area",
+        speed_kph = speedKph,
+        previous_age_ms = workAreaSweepAgeMs,
+        sweep_distance_m = workAreaSweepDistanceM,
+        sweep_max_distance_m = workAreaSweepMaximumDistanceM,
+        sweep_accepted = previousWorkAreaGeometry ~= nil and 1 or 0,
     })
-    local engagement, engagementDraftRetention, engagementAbrasionContact,
-        engagementRatio, engagementState = 1, 1, 1, speedRatio, "notApplicable"
+    local engagement, engagementDraftRetention, engagementAbrasionContact, engagementRatio, engagementState =
+        1, 1, 1, speedRatio, "notApplicable"
     if TerraLogic ~= nil and TerraLogic.getExtremeEngagement ~= nil then
-        engagement, engagementDraftRetention, engagementAbrasionContact,
-            engagementRatio, engagementState =
+        engagement, engagementDraftRetention, engagementAbrasionContact, engagementRatio, engagementState =
             TerraLogic.getExtremeEngagement(implement, speedKph)
     end
-    local damage = implement.getDamageAmount ~= nil
-        and math.clamp(tonumber(implement:getDamageAmount()) or 0, 0, 1) or 0
+    local damage = implement.getDamageAmount ~= nil and math.clamp(tonumber(implement:getDamageAmount()) or 0, 0, 1)
+        or 0
     local wearResponse = TerraLogicImplementProfiles ~= nil
-        and TerraLogicImplementProfiles.getWearResponse ~= nil
-        and TerraLogicImplementProfiles.getWearResponse(classKey) or nil
+            and TerraLogicImplementProfiles.getWearResponse ~= nil
+            and TerraLogicImplementProfiles.getWearResponse(classKey)
+        or nil
     local wearProgression = TerraLogic ~= nil
-        and TerraLogic.getWearProgression ~= nil
-        and TerraLogic.getWearProgression(damage) or damage
-    local wearEffectLoss = wearResponse ~= nil
-        and math.clamp(tonumber(wearResponse.soilEffectLoss) or 0, 0, 0.50) or 0
+            and TerraLogic.getWearProgression ~= nil
+            and TerraLogic.getWearProgression(damage)
+        or damage
+    local wearEffectLoss = wearResponse ~= nil and math.clamp(tonumber(wearResponse.soilEffectLoss) or 0, 0, 0.50) or 0
     local wearStrengthMultiplier = 1 - wearEffectLoss * wearProgression
     local activeLayer = self.layers[self.activeMapMode]
     local activeLayerId = activeLayer ~= nil and activeLayer.id or nil
     local activeLayerChanged = false
-    local plowParameters = classKey == "plow" and implement.spec_plow ~= nil
-        and implement.spec_plow.workAreaParameters or nil
+    local plowParameters = classKey == "plow" and implement.spec_plow ~= nil and implement.spec_plow.workAreaParameters
+        or nil
     -- Vanilla updates the ground density before this callback. In create-field
     -- mode the centre of a coarse TerraLogic cell can nevertheless still lie
     -- just outside the narrow new strip. A positive changed area proves that
@@ -7576,18 +7977,19 @@ function TerraLogicSoilManager:applyWorkArea(
         and plowParameters ~= nil
         and plowParameters.limitToField == false
         and rawChangedArea > 0
-    if createsNewField and currentWorkAreaGeometry~=nil and TerraLogicFieldCatalog~=nil then
-        local geometry=currentWorkAreaGeometry
-        TerraLogicFieldCatalog:markTopologyDirty(geometry.sx+geometry.widthX*.5+geometry.heightX*.5,
-            geometry.sz+geometry.widthZ*.5+geometry.heightZ*.5)
+    if createsNewField and currentWorkAreaGeometry ~= nil and TerraLogicFieldCatalog ~= nil then
+        local geometry = currentWorkAreaGeometry
+        TerraLogicFieldCatalog:markTopologyDirty(
+            geometry.sx + geometry.widthX * 0.5 + geometry.heightX * 0.5,
+            geometry.sz + geometry.widthZ * 0.5 + geometry.heightZ * 0.5
+        )
     end
     -- Surface, deep, aggregate, roughness and recovery share only three raster
     -- resolutions. Rasterize each size once per callback; the finer occupancy
     -- sampling therefore does not multiply work for every individual layer.
     local touchedCellsBySize = {}
     local mechanicalContextBySoilType = {}
-    local preparedCoverageGeometry = prepareWorkAreaCoverageGeometry(
-        currentWorkAreaGeometry, previousWorkAreaGeometry)
+    local preparedCoverageGeometry = prepareWorkAreaCoverageGeometry(currentWorkAreaGeometry, previousWorkAreaGeometry)
     local aggregateCellSize = 2
     for _, candidateLayer in ipairs(self.layers or {}) do
         if candidateLayer.id == "aggregateSize" then
@@ -7599,39 +8001,34 @@ function TerraLogicSoilManager:applyWorkArea(
     local function getPassCells(cellSize)
         local key = tostring(cellSize)
         if touchedCellsBySize[key] == nil then
-            local cells = getTouchedSoilCells(
-                workArea, cellSize, previousWorkAreaGeometry,
-                preparedCoverageGeometry)
+            local cells = getTouchedSoilCells(workArea, cellSize, previousWorkAreaGeometry, preparedCoverageGeometry)
             -- During create-field passes Vanilla may expose the new ground
             -- type one callback later. Preserve that dedicated seeding path;
             -- normal fieldwork is clipped and normalized against the current
             -- live field surface here.
-            local normalizedCells = createsNewField and cells
-                or normalizeCellsToCultivatableArea(self, cells, cellSize)
+            local normalizedCells = createsNewField and cells or normalizeCellsToCultivatableArea(self, cells, cellSize)
             touchedCellsBySize[key] = normalizedCells
-            if traceActive and math.abs(cellSize-aggregateCellSize) < 0.001 then
+            if traceActive and math.abs(cellSize - aggregateCellSize) < 0.001 then
                 local retained = {}
                 for _, retainedCell in ipairs(normalizedCells) do
-                    retained[getCellKey(retainedCell.ix,
-                        retainedCell.iz)] = true
+                    retained[getCellKey(retainedCell.ix, retainedCell.iz)] = true
                 end
                 for _, rawCell in ipairs(cells) do
                     if retained[getCellKey(rawCell.ix, rawCell.iz)] ~= true then
                         traceRecord("cell_clipped", {
-                            layer="aggregateSize", cell_x=rawCell.ix,
-                            cell_z=rawCell.iz,
-                            raw_coverage=rawCell.rawCoverage
-                                or rawCell.coverage,
-                            raw_samples=rawCell.rawCoveredSamples
-                                or math.floor(clamp01(rawCell.coverage)
-                                    * WORK_AREA_COVERAGE_SAMPLES + 0.5),
-                            field_samples=rawCell.fieldSamples or 0,
-                            worked_samples=rawCell.workedFieldSamples or 0,
-                            normalized_coverage=0,
-                            cultivatable_coverage=rawCell.cultivatableCoverage
-                                or 0,
-                            reason="live cultivatable mask rejected cell",
-                            eligible=0, write_applied=0
+                            layer = "aggregateSize",
+                            cell_x = rawCell.ix,
+                            cell_z = rawCell.iz,
+                            raw_coverage = rawCell.rawCoverage or rawCell.coverage,
+                            raw_samples = rawCell.rawCoveredSamples
+                                or math.floor(clamp01(rawCell.coverage) * WORK_AREA_COVERAGE_SAMPLES + 0.5),
+                            field_samples = rawCell.fieldSamples or 0,
+                            worked_samples = rawCell.workedFieldSamples or 0,
+                            normalized_coverage = 0,
+                            cultivatable_coverage = rawCell.cultivatableCoverage or 0,
+                            reason = "live cultivatable mask rejected cell",
+                            eligible = 0,
+                            write_applied = 0,
                         })
                     end
                 end
@@ -7647,11 +8044,11 @@ function TerraLogicSoilManager:applyWorkArea(
         -- effects, but their default/current values still belong to the newly
         -- created field and must therefore receive display coverage.
         for _, displayLayer in ipairs(self.layers) do
-            for _, displayCell in ipairs(getPassCells(
-                    displayLayer.cellSize)) do
-                if self:ensureVisualizationCellVisible(
-                        displayLayer.id, displayCell.ix, displayCell.iz)
-                    and displayLayer.id == activeLayerId then
+            for _, displayCell in ipairs(getPassCells(displayLayer.cellSize)) do
+                if
+                    self:ensureVisualizationCellVisible(displayLayer.id, displayCell.ix, displayCell.iz)
+                    and displayLayer.id == activeLayerId
+                then
                     activeLayerChanged = true
                 end
             end
@@ -7667,115 +8064,83 @@ function TerraLogicSoilManager:applyWorkArea(
                 -- This preserves overlap protection for split WorkAreas of a
                 -- single plough/packer while allowing integrated sequential
                 -- components to apply their distinct targets to the same cell.
-                local key = tostring(classKey) .. ":" .. layer.id .. ":"
-                    .. getCellKey(cell.ix, cell.iz)
-                touchedCoverageSum = touchedCoverageSum
-                    + clamp01(cell.coverage)
+                local key = tostring(classKey) .. ":" .. layer.id .. ":" .. getCellKey(cell.ix, cell.iz)
+                touchedCoverageSum = touchedCoverageSum + clamp01(cell.coverage)
                 local x = (cell.ix + 0.5) * layer.cellSize
                 local z = (cell.iz + 0.5) * layer.cellSize
                 local current = self:getValueAtWorldPosition(layer.id, x, z)
-                local coverageEntry, coverageChanged, previousCoverage,
-                    coverageDebug =
-                    getCoverageEntry(spec, key, cell, now,
-                        self.PASS_COOLDOWN_MS, current,
-                        coverageDiagnosticsActive)
+                local coverageEntry, coverageChanged, previousCoverage, coverageDebug =
+                    getCoverageEntry(spec, key, cell, now, self.PASS_COOLDOWN_MS, current, coverageDiagnosticsActive)
                 local traceSurface, traceEligible = "not evaluated", false
                 local traceModelValue, traceAfterValue = nil, current
                 local traceWriteApplied = false
                 local traceDetails = traceActive
-                    and (layer.id == "aggregateSize" or layer.id == "roughness")
-                    and {
-                        build="1.2.0.254",
-                        base_value=coverageEntry.baseValue,
-                        last_applied_value=coverageEntry.lastAppliedValue,
-                        last_model_value=coverageEntry.lastModelValue,
-                        speed_kph=speedKph,
-                        rated_speed_kph=spec.ratedSpeed,
-                        overspeed_severity=overspeedSeverity,
-                        engagement=engagement
-                    } or nil
-                if coverageDiagnosticsActive
-                    and layer.id == "aggregateSize" then
-                    local denominator = math.max(tonumber(
-                        cell.coverageDenominator)
-                        or WORK_AREA_COVERAGE_SAMPLES, 1)
-                    local physicalCoverage =
-                        (tonumber(coverageDebug.physicalSamples) or 0)
-                            / denominator
-                    local toleranceCoverage =
-                        (tonumber(coverageDebug.toleranceSamples) or 0)
-                            / denominator
-                    local physicalFirstCoverage =
-                        (tonumber(
-                            coverageDebug.physicalFirstAddedSamples) or 0)
-                            / denominator
-                    local repeatedCoverage =
-                        (tonumber(coverageDebug.repeatAddedSamples) or 0)
-                            / denominator
-                    local firstCoverage =
-                        (tonumber(coverageDebug.firstAddedSamples) or 0)
-                            / denominator
-                    overlapPhysicalCoverageSum =
-                        overlapPhysicalCoverageSum
-                        + physicalCoverage
-                    overlapToleranceCoverageSum =
-                        overlapToleranceCoverageSum
-                        + toleranceCoverage
-                    overlapRepeatCoverageSum =
-                        overlapRepeatCoverageSum
-                        + repeatedCoverage
+                        and (layer.id == "aggregateSize" or layer.id == "roughness")
+                        and {
+                            build = "1.2.0.254",
+                            base_value = coverageEntry.baseValue,
+                            last_applied_value = coverageEntry.lastAppliedValue,
+                            last_model_value = coverageEntry.lastModelValue,
+                            speed_kph = speedKph,
+                            rated_speed_kph = spec.ratedSpeed,
+                            overspeed_severity = overspeedSeverity,
+                            engagement = engagement,
+                        }
+                    or nil
+                if coverageDiagnosticsActive and layer.id == "aggregateSize" then
+                    local denominator = math.max(tonumber(cell.coverageDenominator) or WORK_AREA_COVERAGE_SAMPLES, 1)
+                    local physicalCoverage = (tonumber(coverageDebug.physicalSamples) or 0) / denominator
+                    local toleranceCoverage = (tonumber(coverageDebug.toleranceSamples) or 0) / denominator
+                    local physicalFirstCoverage = (tonumber(coverageDebug.physicalFirstAddedSamples) or 0) / denominator
+                    local repeatedCoverage = (tonumber(coverageDebug.repeatAddedSamples) or 0) / denominator
+                    local firstCoverage = (tonumber(coverageDebug.firstAddedSamples) or 0) / denominator
+                    overlapPhysicalCoverageSum = overlapPhysicalCoverageSum + physicalCoverage
+                    overlapToleranceCoverageSum = overlapToleranceCoverageSum + toleranceCoverage
+                    overlapRepeatCoverageSum = overlapRepeatCoverageSum + repeatedCoverage
 
                     -- The one-second audit panel can sample between two
                     -- WorkArea callbacks, after another component or a wheel
                     -- impact already replaced lastPass. Preserve compact
                     -- cumulative totals on the implement so a CSV can compare
                     -- its first and last row without a second recorder.
-                    local audit = spec.soilOverlapAudit or {
-                        physicalFirstCoverage=0, toleranceOnlyCoverage=0,
-                        firstCoverage=0, repeatedPhysicalCoverage=0,
-                        appliedCoverage=0, sampledCells=0
-                    }
+                    local audit = spec.soilOverlapAudit
+                        or {
+                            physicalFirstCoverage = 0,
+                            toleranceOnlyCoverage = 0,
+                            firstCoverage = 0,
+                            repeatedPhysicalCoverage = 0,
+                            appliedCoverage = 0,
+                            sampledCells = 0,
+                        }
                     spec.soilOverlapAudit = audit
-                    audit.physicalFirstCoverage =
-                        audit.physicalFirstCoverage + physicalFirstCoverage
-                    audit.toleranceOnlyCoverage =
-                        audit.toleranceOnlyCoverage + toleranceCoverage
+                    audit.physicalFirstCoverage = audit.physicalFirstCoverage + physicalFirstCoverage
+                    audit.toleranceOnlyCoverage = audit.toleranceOnlyCoverage + toleranceCoverage
                     audit.firstCoverage = audit.firstCoverage + firstCoverage
-                    audit.repeatedPhysicalCoverage =
-                        audit.repeatedPhysicalCoverage + repeatedCoverage
+                    audit.repeatedPhysicalCoverage = audit.repeatedPhysicalCoverage + repeatedCoverage
                     audit.appliedCoverage = audit.appliedCoverage
-                        + (tonumber(coverageDebug.addedSamples) or 0)
-                            / denominator
+                        + (tonumber(coverageDebug.addedSamples) or 0) / denominator
                     audit.sampledCells = audit.sampledCells + 1
                     audit.lastTime = now
                 end
                 if coverageChanged then
                     local coverage = clamp01(coverageEntry.coverage)
-                    local coverageDelta = math.max(
-                        coverage - (tonumber(previousCoverage) or 0), 0)
-                    newlyAppliedCoverageSum = newlyAppliedCoverageSum
-                        + coverageDelta
-                    local cultivatableCoverage = tonumber(
-                        cell.cultivatableCoverage)
+                    local coverageDelta = math.max(coverage - (tonumber(previousCoverage) or 0), 0)
+                    newlyAppliedCoverageSum = newlyAppliedCoverageSum + coverageDelta
+                    local cultivatableCoverage = tonumber(cell.cultivatableCoverage)
                     local surface = nil
-                    local cellIsCultivatable = createsNewField
-                        or (cultivatableCoverage or 0) > 0
+                    local cellIsCultivatable = createsNewField or (cultivatableCoverage or 0) > 0
                     -- normalizeCellsToCultivatableArea has already sampled
                     -- and clipped ordinary cells. Avoid repeating the native
                     -- terrain-density lookup once for every affected layer.
                     if not cellIsCultivatable then
-                        surface = TerraLogicQualityManager:
-                            getSurfaceTypeAtWorldPosition(x, z)
-                        cellIsCultivatable = surface == "field"
-                            or surface == "grassField"
+                        surface = TerraLogicQualityManager:getSurfaceTypeAtWorldPosition(x, z)
+                        cellIsCultivatable = surface == "field" or surface == "grassField"
                     end
-                    traceSurface = surface ~= nil
-                        and tostring(surface) or "normalizedField"
+                    traceSurface = surface ~= nil and tostring(surface) or "normalizedField"
                     if cellIsCultivatable then
                         traceEligible = true
                         eligibleCells = eligibleCells + 1
-                        local visibilityEnsured = self:ensureVisualizationCellVisible(
-                            layer.id, cell.ix, cell.iz)
+                        local visibilityEnsured = self:ensureVisualizationCellVisible(layer.id, cell.ix, cell.iz)
                         if traceDetails ~= nil then
                             traceDetails.visibility_ensured = visibilityEnsured and 1 or 0
                         end
@@ -7788,97 +8153,94 @@ function TerraLogicSoilManager:applyWorkArea(
                         -- added to the live value, preserving a different
                         -- component (for example an integrated packer) that
                         -- may have acted between two callbacks.
-                        local modelCurrent = clamp01(
-                            coverageEntry.baseValue)
-                        local soilTypeIndex =
-                            self:getPFSoilTypeAtWorldPosition(x, z)
-                        local contextKey = tostring(soilTypeIndex or "default") .. ":" .. tostring(TerraLogicFieldWaterManager and (TerraLogicFieldWaterManager:getField(x,z) or {}).id or 0)
-                        local mechanicalContext =
-                            mechanicalContextBySoilType[contextKey]
+                        local modelCurrent = clamp01(coverageEntry.baseValue)
+                        local soilTypeIndex = self:getPFSoilTypeAtWorldPosition(x, z)
+                        local contextKey = tostring(soilTypeIndex or "default")
+                            .. ":"
+                            .. tostring(
+                                TerraLogicFieldWaterManager and (TerraLogicFieldWaterManager:getField(x, z) or {}).id
+                                    or 0
+                            )
+                        local mechanicalContext = mechanicalContextBySoilType[contextKey]
                         if mechanicalContext == nil then
-                            local moistureResponse =
-                                TerraLogicSoilMoistureManager ~= nil
-                                and TerraLogicSoilMoistureManager:
-                                    getMechanicalResponse(
-                                        soilTypeIndex, classKey,
-                                        operationWorkDepthCm, x, z) or nil
+                            local moistureResponse = TerraLogicSoilMoistureManager ~= nil
+                                    and TerraLogicSoilMoistureManager:getMechanicalResponse(
+                                        soilTypeIndex,
+                                        classKey,
+                                        operationWorkDepthCm,
+                                        x,
+                                        z
+                                    )
+                                or nil
                             mechanicalContext = {
-                                soilTypeIndex=soilTypeIndex,
-                                moistureResponse=moistureResponse,
-                                soilResponse=TerraLogicSoilProfiles:
-                                    getPFSoilResponse(soilTypeIndex, classKey)
+                                soilTypeIndex = soilTypeIndex,
+                                moistureResponse = moistureResponse,
+                                soilResponse = TerraLogicSoilProfiles:getPFSoilResponse(soilTypeIndex, classKey),
                             }
-                            mechanicalContextBySoilType[contextKey] =
-                                mechanicalContext
+                            mechanicalContextBySoilType[contextKey] = mechanicalContext
                         end
                         soilTypeIndex = mechanicalContext.soilTypeIndex
-                        local moistureResponse =
-                            mechanicalContext.moistureResponse
+                        local moistureResponse = mechanicalContext.moistureResponse
                         local moistureEffectiveness = moistureResponse ~= nil
-                            and tonumber(moistureResponse.soilEffectiveness) or 1
-                        moistureSum = moistureSum + (moistureResponse ~= nil
-                            and tonumber(moistureResponse.effective) or 0.5)
-                        moistureEffectSum = moistureEffectSum
-                            + moistureEffectiveness
+                                and tonumber(moistureResponse.soilEffectiveness)
+                            or 1
+                        moistureSum = moistureSum
+                            + (moistureResponse ~= nil and tonumber(moistureResponse.effective) or 0.5)
+                        moistureEffectSum = moistureEffectSum + moistureEffectiveness
                         moistureDraftSum = moistureDraftSum
-                            + (moistureResponse ~= nil
-                                and tonumber(moistureResponse.draftMultiplier) or 1)
+                            + (moistureResponse ~= nil and tonumber(moistureResponse.draftMultiplier) or 1)
                         frostSeveritySum = frostSeveritySum
-                            + (moistureResponse ~= nil
-                                and tonumber(moistureResponse.frostSeverity) or 0)
+                            + (moistureResponse ~= nil and tonumber(moistureResponse.frostSeverity) or 0)
                         frostDraftSum = frostDraftSum
-                            + (moistureResponse ~= nil
-                                and tonumber(moistureResponse.frostDraftMultiplier) or 1)
+                            + (moistureResponse ~= nil and tonumber(moistureResponse.frostDraftMultiplier) or 1)
                         frostQualitySum = frostQualitySum
-                            + (moistureResponse ~= nil
-                                and tonumber(moistureResponse.frostQualityFactor) or 1)
+                            + (moistureResponse ~= nil and tonumber(moistureResponse.frostQualityFactor) or 1)
                         frostPenetrationSum = frostPenetrationSum
-                            + (moistureResponse ~= nil
-                                and tonumber(moistureResponse.penetrationFactor) or 1)
+                            + (moistureResponse ~= nil and tonumber(moistureResponse.penetrationFactor) or 1)
                         moistureSampleCount = moistureSampleCount + 1
                         local soilResponse = mechanicalContext.soilResponse
                         local minimumStrength = overspeed ~= nil
-                            and overspeed.strengthScale ~= nil
-                            and tonumber(overspeed.strengthScale[layer.id]) or 1
-                        local strengthMultiplier = 1
-                            - overspeedSeverity * (1 - clamp01(minimumStrength))
-                        local textureStrength = soilResponse ~= nil
-                            and tonumber(soilResponse.strength[layer.id]) or 1
+                                and overspeed.strengthScale ~= nil
+                                and tonumber(overspeed.strengthScale[layer.id])
+                            or 1
+                        local strengthMultiplier = 1 - overspeedSeverity * (1 - clamp01(minimumStrength))
+                        local textureStrength = soilResponse ~= nil and tonumber(soilResponse.strength[layer.id]) or 1
                         strengthMultiplier = strengthMultiplier
-                            * textureStrength * wearStrengthMultiplier
+                            * textureStrength
+                            * wearStrengthMultiplier
                             * engagement
-                            * moistureEffectiveness * coverage
+                            * moistureEffectiveness
+                            * coverage
                         local rollerContact = 1
                         if classKey == "roller" then
-                            local rollerRoughness = layer.id == "roughness"
-                                and modelCurrent or self:getValueAtWorldPosition(
-                                    "roughness", x, z)
+                            local rollerRoughness = layer.id == "roughness" and modelCurrent
+                                or self:getValueAtWorldPosition("roughness", x, z)
                             rollerContact = TerraLogicSoilProfiles:getRollerContactEfficiency(
-                                    {roughness=rollerRoughness},
-                                    speedKph,
-                                    spec ~= nil and spec.ratedSpeed or 0)
-                            strengthMultiplier = strengthMultiplier
-                                * rollerContact
+                                { roughness = rollerRoughness },
+                                speedKph,
+                                spec ~= nil and spec.ratedSpeed or 0
+                            )
+                            strengthMultiplier = strengthMultiplier * rollerContact
                         end
-                        local targetOffset = soilResponse ~= nil
-                            and tonumber(soilResponse.targetOffset[layer.id]) or 0
-                        local effectiveRule, effectiveTargetOffset,
-                            inversionBounded = getBoundedInversionRule(
-                                classKey, layer.id, modelCurrent, rule,
-                                targetOffset, soilTypeIndex, moistureResponse,
-                                layer.id == "aggregateSize"
-                                    and self:getValueAtWorldPosition(
-                                        "resilience", x, z) or 0.5)
-                        local modelNextValue = applyRule(
-                            modelCurrent, effectiveRule, strengthMultiplier,
-                            effectiveTargetOffset)
+                        local targetOffset = soilResponse ~= nil and tonumber(soilResponse.targetOffset[layer.id]) or 0
+                        local effectiveRule, effectiveTargetOffset, inversionBounded = getBoundedInversionRule(
+                            classKey,
+                            layer.id,
+                            modelCurrent,
+                            rule,
+                            targetOffset,
+                            soilTypeIndex,
+                            moistureResponse,
+                            layer.id == "aggregateSize" and self:getValueAtWorldPosition("resilience", x, z) or 0.5
+                        )
+                        local modelNextValue =
+                            applyRule(modelCurrent, effectiveRule, strengthMultiplier, effectiveTargetOffset)
                         if traceDetails ~= nil then
-                            traceDetails.target_value = clamp01(
-                                (tonumber(effectiveRule.target) or 0)
-                                    + (tonumber(effectiveTargetOffset) or 0))
+                            traceDetails.target_value =
+                                clamp01((tonumber(effectiveRule.target) or 0) + (tonumber(effectiveTargetOffset) or 0))
                             traceDetails.rule_mode = effectiveRule.mode or "both"
-                            traceDetails.effective_strength = clamp01(
-                                clamp01(effectiveRule.strength) * strengthMultiplier)
+                            traceDetails.effective_strength =
+                                clamp01(clamp01(effectiveRule.strength) * strengthMultiplier)
                             traceDetails.roller_contact = rollerContact
                             traceDetails.moisture_effectiveness = moistureEffectiveness
                             traceDetails.soil_type = soilTypeIndex
@@ -7888,56 +8250,59 @@ function TerraLogicSoilManager:applyWorkArea(
                         -- coarse clods must not briefly pass through a better
                         -- crumb score. Preserve at least the previous distance
                         -- from the 0.50 optimum when inversion crosses sides.
-                        if inversionBounded and modelNextValue < 0.50
-                            and math.abs(modelNextValue - 0.50)
-                                < math.abs(modelCurrent - 0.50) then
+                        if
+                            inversionBounded
+                            and modelNextValue < 0.50
+                            and math.abs(modelNextValue - 0.50) < math.abs(modelCurrent - 0.50)
+                        then
                             modelNextValue = clamp01(1 - modelCurrent)
                         end
                         local speedRule = overspeedSeverity > 0
-                            and overspeed ~= nil and overspeed.effects ~= nil
-                            and overspeed.effects[layer.id] or nil
+                                and overspeed ~= nil
+                                and overspeed.effects ~= nil
+                                and overspeed.effects[layer.id]
+                            or nil
                         if speedRule ~= nil then
                             local effectSeverity = overspeedSeverity
-                                ^ math.max(tonumber(
-                                    overspeed.effectSeverityExponent) or 1,
-                                    0.25)
+                                ^ math.max(tonumber(overspeed.effectSeverityExponent) or 1, 0.25)
                             modelNextValue = applyRule(
-                                modelNextValue, speedRule,
-                                effectSeverity * textureStrength
-                                    * engagement ^ 0.75 * coverage)
+                                modelNextValue,
+                                speedRule,
+                                effectSeverity * textureStrength * engagement ^ 0.75 * coverage
+                            )
                         end
-                        if classKey == "roller"
-                            and layer.id == "surfaceCompaction"
-                            and overspeedSeverity > 0 then
-                            local positiveNoise = math.max(
-                                getOperationCellVariation(
-                                    cell.ix, cell.iz, "rollerImpact"), 0)
-                            local spike = 0.025 * overspeedSeverity
+                        if classKey == "roller" and layer.id == "surfaceCompaction" and overspeedSeverity > 0 then
+                            local positiveNoise =
+                                math.max(getOperationCellVariation(cell.ix, cell.iz, "rollerImpact"), 0)
+                            local spike = 0.025
+                                * overspeedSeverity
                                 * (1 - rollerContact)
-                                * positiveNoise * positiveNoise
-                            modelNextValue = clamp01(modelNextValue
-                                + spike * coverage * (1 - modelNextValue))
+                                * positiveNoise
+                                * positiveNoise
+                            modelNextValue = clamp01(modelNextValue + spike * coverage * (1 - modelNextValue))
                         end
                         local variability = overspeed ~= nil
-                            and overspeed.variability ~= nil
-                            and tonumber(overspeed.variability[layer.id]) or 0
-                        if classKey == "plow" and variability > 0
-                            and overspeedSeverity > 0 then
-                            local variation = getOperationCellVariation(
-                                cell.ix, cell.iz, layer.id)
+                                and overspeed.variability ~= nil
+                                and tonumber(overspeed.variability[layer.id])
+                            or 0
+                        if classKey == "plow" and variability > 0 and overspeedSeverity > 0 then
+                            local variation = getOperationCellVariation(cell.ix, cell.iz, layer.id)
                             local amplitude = variability
                                 * math.sqrt(overspeedSeverity)
                                 * math.sqrt(engagement)
                                 * (0.75 + 0.25 * textureStrength)
-                            modelNextValue = clamp01(modelNextValue
-                                + variation * amplitude * coverage)
+                            modelNextValue = clamp01(modelNextValue + variation * amplitude * coverage)
                         end
                         if traceDetails ~= nil then
                             traceDetails.after_speed_value = modelNextValue
                         end
                         modelNextValue = applyMoistureSoilReaction(
-                            classKey, layer.id, modelNextValue,
-                            moistureResponse, engagement * coverage)
+                            classKey,
+                            layer.id,
+                            modelNextValue,
+                            moistureResponse,
+                            engagement * coverage
+                        )
                         traceModelValue = modelNextValue
                         -- The GRLE stores a quantized value. Adding every new
                         -- floating-point model delta to that rounded value
@@ -7947,31 +8312,28 @@ function TerraLogicSoilManager:applyWorkArea(
                         -- in the raster. A genuine change by a different
                         -- component remains present as current-lastApplied.
                         local lastAppliedValue = clamp01(
-                            coverageEntry.lastAppliedValue ~= nil
-                                and coverageEntry.lastAppliedValue
-                                or coverageEntry.baseValue)
-                        local nextValue = clamp01(modelNextValue
-                            + current - lastAppliedValue)
+                            coverageEntry.lastAppliedValue ~= nil and coverageEntry.lastAppliedValue
+                                or coverageEntry.baseValue
+                        )
+                        local nextValue = clamp01(modelNextValue + current - lastAppliedValue)
                         -- Keep actual stored and proposed values separate,
                         -- including changes below the write threshold.
                         if traceDetails ~= nil then
                             traceDetails.proposed_value = nextValue
                         end
                         if math.abs(nextValue - current) > 0.002 then
-                            if self:setStateCell(
-                                    layer.id, cell.ix, cell.iz, nextValue) then
+                            if self:setStateCell(layer.id, cell.ix, cell.iz, nextValue) then
                                 coverageEntry.lastModelValue = modelNextValue
                                 -- DensityMapModifier stores the same encoded
                                 -- integer produced here. Decode that exact
                                 -- quantized value instead of reading the map
                                 -- back immediately after every write.
                                 coverageEntry.lastAppliedValue = decode(
-                                    encode(nextValue,
-                                        getLayerChannels(layer.id)),
+                                    encode(nextValue, getLayerChannels(layer.id)),
                                     TerraLogicSoilProfiles.DEFAULTS[layer.id],
-                                    getLayerChannels(layer.id))
-                                traceAfterValue =
-                                    coverageEntry.lastAppliedValue
+                                    getLayerChannels(layer.id)
+                                )
+                                traceAfterValue = coverageEntry.lastAppliedValue
                                 traceWriteApplied = true
                                 changedCells = changedCells + 1
                                 if not changedLayerIds[layer.id] then
@@ -7989,14 +8351,13 @@ function TerraLogicSoilManager:applyWorkArea(
                                     beforeValue = current,
                                     value = nextValue,
                                     delta = nextValue - current,
-                                    sourceName = implement.getFullName ~= nil
-                                        and tostring(implement:getFullName())
-                                        or (implement.getName ~= nil
-                                            and tostring(implement:getName())
-                                            or tostring(classKey)),
-                                    sourceConfigFileName = tostring(
-                                        implement.configFileName or ""),
-                                    time = now
+                                    sourceName = implement.getFullName ~= nil and tostring(implement:getFullName())
+                                        or (
+                                            implement.getName ~= nil and tostring(implement:getName())
+                                            or tostring(classKey)
+                                        ),
+                                    sourceConfigFileName = tostring(implement.configFileName or ""),
+                                    time = now,
                                 }
                             end
                         end
@@ -8005,45 +8366,43 @@ function TerraLogicSoilManager:applyWorkArea(
                 if traceDetails ~= nil then
                     coverageDebug = coverageDebug or {}
                     local record = {
-                        layer=layer.id, cell_x=cell.ix, cell_z=cell.iz,
-                        raw_coverage=cell.rawCoverage or cell.coverage,
-                        raw_samples=cell.rawCoveredSamples or 0,
-                        field_samples=cell.fieldSamples
-                            or cell.coverageDenominator,
-                        worked_samples=cell.workedFieldSamples
-                            or math.floor(clamp01(cell.coverage)
-                                * (cell.coverageDenominator
-                                    or WORK_AREA_COVERAGE_SAMPLES) + 0.5),
-                        normalized_coverage=cell.coverage,
-                        cultivatable_coverage=cell.cultivatableCoverage or 1,
-                        cache_state=coverageDebug.state or "unknown",
-                        cache_gap_ms=coverageDebug.gapMs or 0,
-                        cache_added_samples=coverageDebug.addedSamples or 0,
-                        cache_first_added_samples=
-                            coverageDebug.firstAddedSamples or 0,
-                        cache_repeat_added_samples=
-                            coverageDebug.repeatAddedSamples or 0,
-                        physical_samples=coverageDebug.physicalSamples or 0,
-                        tolerance_samples=coverageDebug.toleranceSamples or 0,
-                        cache_previous_coverage=
-                            coverageDebug.previousCoverage or 0,
-                        cache_after_coverage=coverageDebug.afterCoverage or 0,
-                        cache_repeat_coverage=
-                            coverageDebug.repeatCoverage or 0,
-                        cache_repeat_threshold=
-                            coverageDebug.repeatThreshold or 0,
-                        surface=traceSurface,
-                        eligible=traceEligible and 1 or 0,
-                        before_value=current,
-                        model_value=traceModelValue,
-                        after_value=traceAfterValue,
-                        delta=traceAfterValue-current,
-                        write_applied=traceWriteApplied and 1 or 0
+                        layer = layer.id,
+                        cell_x = cell.ix,
+                        cell_z = cell.iz,
+                        raw_coverage = cell.rawCoverage or cell.coverage,
+                        raw_samples = cell.rawCoveredSamples or 0,
+                        field_samples = cell.fieldSamples or cell.coverageDenominator,
+                        worked_samples = cell.workedFieldSamples
+                            or math.floor(
+                                clamp01(cell.coverage) * (cell.coverageDenominator or WORK_AREA_COVERAGE_SAMPLES) + 0.5
+                            ),
+                        normalized_coverage = cell.coverage,
+                        cultivatable_coverage = cell.cultivatableCoverage or 1,
+                        cache_state = coverageDebug.state or "unknown",
+                        cache_gap_ms = coverageDebug.gapMs or 0,
+                        cache_added_samples = coverageDebug.addedSamples or 0,
+                        cache_first_added_samples = coverageDebug.firstAddedSamples or 0,
+                        cache_repeat_added_samples = coverageDebug.repeatAddedSamples or 0,
+                        physical_samples = coverageDebug.physicalSamples or 0,
+                        tolerance_samples = coverageDebug.toleranceSamples or 0,
+                        cache_previous_coverage = coverageDebug.previousCoverage or 0,
+                        cache_after_coverage = coverageDebug.afterCoverage or 0,
+                        cache_repeat_coverage = coverageDebug.repeatCoverage or 0,
+                        cache_repeat_threshold = coverageDebug.repeatThreshold or 0,
+                        surface = traceSurface,
+                        eligible = traceEligible and 1 or 0,
+                        before_value = current,
+                        model_value = traceModelValue,
+                        after_value = traceAfterValue,
+                        delta = traceAfterValue - current,
+                        write_applied = traceWriteApplied and 1 or 0,
                     }
-                    for name, value in pairs(traceDetails) do record[name] = value end
+                    for name, value in pairs(traceDetails) do
+                        record[name] = value
+                    end
                     if layer.id == "roughness" then
-                        record.evenness_before_pct = (1-current)*100
-                        record.evenness_after_pct = (1-traceAfterValue)*100
+                        record.evenness_before_pct = (1 - current) * 100
+                        record.evenness_after_pct = (1 - traceAfterValue) * 100
                     end
                     traceRecord("cell", record)
                 end
@@ -8051,20 +8410,31 @@ function TerraLogicSoilManager:applyWorkArea(
         end
     end
     local resilienceChanged = self:applyResilienceWorkArea(
-        implement, workArea, classKey, successfulArea, now, engagement,
-        getPassCells(self.RESILIENCE_CELL_SIZE))
+        implement,
+        workArea,
+        classKey,
+        successfulArea,
+        now,
+        engagement,
+        getPassCells(self.RESILIENCE_CELL_SIZE)
+    )
     if resilienceChanged > 0 then
         changedCells = changedCells + resilienceChanged
         if not changedLayerIds.resilience then
             changedLayerIds.resilience = true
             changedLayers = changedLayers + 1
         end
-        activeLayerChanged = activeLayerChanged
-            or activeLayerId == "resilience"
+        activeLayerChanged = activeLayerChanged or activeLayerId == "resilience"
     end
     self:applyRecoveryAgeWorkArea(
-        implement, workArea, classKey, successfulArea, now, engagement,
-        getPassCells(self.RECOVERY_CELL_SIZE))
+        implement,
+        workArea,
+        classKey,
+        successfulArea,
+        now,
+        engagement,
+        getPassCells(self.RECOVERY_CELL_SIZE)
+    )
     if exitGeometryActive and not exitGeometryTouchesField then
         spec.soilContactPassArmed = false
     end
@@ -8073,10 +8443,8 @@ function TerraLogicSoilManager:applyWorkArea(
     if eligibleCells > 0 or self.lastPass == nil then
         self.lastPass = {
             classKey = classKey,
-            implementName = implement.getFullName ~= nil
-                and tostring(implement:getFullName())
-                or (implement.getName ~= nil
-                    and tostring(implement:getName()) or tostring(classKey)),
+            implementName = implement.getFullName ~= nil and tostring(implement:getFullName())
+                or (implement.getName ~= nil and tostring(implement:getName()) or tostring(classKey)),
             configFileName = tostring(implement.configFileName or ""),
             coverage = tonumber(successfulArea) or 0,
             changedArea = rawChangedArea,
@@ -8105,21 +8473,14 @@ function TerraLogicSoilManager:applyWorkArea(
             engagementState = engagementState,
             damage = damage,
             wearStrengthMultiplier = wearStrengthMultiplier,
-            moisture = moistureSampleCount > 0
-                and moistureSum / moistureSampleCount or 0.5,
-            moistureSoilEffectiveness = moistureSampleCount > 0
-                and moistureEffectSum / moistureSampleCount or 1,
-            moistureDraftMultiplier = moistureSampleCount > 0
-                and moistureDraftSum / moistureSampleCount or 1,
-            frostSeverity = moistureSampleCount > 0
-                and frostSeveritySum / moistureSampleCount or 0,
-            frostDraftMultiplier = moistureSampleCount > 0
-                and frostDraftSum / moistureSampleCount or 1,
-            frostQualityFactor = moistureSampleCount > 0
-                and frostQualitySum / moistureSampleCount or 1,
-            frostPenetrationFactor = moistureSampleCount > 0
-                and frostPenetrationSum / moistureSampleCount or 1,
-            time = now
+            moisture = moistureSampleCount > 0 and moistureSum / moistureSampleCount or 0.5,
+            moistureSoilEffectiveness = moistureSampleCount > 0 and moistureEffectSum / moistureSampleCount or 1,
+            moistureDraftMultiplier = moistureSampleCount > 0 and moistureDraftSum / moistureSampleCount or 1,
+            frostSeverity = moistureSampleCount > 0 and frostSeveritySum / moistureSampleCount or 0,
+            frostDraftMultiplier = moistureSampleCount > 0 and frostDraftSum / moistureSampleCount or 1,
+            frostQualityFactor = moistureSampleCount > 0 and frostQualitySum / moistureSampleCount or 1,
+            frostPenetrationFactor = moistureSampleCount > 0 and frostPenetrationSum / moistureSampleCount or 1,
+            time = now,
         }
         if TerraLogicTutorialManager ~= nil then
             TerraLogicTutorialManager:observeWork(implement, self.lastPass)
@@ -8141,34 +8502,38 @@ function TerraLogicSoilManager:applyWorkArea(
     spec.soilLastSpeedRatio = speedRatio
     spec.soilLastOverspeedSeverity = overspeedSeverity
     spec.soilLastWearStrengthMultiplier = wearStrengthMultiplier
-    spec.soilLastMoisture = moistureSampleCount > 0
-        and moistureSum / moistureSampleCount or nil
-    spec.soilLastMoistureEffectiveness = moistureSampleCount > 0
-        and moistureEffectSum / moistureSampleCount or nil
-    spec.soilLastFrostSeverity = moistureSampleCount > 0
-        and frostSeveritySum / moistureSampleCount or nil
-    spec.soilLastFrostDraftMultiplier = moistureSampleCount > 0
-        and frostDraftSum / moistureSampleCount or nil
-    spec.soilLastFrostQualityFactor = moistureSampleCount > 0
-        and frostQualitySum / moistureSampleCount or nil
-    spec.soilLastFrostPenetrationFactor = moistureSampleCount > 0
-        and frostPenetrationSum / moistureSampleCount or nil
-    if TerraLogicLogging.verbose and eligibleCells > 0 and (spec.soilPassLogTime == nil
-            or now - spec.soilPassLogTime >= 5000) then
+    spec.soilLastMoisture = moistureSampleCount > 0 and moistureSum / moistureSampleCount or nil
+    spec.soilLastMoistureEffectiveness = moistureSampleCount > 0 and moistureEffectSum / moistureSampleCount or nil
+    spec.soilLastFrostSeverity = moistureSampleCount > 0 and frostSeveritySum / moistureSampleCount or nil
+    spec.soilLastFrostDraftMultiplier = moistureSampleCount > 0 and frostDraftSum / moistureSampleCount or nil
+    spec.soilLastFrostQualityFactor = moistureSampleCount > 0 and frostQualitySum / moistureSampleCount or nil
+    spec.soilLastFrostPenetrationFactor = moistureSampleCount > 0 and frostPenetrationSum / moistureSampleCount or nil
+    if
+        TerraLogicLogging.verbose
+        and eligibleCells > 0
+        and (spec.soilPassLogTime == nil or now - spec.soilPassLogTime >= 5000)
+    then
         spec.soilPassLogTime = now
         TerraLogicLogging.debug(
-            "[FS25_TerraLogic] Soil pass %s: vanillaArea(changed/total)=%.3f/%.3f touched=%d field=%d changed=%d/%d speed=%.1f/%.1f ratio=%.2f overspeed=%.2f wearStrength=%.3f moisture=%.3f effect=%.3f frost=%.3f penetration=%.3f",
-            tostring(classKey), rawChangedArea, rawTotalArea,
-            touchedCellCount, eligibleCells, changedCells, changedLayers,
-            speedKph, speedReferenceKph, speedRatio, overspeedSeverity,
+            "[FS25_TerraLogic] Soil pass %s: vanillaArea(changed/total)=%.3f/%.3f touched=%d field=%d changed=%d/%d speed=%.1f/%.1f "
+                .. "ratio=%.2f overspeed=%.2f wearStrength=%.3f moisture=%.3f effect=%.3f frost=%.3f penetration=%.3f",
+            tostring(classKey),
+            rawChangedArea,
+            rawTotalArea,
+            touchedCellCount,
+            eligibleCells,
+            changedCells,
+            changedLayers,
+            speedKph,
+            speedReferenceKph,
+            speedRatio,
+            overspeedSeverity,
             wearStrengthMultiplier,
             moistureSampleCount > 0 and moistureSum / moistureSampleCount or 0.5,
-            moistureSampleCount > 0
-                and moistureEffectSum / moistureSampleCount or 1,
-            moistureSampleCount > 0
-                and frostSeveritySum / moistureSampleCount or 0,
-            moistureSampleCount > 0
-                and frostPenetrationSum / moistureSampleCount or 1)
+            moistureSampleCount > 0 and moistureEffectSum / moistureSampleCount or 1,
+            moistureSampleCount > 0 and frostSeveritySum / moistureSampleCount or 0,
+            moistureSampleCount > 0 and frostPenetrationSum / moistureSampleCount or 1
+        )
     end
     return true
 end
@@ -8183,7 +8548,9 @@ function TerraLogicSoilManager:getDisplayValue(layerId, value)
     if layerId == "surfaceCompaction" or layerId == "deepCompaction" then
         return clamp01(value)
     end
-    if layerId == "resilience" then return clamp01(value) end
+    if layerId == "resilience" then
+        return clamp01(value)
+    end
     return 1 - clamp01(value)
 end
 
@@ -8193,41 +8560,38 @@ end
 
 function TerraLogicSoilManager:getCompactionYieldLoss(layerId, value)
     local profile = TerraLogicSoilProfiles ~= nil
-        and TerraLogicSoilProfiles.ROOT_YIELD ~= nil
-        and TerraLogicSoilProfiles.ROOT_YIELD[layerId] or nil
-    local good = clamp01(profile ~= nil and profile.good
-        or (layerId == "deepCompaction" and 0.10 or 0.30))
-    local maximum = clamp01(profile ~= nil and profile.maximumLoss
-        or (layerId == "deepCompaction" and 0.26 or 0.15))
-    local exponent = math.max(tonumber(profile ~= nil
-        and profile.exponent) or (layerId == "deepCompaction" and 1.45 or 1.40),
-        1)
-    local normalized = clamp01((clamp01(value)-good)
-        / math.max(1-good, 0.0001))
+            and TerraLogicSoilProfiles.ROOT_YIELD ~= nil
+            and TerraLogicSoilProfiles.ROOT_YIELD[layerId]
+        or nil
+    local good = clamp01(profile ~= nil and profile.good or (layerId == "deepCompaction" and 0.10 or 0.30))
+    local maximum = clamp01(profile ~= nil and profile.maximumLoss or (layerId == "deepCompaction" and 0.26 or 0.15))
+    local exponent =
+        math.max(tonumber(profile ~= nil and profile.exponent) or (layerId == "deepCompaction" and 1.45 or 1.40), 1)
+    local normalized = clamp01((clamp01(value) - good) / math.max(1 - good, 0.0001))
     return maximum * normalized ^ exponent
 end
 
 -- Current soil-condition summary shown as the dynamic Tillage/Soil entry.
 -- It is descriptive only and is never used as one monolithic yield factor.
 function TerraLogicSoilManager:getTillageQualityFromState(state)
-    if state == nil then return nil end
+    if state == nil then
+        return nil
+    end
     local shallow = 1 - clamp01(state.surfaceCompaction)
     local deep = 1 - clamp01(state.deepCompaction)
-    local tilth = self:getDisplayValue(
-        "aggregateSize", clamp01(state.aggregateSize))
+    local tilth = self:getDisplayValue("aggregateSize", clamp01(state.aggregateSize))
     local levelness = 1 - clamp01(state.roughness)
-    return clamp01(shallow * 0.30 + deep * 0.30
-        + tilth * 0.25 + levelness * 0.15), {
-        shallow = shallow,
-        deep = deep,
-        tilth = tilth,
-        levelness = levelness
-    }
+    return clamp01(shallow * 0.30 + deep * 0.30 + tilth * 0.25 + levelness * 0.15),
+        {
+            shallow = shallow,
+            deep = deep,
+            tilth = tilth,
+            levelness = levelness,
+        }
 end
 
 function TerraLogicSoilManager:getTillageQualityAtWorldPosition(x, z)
-    return self:getTillageQualityFromState(
-        self:getStateAtWorldPosition(x, z))
+    return self:getTillageQualityFromState(self:getStateAtWorldPosition(x, z))
 end
 
 -- Only root-zone consequences reach harvest directly. Seedbed tilth and
@@ -8236,43 +8600,35 @@ end
 -- below them do not invent a bonus. Above those targets, mildly convex curves
 -- make small misses visible while deep compaction remains dominant.
 function TerraLogicSoilManager:getRootYieldFactorFromState(state)
-    if state == nil then return 1, 0, 0 end
-    local balance = TerraLogicSoilProfiles ~= nil
-        and TerraLogicSoilProfiles.ROOT_YIELD or nil
+    if state == nil then
+        return 1, 0, 0
+    end
+    local balance = TerraLogicSoilProfiles ~= nil and TerraLogicSoilProfiles.ROOT_YIELD or nil
     local shallow = balance ~= nil and balance.surfaceCompaction or nil
     local deep = balance ~= nil and balance.deepCompaction or nil
     local function getLoss(value, profile, fallbackMaximum, fallbackExponent)
         local good = clamp01(profile ~= nil and profile.good or 0)
-        local normalized = clamp01(
-            (clamp01(value) - good) / math.max(1 - good, 0.0001))
-        local exponent = math.max(profile ~= nil
-            and tonumber(profile.exponent) or fallbackExponent, 1)
-        local maximum = clamp01(profile ~= nil
-            and profile.maximumLoss or fallbackMaximum)
+        local normalized = clamp01((clamp01(value) - good) / math.max(1 - good, 0.0001))
+        local exponent = math.max(profile ~= nil and tonumber(profile.exponent) or fallbackExponent, 1)
+        local maximum = clamp01(profile ~= nil and profile.maximumLoss or fallbackMaximum)
         return maximum * normalized ^ exponent
     end
-    local shallowLoss = getLoss(
-        state.surfaceCompaction, shallow, 0.15, 1.40)
-    local deepLoss = getLoss(
-        state.deepCompaction, deep, 0.26, 1.45)
-    return clamp01((1 - shallowLoss) * (1 - deepLoss)),
-        shallowLoss, deepLoss
+    local shallowLoss = getLoss(state.surfaceCompaction, shallow, 0.15, 1.40)
+    local deepLoss = getLoss(state.deepCompaction, deep, 0.26, 1.45)
+    return clamp01((1 - shallowLoss) * (1 - deepLoss)), shallowLoss, deepLoss
 end
 
 function TerraLogicSoilManager:getRootYieldFactorAtWorldPosition(x, z)
-    return self:getRootYieldFactorFromState(
-        self:getStateAtWorldPosition(x, z))
+    return self:getRootYieldFactorFromState(self:getStateAtWorldPosition(x, z))
 end
 
 -- Legacy comparison retained for the yield audit. It reproduces the v215
 -- calculation exactly: one topsoil sample at the centre and every 2 m deep
 -- cell inside the 4 m crop-history footprint.
-function TerraLogicSoilManager:getRootYieldFactorForAreaLegacy(
-        centerX, centerZ, areaSize)
+function TerraLogicSoilManager:getRootYieldFactorForAreaLegacy(centerX, centerZ, areaSize)
     areaSize = math.max(tonumber(areaSize) or self.CELL_SIZE, 0.01)
     local deepCellSize = getLayerCellSize("deepCompaction")
-    local cellsPerSide = math.max(math.floor(
-        areaSize / deepCellSize + 0.5), 1)
+    local cellsPerSide = math.max(math.floor(areaSize / deepCellSize + 0.5), 1)
     if cellsPerSide <= 1 then
         return self:getRootYieldFactorAtWorldPosition(centerX, centerZ)
     end
@@ -8282,25 +8638,24 @@ function TerraLogicSoilManager:getRootYieldFactorForAreaLegacy(
     local minZ = centerZ - areaSize * 0.5
     local factorSum, deepLossSum, surfaceLoss = 0, 0, nil
     local samples = 0
-    for sampleZ=0,cellsPerSide-1 do
-        for sampleX=0,cellsPerSide-1 do
+    for sampleZ = 0, cellsPerSide - 1 do
+        for sampleX = 0, cellsPerSide - 1 do
             local state = {
-                surfaceCompaction=baseState.surfaceCompaction,
-                deepCompaction=self:getValueAtWorldPosition(
+                surfaceCompaction = baseState.surfaceCompaction,
+                deepCompaction = self:getValueAtWorldPosition(
                     "deepCompaction",
                     minX + (sampleX + 0.5) * sampleStep,
-                    minZ + (sampleZ + 0.5) * sampleStep)
+                    minZ + (sampleZ + 0.5) * sampleStep
+                ),
             }
-            local factor, localSurfaceLoss, deepLoss =
-                self:getRootYieldFactorFromState(state)
+            local factor, localSurfaceLoss, deepLoss = self:getRootYieldFactorFromState(state)
             factorSum = factorSum + factor
             deepLossSum = deepLossSum + deepLoss
             surfaceLoss = surfaceLoss or localSurfaceLoss
             samples = samples + 1
         end
     end
-    return factorSum / math.max(samples, 1),
-        surfaceLoss or 0, deepLossSum / math.max(samples, 1)
+    return factorSum / math.max(samples, 1), surfaceLoss or 0, deepLossSum / math.max(samples, 1)
 end
 
 -- Work Quality and crop history remain stored in 4 m cells, while surface and
@@ -8310,12 +8665,10 @@ end
 -- tyre track and the deep soil below it. The nonlinear local retained-yield
 -- factors are averaged only afterwards; averaging raw compaction first would
 -- change the established damage curve and therefore the balancing.
-function TerraLogicSoilManager:getRootYieldFactorForArea(
-        centerX, centerZ, areaSize)
+function TerraLogicSoilManager:getRootYieldFactorForArea(centerX, centerZ, areaSize)
     areaSize = math.max(tonumber(areaSize) or self.CELL_SIZE, 0.01)
     local surfaceCellSize = getLayerCellSize("surfaceCompaction")
-    local cellsPerSide = math.max(math.floor(
-        areaSize / surfaceCellSize + 0.5), 1)
+    local cellsPerSide = math.max(math.floor(areaSize / surfaceCellSize + 0.5), 1)
     if cellsPerSide <= 1 then
         return self:getRootYieldFactorAtWorldPosition(centerX, centerZ)
     end
@@ -8324,27 +8677,22 @@ function TerraLogicSoilManager:getRootYieldFactorForArea(
     local minZ = centerZ - areaSize * 0.5
     local factorSum, surfaceLossSum, deepLossSum = 0, 0, 0
     local samples = 0
-    for sampleZ=0,cellsPerSide-1 do
-        for sampleX=0,cellsPerSide-1 do
+    for sampleZ = 0, cellsPerSide - 1 do
+        for sampleX = 0, cellsPerSide - 1 do
             local sampleWorldX = minX + (sampleX + 0.5) * sampleStep
             local sampleWorldZ = minZ + (sampleZ + 0.5) * sampleStep
             local state = {
-                surfaceCompaction=self:getValueAtWorldPosition(
-                    "surfaceCompaction", sampleWorldX, sampleWorldZ),
-                deepCompaction=self:getValueAtWorldPosition(
-                    "deepCompaction", sampleWorldX, sampleWorldZ)
+                surfaceCompaction = self:getValueAtWorldPosition("surfaceCompaction", sampleWorldX, sampleWorldZ),
+                deepCompaction = self:getValueAtWorldPosition("deepCompaction", sampleWorldX, sampleWorldZ),
             }
-            local factor, localSurfaceLoss, deepLoss =
-                self:getRootYieldFactorFromState(state)
+            local factor, localSurfaceLoss, deepLoss = self:getRootYieldFactorFromState(state)
             factorSum = factorSum + factor
             surfaceLossSum = surfaceLossSum + localSurfaceLoss
             deepLossSum = deepLossSum + deepLoss
             samples = samples + 1
         end
     end
-    return factorSum / math.max(samples, 1),
-        surfaceLossSum / math.max(samples, 1),
-        deepLossSum / math.max(samples, 1)
+    return factorSum / math.max(samples, 1), surfaceLossSum / math.max(samples, 1), deepLossSum / math.max(samples, 1)
 end
 
 function TerraLogicSoilManager:getColor(layerId, value)
@@ -8353,12 +8701,9 @@ end
 
 function TerraLogicSoilManager:buildOverlay(mode)
     local layer = self.layers[mode]
-    local sourceMap = layer ~= nil and self.maps ~= nil
-        and self.maps[layer.id] or nil
-    local fieldMaskMap = layer ~= nil and self.visualizationMaps ~= nil
-        and self.visualizationMaps[layer.id] or nil
-    if not self.rasterReady or layer == nil or sourceMap == nil
-        or fieldMaskMap == nil then
+    local sourceMap = layer ~= nil and self.maps ~= nil and self.maps[layer.id] or nil
+    local fieldMaskMap = layer ~= nil and self.visualizationMaps ~= nil and self.visualizationMaps[layer.id] or nil
+    if not self.rasterReady or layer == nil or sourceMap == nil or fieldMaskMap == nil then
         return
     end
     local sourceSize = getBitVectorMapSize(sourceMap)
@@ -8366,18 +8711,17 @@ function TerraLogicSoilManager:buildOverlay(mode)
     -- compare map is active. Deep compaction and resilience were
     -- therefore blank when a minimum 1024-pixel overlay was forced. Use the
     -- native source resolution for smaller layers and cap only oversized maps.
-    local overlaySize = math.min(
-        math.max(tonumber(sourceSize) or 1, 1),
-        self.MAX_OVERLAY_RESOLUTION)
+    local overlaySize = math.min(math.max(tonumber(sourceSize) or 1, 1), self.MAX_OVERLAY_RESOLUTION)
     if self.overlay ~= nil and self.overlayResolution ~= overlaySize then
-        if delete ~= nil then delete(self.overlay) end
+        if delete ~= nil then
+            delete(self.overlay)
+        end
         self.overlay = nil
         self.overlayReady = false
         self.overlayPending = false
     end
     if self.overlay == nil then
-        self.overlay = createDensityMapVisualizationOverlay(
-            "terraLogicSoilOverlay", overlaySize, overlaySize)
+        self.overlay = createDensityMapVisualizationOverlay("terraLogicSoilOverlay", overlaySize, overlaySize)
         self.overlayResolution = overlaySize
     end
     -- TerraLogic owns this visualization handle and renders it directly.
@@ -8390,12 +8734,21 @@ function TerraLogicSoilManager:buildOverlay(mode)
     local sourceChannels = getLayerChannels(layer.id)
 
     local default = TerraLogicSoilProfiles.DEFAULTS[layer.id]
-    for state=1,2 ^ sourceChannels - 1 do
+    for state = 1, 2 ^ sourceChannels - 1 do
         local value = decode(state, default, sourceChannels)
         local r, g, b = self:getColor(layer.id, value)
         setDensityMapVisualizationOverlayStateColor(
-            self.overlay, sourceMap, compareMap, compareMask,
-            0, sourceChannels, state, r,g,b)
+            self.overlay,
+            sourceMap,
+            compareMap,
+            compareMask,
+            0,
+            sourceChannels,
+            state,
+            r,
+            g,
+            b
+        )
     end
     generateDensityMapVisualizationOverlay(self.overlay)
     self.overlayPending = true
@@ -8404,17 +8757,21 @@ function TerraLogicSoilManager:buildOverlay(mode)
         self.overlayLoggedMode = mode
         TerraLogicLogging.debug(
             "[FS25_TerraLogic] Soil overlay active: mode=%d layer=%s handle=%s map=%s",
-            mode, tostring(layer.id), tostring(self.overlay),
-            tostring(sourceMap))
+            mode,
+            tostring(layer.id),
+            tostring(self.overlay),
+            tostring(sourceMap)
+        )
     end
 end
 
 -- Remember PF's live requester state even while its minimap layer is hidden.
 -- This lets switching TerraLogic to Off restore exactly the map that the
 -- selected implement currently needs, instead of guessing from vehicle type.
-function TerraLogicSoilManager:recordPrecisionFarmingMinimapRequest(
-        valueMap, isRequired, requester, isSelected)
-    if valueMap == nil then return end
+function TerraLogicSoilManager:recordPrecisionFarmingMinimapRequest(valueMap, isRequired, requester, isSelected)
+    if valueMap == nil then
+        return
+    end
     local requests = self.pfMinimapRequests[valueMap]
     if requests == nil then
         requests = {}
@@ -8424,7 +8781,7 @@ function TerraLogicSoilManager:recordPrecisionFarmingMinimapRequest(
     if isRequired == true then
         requests[key] = {
             requester = requester,
-            isSelected = isSelected
+            isSelected = isSelected,
         }
     else
         requests[key] = nil
@@ -8441,64 +8798,73 @@ end
 -- valid. Always release PF maps in menus and dialogs, then restore the
 -- requested HUD suppression automatically when gameplay resumes.
 function TerraLogicSoilManager:isPrecisionFarmingMinimapSuppressionAllowed()
-    if g_gui == nil then return true end
-    if g_gui.getIsGuiVisible ~= nil then
-        local ok, visible = pcall(g_gui.getIsGuiVisible, g_gui)
-        if ok then return visible ~= true end
+    if g_gui == nil then
+        return true
     end
-    if g_gui.currentGui ~= nil then return false end
-    if g_gui.getIsDialogVisible ~= nil then
-        local ok, visible = pcall(g_gui.getIsDialogVisible, g_gui)
-        if ok and visible == true then return false end
+    if type(g_gui.getIsGuiVisible) == "function" then
+        local visible = g_gui.getIsGuiVisible(g_gui)
+        do
+            return visible ~= true
+        end
+    end
+    if g_gui.currentGui ~= nil then
+        return false
+    end
+    if type(g_gui.getIsDialogVisible) == "function" then
+        local visible = g_gui.getIsDialogVisible(g_gui)
+        if visible == true then
+            return false
+        end
     end
     return true
 end
 
-function TerraLogicSoilManager:applyPrecisionFarmingMinimapSuppression(
-        suppressed)
+function TerraLogicSoilManager:applyPrecisionFarmingMinimapSuppression(suppressed)
     suppressed = suppressed == true
-    if self.pfMinimapSuppressed == suppressed then return false end
+    if self.pfMinimapSuppressed == suppressed then
+        return false
+    end
     self.pfMinimapSuppressed = suppressed
 
-    local valueMapClass = self.pfValueMapClass
-        or getPrecisionFarmingValueMapClass()
-    local nativeSetRequired = valueMapClass ~= nil
-        and valueMapClass.terraLogicNativeSetRequireMinimapDisplay or nil
-    if nativeSetRequired == nil then return false end
+    local valueMapClass = self.pfValueMapClass or getPrecisionFarmingValueMapClass()
+    local nativeSetRequired = valueMapClass ~= nil and valueMapClass.terraLogicNativeSetRequireMinimapDisplay or nil
+    if type(nativeSetRequired) ~= "function" then
+        return false
+    end
 
     local restored = 0
     for valueMap, requests in pairs(self.pfMinimapRequests or {}) do
         for _, request in pairs(requests) do
             -- Calling the saved PF implementation directly avoids feeding our
             -- own suppression/replay calls back into the request ledger.
-            local ok = pcall(nativeSetRequired, valueMap,
-                not suppressed, request.requester, request.isSelected)
-            if ok then restored = restored + 1 end
+            nativeSetRequired(valueMap, not suppressed, request.requester, request.isSelected)
+            do
+                restored = restored + 1
+            end
         end
     end
     TerraLogicLogging.debug(
         "[FS25_TerraLogic] Precision Farming minimap %s (%d live requests)",
-        suppressed and "suppressed" or "restored", restored)
+        suppressed and "suppressed" or "restored",
+        restored
+    )
     return true
 end
 
 function TerraLogicSoilManager:setPrecisionFarmingMinimapSuppressed(suppressed)
     self.pfMinimapSuppressionRequested = suppressed == true
-    local effective = self.pfMinimapSuppressionRequested
-        and self:isPrecisionFarmingMinimapSuppressionAllowed()
+    local effective = self.pfMinimapSuppressionRequested and self:isPrecisionFarmingMinimapSuppressionAllowed()
     return self:applyPrecisionFarmingMinimapSuppression(effective)
 end
 
 function TerraLogicSoilManager:refreshPrecisionFarmingMinimapSuppression()
-    local effective = self.pfMinimapSuppressionRequested == true
-        and self:isPrecisionFarmingMinimapSuppressionAllowed()
+    local effective = self.pfMinimapSuppressionRequested == true and self:isPrecisionFarmingMinimapSuppressionAllowed()
     return self:applyPrecisionFarmingMinimapSuppression(effective)
 end
 
 function TerraLogicSoilManager:installPrecisionFarmingMinimapHook()
     local valueMapClass = getPrecisionFarmingValueMapClass()
-    if valueMapClass == nil
-        or valueMapClass.setRequireMinimapDisplay == nil then
+    if valueMapClass == nil or valueMapClass.setRequireMinimapDisplay == nil then
         return false
     end
     -- Version the global wrapper because PF's class can survive an ordinary
@@ -8506,64 +8872,57 @@ function TerraLogicSoilManager:installPrecisionFarmingMinimapHook()
     -- be able to replace an older wrapper without stacking another closure.
     local wrapperVersion = 2
     if valueMapClass.terraLogicMinimapWrapperVersion ~= wrapperVersion then
-        local nativeSetRequired =
-            valueMapClass.terraLogicNativeSetRequireMinimapDisplay
+        local nativeSetRequired = valueMapClass.terraLogicNativeSetRequireMinimapDisplay
             or valueMapClass.setRequireMinimapDisplay
         valueMapClass.terraLogicNativeSetRequireMinimapDisplay = nativeSetRequired
-        valueMapClass.setRequireMinimapDisplay = function(
-                valueMap, isRequired, requester, isSelected)
+        valueMapClass.setRequireMinimapDisplay = function(valueMap, isRequired, requester, isSelected)
             local manager = TerraLogicSoilManager
-            if manager ~= nil
-                and manager.recordPrecisionFarmingMinimapRequest ~= nil then
-                manager:recordPrecisionFarmingMinimapRequest(
-                    valueMap, isRequired, requester, isSelected)
+            if manager ~= nil and manager.recordPrecisionFarmingMinimapRequest ~= nil then
+                manager:recordPrecisionFarmingMinimapRequest(valueMap, isRequired, requester, isSelected)
                 -- A dialog can become visible before TerraLogic's next update
                 -- tick. Check the GUI directly here as well, so the very first
                 -- tramline-preview request is never converted to false.
-                if manager.pfMinimapSuppressed == true
+                if
+                    manager.pfMinimapSuppressed == true
                     and manager:isPrecisionFarmingMinimapSuppressionAllowed()
-                    and isRequired == true then
+                    and isRequired == true
+                then
                     -- PF still receives the matching false call, so an
                     -- already visible layer disappears immediately.
-                    return nativeSetRequired(
-                        valueMap, false, requester, isSelected)
+                    return nativeSetRequired(valueMap, false, requester, isSelected)
                 end
             end
-            return nativeSetRequired(
-                valueMap, isRequired, requester, isSelected)
+            return nativeSetRequired(valueMap, isRequired, requester, isSelected)
         end
         valueMapClass.terraLogicMinimapWrapperInstalled = true
         valueMapClass.terraLogicMinimapWrapperVersion = wrapperVersion
     end
     self.pfValueMapClass = valueMapClass
     self.pfMinimapHookInstalled = true
-    TerraLogicLogging.debug(
-        "[FS25_TerraLogic] Precision Farming minimap arbitration installed")
+    TerraLogicLogging.debug("[FS25_TerraLogic] Precision Farming minimap arbitration installed")
     return true
 end
 
 function TerraLogicSoilManager:applyMapModeState(mode)
-    self.activeMapMode = math.max(0,
-        math.min(math.floor(tonumber(mode) or 0), #self.layers))
+    self.activeMapMode = math.max(0, math.min(math.floor(tonumber(mode) or 0), #self.layers))
     self.minimapDrawLoggedMode = nil
     self.overlayLoggedMode = nil
     if self.activeMapMode > 0 then
         self.visualizationDirty = true
-        self.overlayRefreshTime = g_currentMission ~= nil
-            and g_currentMission.time or 0
+        self.overlayRefreshTime = g_currentMission ~= nil and g_currentMission.time or 0
     end
     TerraLogicLogging.debug(
         "[FS25_TerraLogic] Soil minimap mode %d (hook=%s)",
         self.activeMapMode,
-        tostring(self.minimapHookInstalled == true))
+        tostring(self.minimapHookInstalled == true)
+    )
 end
 
 -- Never run PF's native minimap animation and TerraLogic's local zoom in the
 -- same interval. TL -> Off first completes the TL zoom-out while PF remains
 -- suppressed. Off -> TL first lets PF finish disappearing, then starts TL.
 function TerraLogicSoilManager:setMapMode(mode)
-    mode = math.max(0,
-        math.min(math.floor(tonumber(mode) or 0), #self.layers))
+    mode = math.max(0, math.min(math.floor(tonumber(mode) or 0), #self.layers))
     local now = g_currentMission ~= nil and g_currentMission.time or 0
     self.pendingMapMode = nil
     self.mapModeTransitionPhase = nil
@@ -8572,24 +8931,19 @@ function TerraLogicSoilManager:setMapMode(mode)
     if self.activeMapMode > 0 and mode == 0 then
         self.pendingMapMode = 0
         self.mapModeTransitionPhase = "terraOut"
-        self.mapModeTransitionEndTime = now
-            + self.MINIMAP_ZOOM_TRANSITION_MS
+        self.mapModeTransitionEndTime = now + self.MINIMAP_ZOOM_TRANSITION_MS
         self:setPrecisionFarmingMinimapSuppressed(true)
         self:setMinimapZoomTarget(1)
-        TerraLogicLogging.debug(
-            "[FS25_TerraLogic] Soil minimap transition TL -> PF queued")
+        TerraLogicLogging.debug("[FS25_TerraLogic] Soil minimap transition TL -> PF queued")
         return
     end
     if self.activeMapMode == 0 and mode > 0 then
         self.pendingMapMode = mode
         self.mapModeTransitionPhase = "pfOut"
-        self.mapModeTransitionEndTime = now
-            + self.PF_MINIMAP_TRANSITION_MS
+        self.mapModeTransitionEndTime = now + self.PF_MINIMAP_TRANSITION_MS
         self:setMinimapZoomTarget(1)
         self:setPrecisionFarmingMinimapSuppressed(true)
-        TerraLogicLogging.debug(
-            "[FS25_TerraLogic] Soil minimap transition PF -> TL mode %d queued",
-            mode)
+        TerraLogicLogging.debug("[FS25_TerraLogic] Soil minimap transition PF -> TL mode %d queued", mode)
         return
     end
 
@@ -8622,18 +8976,21 @@ function TerraLogicSoilManager:updateMapModeTransition(now)
 end
 
 function TerraLogicSoilManager:getRequestedMinimapZoom()
-    if self.mapModeTransitionPhase == "terraOut"
-        or self.mapModeTransitionPhase == "pfOut" then return 1 end
-    if self.activeMapMode <= 0 then return 1 end
+    if self.mapModeTransitionPhase == "terraOut" or self.mapModeTransitionPhase == "pfOut" then
+        return 1
+    end
+    if self.activeMapMode <= 0 then
+        return 1
+    end
     local configured = TerraLogicSettings ~= nil
-        and TerraLogicSettings.getSoilMinimapZoom ~= nil
-        and TerraLogicSettings:getSoilMinimapZoom() or 0
+            and TerraLogicSettings.getSoilMinimapZoom ~= nil
+            and TerraLogicSettings:getSoilMinimapZoom()
+        or 0
     return math.max(tonumber(configured) or 0, 1)
 end
 
 function TerraLogicSoilManager:getAnimatedMinimapZoom(now)
-    now = tonumber(now) or (g_currentMission ~= nil
-        and g_currentMission.time or 0)
+    now = tonumber(now) or (g_currentMission ~= nil and g_currentMission.time or 0)
     if self.minimapZoomFactor == nil then
         self.minimapZoomFactor = 1
         self.minimapZoomFromFactor = 1
@@ -8644,8 +9001,7 @@ function TerraLogicSoilManager:getAnimatedMinimapZoom(now)
     local startTime = tonumber(self.minimapZoomStartTime) or now
     local endTime = tonumber(self.minimapZoomEndTime) or startTime
     if endTime > startTime and now < endTime then
-        local progress = smoothStep01(
-            (now - startTime) / (endTime - startTime))
+        local progress = smoothStep01((now - startTime) / (endTime - startTime))
         self.minimapZoomFactor = self.minimapZoomFromFactor
             + (self.minimapZoomTarget - self.minimapZoomFromFactor) * progress
     else
@@ -8657,25 +9013,26 @@ end
 function TerraLogicSoilManager:setMinimapZoomTarget(target)
     target = math.max(tonumber(target) or 1, 1)
     local now = g_currentMission ~= nil and g_currentMission.time or 0
-    if math.abs(target - (tonumber(self.minimapZoomTarget) or 1))
-            < 0.0001 then
+    if math.abs(target - (tonumber(self.minimapZoomTarget) or 1)) < 0.0001 then
         return
     end
-    self.minimapZoomFromFactor = tonumber(self.minimapZoomFactor)
-        or tonumber(self.minimapZoomTarget) or 1
+    self.minimapZoomFromFactor = tonumber(self.minimapZoomFactor) or tonumber(self.minimapZoomTarget) or 1
     self.minimapZoomTarget = target
     self.minimapZoomStartTime = now
     self.minimapZoomEndTime = now + self.MINIMAP_ZOOM_TRANSITION_MS
 end
 
 local function getLocalSoilNetworkPosition()
-    if g_localPlayer == nil then return nil, nil end
-    local vehicle = g_localPlayer.getCurrentVehicle ~= nil
-        and g_localPlayer:getCurrentVehicle() or nil
-    local node = vehicle ~= nil and (vehicle.rootNode
-        or (vehicle.components ~= nil and vehicle.components[1] ~= nil
-            and vehicle.components[1].node)) or g_localPlayer.rootNode
-    if node == nil or node == 0 then return nil, nil end
+    if g_localPlayer == nil then
+        return nil, nil
+    end
+    local vehicle = g_localPlayer.getCurrentVehicle ~= nil and g_localPlayer:getCurrentVehicle() or nil
+    local node = vehicle ~= nil
+            and (vehicle.rootNode or (vehicle.components ~= nil and vehicle.components[1] ~= nil and vehicle.components[1].node))
+        or g_localPlayer.rootNode
+    if node == nil or node == 0 then
+        return nil, nil
+    end
     local x, _, z = getWorldTranslation(node)
     return x, z
 end
@@ -8686,7 +9043,9 @@ end
 
 local function getNetworkLayerIndex(layerId)
     for index, layer in ipairs(TerraLogicSoilManager.layers) do
-        if layer.id == layerId then return index end
+        if layer.id == layerId then
+            return index
+        end
     end
     return nil
 end
@@ -8698,51 +9057,51 @@ end
 function TerraLogicSoilManager:clearClientNetworkLayerRevision(layerIndex)
     local prefix = tostring(layerIndex) .. ":"
     for _, collection in ipairs({
-            self.clientNetworkTileKnownRevision,
-            self.clientNetworkTileFresh,
-            self.clientNetworkTilePending}) do
+        self.clientNetworkTileKnownRevision,
+        self.clientNetworkTileFresh,
+        self.clientNetworkTilePending,
+    }) do
         for key in pairs(collection or {}) do
             if string.sub(key, 1, #prefix) == prefix then
                 collection[key] = nil
             end
         end
     end
-    for index=#(self.clientNetworkTileJobs or {}),1,-1 do
+    for index = #(self.clientNetworkTileJobs or {}), 1, -1 do
         if self.clientNetworkTileJobs[index].layerIndex == layerIndex then
             table.remove(self.clientNetworkTileJobs, index)
         end
     end
     self.clientNetworkTileNextTime = 0
-    self.clientNetworkTileFastUntil = (g_currentMission ~= nil
-        and g_currentMission.time or 0) + self.NETWORK_TILE_FAST_MODE_MS
+    self.clientNetworkTileFastUntil = (g_currentMission ~= nil and g_currentMission.time or 0)
+        + self.NETWORK_TILE_FAST_MODE_MS
 end
 
 function TerraLogicSoilManager:resetServerNetworkLayerRevision(layerIndex)
-    if g_server == nil or self.layers[layerIndex] == nil then return end
-    self.serverNetworkTileLayerGeneration =
-        self.serverNetworkTileLayerGeneration or {}
+    if g_server == nil or self.layers[layerIndex] == nil then
+        return
+    end
+    self.serverNetworkTileLayerGeneration = self.serverNetworkTileLayerGeneration or {}
     self.serverNetworkTileRevisions = self.serverNetworkTileRevisions or {}
     self.serverNetworkTileLayerGeneration[layerIndex] = 1
     self.serverNetworkTileRevisions[layerIndex] = {}
     if TerraLogicSoilTileRevisionResetEvent ~= nil then
-        g_server:broadcastEvent(
-            TerraLogicSoilTileRevisionResetEvent.new(layerIndex))
+        g_server:broadcastEvent(TerraLogicSoilTileRevisionResetEvent.new(layerIndex))
     end
-    TerraLogicLogging.debug(
-        "[FS25_TerraLogic] Soil tile revision generation safely reset for layer %d",
-        layerIndex)
+    TerraLogicLogging.debug("[FS25_TerraLogic] Soil tile revision generation safely reset for layer %d", layerIndex)
 end
 
 function TerraLogicSoilManager:invalidateServerNetworkLayer(layerId)
-    if g_server == nil then return end
-    local layerIndex = type(layerId) == "number"
-        and layerId or getNetworkLayerIndex(layerId)
-    if layerIndex == nil then return end
-    self.serverNetworkTileLayerGeneration =
-        self.serverNetworkTileLayerGeneration or {}
+    if g_server == nil then
+        return
+    end
+    local layerIndex = type(layerId) == "number" and layerId or getNetworkLayerIndex(layerId)
+    if layerIndex == nil then
+        return
+    end
+    self.serverNetworkTileLayerGeneration = self.serverNetworkTileLayerGeneration or {}
     self.serverNetworkTileRevisions = self.serverNetworkTileRevisions or {}
-    local generation = tonumber(
-        self.serverNetworkTileLayerGeneration[layerIndex]) or 1
+    local generation = tonumber(self.serverNetworkTileLayerGeneration[layerIndex]) or 1
     if generation >= self.NETWORK_TILE_GENERATION_MAX then
         self:resetServerNetworkLayerRevision(layerIndex)
     else
@@ -8751,13 +9110,15 @@ function TerraLogicSoilManager:invalidateServerNetworkLayer(layerId)
     end
 end
 
-function TerraLogicSoilManager:markServerNetworkTileCoordinateChanged(
-        layerId, tileX, tileZ)
-    if g_server == nil then return end
+function TerraLogicSoilManager:markServerNetworkTileCoordinateChanged(layerId, tileX, tileZ)
+    if g_server == nil then
+        return
+    end
     local layerIndex = getNetworkLayerIndex(layerId)
-    if layerIndex == nil then return end
-    self.serverNetworkTileLayerGeneration =
-        self.serverNetworkTileLayerGeneration or {}
+    if layerIndex == nil then
+        return
+    end
+    self.serverNetworkTileLayerGeneration = self.serverNetworkTileLayerGeneration or {}
     self.serverNetworkTileRevisions = self.serverNetworkTileRevisions or {}
     local revisions = self.serverNetworkTileRevisions[layerIndex]
     if revisions == nil then
@@ -8778,34 +9139,33 @@ end
 function TerraLogicSoilManager:markServerNetworkTileChanged(layerId, ix, iz)
     local cellSize = getLayerCellSize(layerId)
     local tileSize = self.NETWORK_TILE_WORLD_SIZE_M
-    self:markServerNetworkTileCoordinateChanged(layerId,
+    self:markServerNetworkTileCoordinateChanged(
+        layerId,
         math.floor(((tonumber(ix) or 0) + 0.5) * cellSize / tileSize),
-        math.floor(((tonumber(iz) or 0) + 0.5) * cellSize / tileSize))
+        math.floor(((tonumber(iz) or 0) + 0.5) * cellSize / tileSize)
+    )
 end
 
-function TerraLogicSoilManager:markServerNetworkRegionChanged(
-        layerId, minX, minZ, maxX, maxZ)
-    if g_server == nil then return end
+function TerraLogicSoilManager:markServerNetworkRegionChanged(layerId, minX, minZ, maxX, maxZ)
+    if g_server == nil then
+        return
+    end
     local tileSize = self.NETWORK_TILE_WORLD_SIZE_M
     local firstX = math.floor(math.min(minX, maxX) / tileSize)
     local firstZ = math.floor(math.min(minZ, maxZ) / tileSize)
     local lastX = math.floor((math.max(minX, maxX) - 0.001) / tileSize)
     local lastZ = math.floor((math.max(minZ, maxZ) - 0.001) / tileSize)
-    for tileZ=firstZ,lastZ do
-        for tileX=firstX,lastX do
-            self:markServerNetworkTileCoordinateChanged(
-                layerId, tileX, tileZ)
+    for tileZ = firstZ, lastZ do
+        for tileX = firstX, lastX do
+            self:markServerNetworkTileCoordinateChanged(layerId, tileX, tileZ)
         end
     end
 end
 
-function TerraLogicSoilManager:getServerNetworkTileRevision(
-        layerIndex, tileX, tileZ)
-    local generation = tonumber((self.serverNetworkTileLayerGeneration or {})[
-        layerIndex]) or 1
+function TerraLogicSoilManager:getServerNetworkTileRevision(layerIndex, tileX, tileZ)
+    local generation = tonumber((self.serverNetworkTileLayerGeneration or {})[layerIndex]) or 1
     local revisions = (self.serverNetworkTileRevisions or {})[layerIndex]
-    local revision = revisions ~= nil and tonumber(revisions[
-        getNetworkTileCoordinateKey(tileX, tileZ)]) or 1
+    local revision = revisions ~= nil and tonumber(revisions[getNetworkTileCoordinateKey(tileX, tileZ)]) or 1
     return generation, revision
 end
 
@@ -8818,36 +9178,52 @@ function TerraLogicSoilManager:buildNetworkSample(x, z)
 end
 
 function TerraLogicSoilManager:applyNetworkSample(x, z, values)
-    if g_client == nil or g_server ~= nil or values == nil then return end
+    if g_client == nil or g_server ~= nil or values == nil then
+        return
+    end
     self.clientNetworkSample = {
-        x=tonumber(x) or 0, z=tonumber(z) or 0,
-        values=values,
-        time=g_currentMission ~= nil and g_currentMission.time or 0
+        x = tonumber(x) or 0,
+        z = tonumber(z) or 0,
+        values = values,
+        time = g_currentMission ~= nil and g_currentMission.time or 0,
     }
-    self.networkStats.samplesReceived =
-        (tonumber(self.networkStats.samplesReceived) or 0) + 1
+    self.networkStats.samplesReceived = (tonumber(self.networkStats.samplesReceived) or 0) + 1
 end
 
 -- Dedicated servers build requested tiles incrementally. Even if many clients
 -- open the map simultaneously, only a fixed number of cheap BitVector reads is
 -- performed in one frame; completed packets are sent afterwards.
 function TerraLogicSoilManager:queueServerNetworkTile(
-        connection, layerIndex, tileX, tileZ,
-        knownGeneration, knownRevision)
-    if g_server == nil or connection == nil then return false end
+    connection,
+    layerIndex,
+    tileX,
+    tileZ,
+    knownGeneration,
+    knownRevision
+)
+    if g_server == nil or connection == nil then
+        return false
+    end
     self.serverNetworkTileJobs = self.serverNetworkTileJobs or {}
-    if #self.serverNetworkTileJobs
-        >= self.NETWORK_SERVER_TILE_MAX_PENDING_JOBS then return false end
+    if #self.serverNetworkTileJobs >= self.NETWORK_SERVER_TILE_MAX_PENDING_JOBS then
+        return false
+    end
     local layer = self.layers[tonumber(layerIndex) or 0]
-    if layer == nil or self.rasterReady ~= true then return false end
+    if layer == nil or self.rasterReady ~= true then
+        return false
+    end
     local tileSize = self.NETWORK_TILE_WORLD_SIZE_M
     local minimumX, minimumZ = tileX * tileSize, tileZ * tileSize
     local halfTerrain = (tonumber(self.terrainSize) or 2048) * 0.5
-    if minimumX >= halfTerrain or minimumZ >= halfTerrain
+    if
+        minimumX >= halfTerrain
+        or minimumZ >= halfTerrain
         or minimumX + tileSize <= -halfTerrain
-        or minimumZ + tileSize <= -halfTerrain then return false end
-    self.serverNetworkTilePending = self.serverNetworkTilePending
-        or setmetatable({}, {__mode="k"})
+        or minimumZ + tileSize <= -halfTerrain
+    then
+        return false
+    end
+    self.serverNetworkTilePending = self.serverNetworkTilePending or setmetatable({}, { __mode = "k" })
     local cellSize = getLayerCellSize(layer.id)
     local cellsPerSide = math.max(math.floor(tileSize / cellSize + 0.5), 1)
     local key = getNetworkTileKey(layerIndex, tileX, tileZ)
@@ -8856,46 +9232,54 @@ function TerraLogicSoilManager:queueServerNetworkTile(
         pending = {}
         self.serverNetworkTilePending[connection] = pending
     end
-    if pending[key] == true then return false end
+    if pending[key] == true then
+        return false
+    end
     local pendingCount = 0
-    for _ in pairs(pending) do pendingCount = pendingCount + 1 end
+    for _ in pairs(pending) do
+        pendingCount = pendingCount + 1
+    end
     if pendingCount >= self.NETWORK_TILE_MAX_INFLIGHT_REQUESTS then
         return false
     end
-    local generation, revision = self:getServerNetworkTileRevision(
-        layerIndex, tileX, tileZ)
-    if generation == (tonumber(knownGeneration) or 0)
-        and revision == (tonumber(knownRevision) or 0) then
-        if connection.sendEvent ~= nil
-            and TerraLogicSoilTileSyncEvent ~= nil then
-            connection:sendEvent(TerraLogicSoilTileSyncEvent.new(
-                layerIndex, tileX, tileZ, generation, revision,
-                false, 0, {}, {}))
-            self.networkStats.tileAcksSent =
-                (tonumber(self.networkStats.tileAcksSent) or 0) + 1
+    local generation, revision = self:getServerNetworkTileRevision(layerIndex, tileX, tileZ)
+    if generation == (tonumber(knownGeneration) or 0) and revision == (tonumber(knownRevision) or 0) then
+        if connection.sendEvent ~= nil and TerraLogicSoilTileSyncEvent ~= nil then
+            connection:sendEvent(
+                TerraLogicSoilTileSyncEvent.new(layerIndex, tileX, tileZ, generation, revision, false, 0, {}, {})
+            )
+            self.networkStats.tileAcksSent = (tonumber(self.networkStats.tileAcksSent) or 0) + 1
         end
         return true
     end
     pending[key] = true
     self.serverNetworkTileJobs[#self.serverNetworkTileJobs + 1] = {
-        connection=connection, key=key, layerIndex=layerIndex,
-        tileX=tileX, tileZ=tileZ, layerId=layer.id,
-        generation=generation, revision=revision,
-        cellsPerSide=cellsPerSide,
-        startIx=math.floor(minimumX / cellSize),
-        startIz=math.floor(minimumZ / cellSize),
-        cellSize=cellSize, offset=1, values={}, masks={}
+        connection = connection,
+        key = key,
+        layerIndex = layerIndex,
+        tileX = tileX,
+        tileZ = tileZ,
+        layerId = layer.id,
+        generation = generation,
+        revision = revision,
+        cellsPerSide = cellsPerSide,
+        startIx = math.floor(minimumX / cellSize),
+        startIz = math.floor(minimumZ / cellSize),
+        cellSize = cellSize,
+        offset = 1,
+        values = {},
+        masks = {},
     }
-    self.networkStats.tilesQueued =
-        (tonumber(self.networkStats.tilesQueued) or 0) + 1
-    self.networkStats.serverQueuePeak = math.max(
-        tonumber(self.networkStats.serverQueuePeak) or 0,
-        #self.serverNetworkTileJobs)
+    self.networkStats.tilesQueued = (tonumber(self.networkStats.tilesQueued) or 0) + 1
+    self.networkStats.serverQueuePeak =
+        math.max(tonumber(self.networkStats.serverQueuePeak) or 0, #self.serverNetworkTileJobs)
     return true
 end
 
 function TerraLogicSoilManager:processServerNetworkTileJobs()
-    if g_server == nil or self.serverNetworkTileJobs == nil then return end
+    if g_server == nil or self.serverNetworkTileJobs == nil then
+        return
+    end
     local budget = self.NETWORK_SERVER_TILE_CELLS_PER_FRAME
     while budget > 0 and #self.serverNetworkTileJobs > 0 do
         local job = self.serverNetworkTileJobs[1]
@@ -8905,15 +9289,12 @@ function TerraLogicSoilManager:processServerNetworkTileJobs()
         local x = (job.startIx + localX + 0.5) * job.cellSize
         local z = (job.startIz + localZ + 0.5) * job.cellSize
         job.values[job.offset] = self:getRawAtWorldPosition(job.layerId, x, z)
-        job.masks[job.offset] = self:getVisualizationRawAtWorldPosition(
-            job.layerId, x, z)
+        job.masks[job.offset] = self:getVisualizationRawAtWorldPosition(job.layerId, x, z)
         job.offset = job.offset + 1
         budget = budget - 1
-        if job.offset > job.cellsPerSide*job.cellsPerSide then
-            local generation, revision = self:getServerNetworkTileRevision(
-                job.layerIndex, job.tileX, job.tileZ)
-            local responseGeneration, responseRevision =
-                job.generation, job.revision
+        if job.offset > job.cellsPerSide * job.cellsPerSide then
+            local generation, revision = self:getServerNetworkTileRevision(job.layerIndex, job.tileX, job.tileZ)
+            local responseGeneration, responseRevision = job.generation, job.revision
             if generation ~= job.generation or revision ~= job.revision then
                 -- A continuously worked centre tile can change every frame.
                 -- Mark this bounded snapshot as stale instead of restarting it
@@ -8930,21 +9311,21 @@ function TerraLogicSoilManager:processServerNetworkTileJobs()
                     self.serverNetworkTilePending[job.connection] = nil
                 end
             end
-            if job.connection.sendEvent ~= nil
-                and TerraLogicSoilTileSyncEvent ~= nil then
+            if type(job.connection.sendEvent) == "function" and TerraLogicSoilTileSyncEvent ~= nil then
                 local event = TerraLogicSoilTileSyncEvent.new(
-                    job.layerIndex, job.tileX, job.tileZ,
-                    responseGeneration, responseRevision, true,
-                    job.cellsPerSide, job.values, job.masks)
-                local ok = pcall(job.connection.sendEvent,
-                    job.connection, event)
-                if ok then
-                    self.networkStats.tilesSent =
-                        (tonumber(self.networkStats.tilesSent) or 0) + 1
-                end
-                if not ok then
-                    -- A player may disconnect while a multi-frame surface tile
-                    -- is being assembled. Dropping that response is harmless.
+                    job.layerIndex,
+                    job.tileX,
+                    job.tileZ,
+                    responseGeneration,
+                    responseRevision,
+                    true,
+                    job.cellsPerSide,
+                    job.values,
+                    job.masks
+                )
+                job.connection.sendEvent(job.connection, event)
+                do
+                    self.networkStats.tilesSent = (tonumber(self.networkStats.tilesSent) or 0) + 1
                 end
             end
         end
@@ -8952,53 +9333,75 @@ function TerraLogicSoilManager:processServerNetworkTileJobs()
 end
 
 function TerraLogicSoilManager:queueNetworkTile(
-        layerIndex, tileX, tileZ, generation, revision,
-        values, masks, cellsPerSide)
-    if g_client == nil or g_server ~= nil or values == nil or masks == nil then return end
+    layerIndex,
+    tileX,
+    tileZ,
+    generation,
+    revision,
+    values,
+    masks,
+    cellsPerSide
+)
+    if g_client == nil or g_server ~= nil or values == nil or masks == nil then
+        return
+    end
     local layer = self.layers[tonumber(layerIndex) or 0]
     cellsPerSide = math.floor(tonumber(cellsPerSide) or 0)
-    if layer == nil or cellsPerSide < 1 or cellsPerSide > 32
-        or #values ~= cellsPerSide*cellsPerSide
-        or #masks ~= cellsPerSide*cellsPerSide then return end
+    if
+        layer == nil
+        or cellsPerSide < 1
+        or cellsPerSide > 32
+        or #values ~= cellsPerSide * cellsPerSide
+        or #masks ~= cellsPerSide * cellsPerSide
+    then
+        return
+    end
     local key = getNetworkTileKey(layerIndex, tileX, tileZ)
     -- Keep the tile pending until its cells have actually been applied. This
     -- prevents a low-FPS client from requesting the same center tile again and
     -- repeatedly resetting its own partially completed job.
-    self.clientNetworkTilePending[key] = g_currentMission ~= nil
-        and g_currentMission.time or 0
+    self.clientNetworkTilePending[key] = g_currentMission ~= nil and g_currentMission.time or 0
     -- Replace an older queued copy of the same tile instead of growing the
     -- apply queue while the client has a temporary low frame rate.
-    for index=#self.clientNetworkTileJobs,1,-1 do
+    for index = #self.clientNetworkTileJobs, 1, -1 do
         if self.clientNetworkTileJobs[index].key == key then
             table.remove(self.clientNetworkTileJobs, index)
         end
     end
     self.clientNetworkTileJobs[#self.clientNetworkTileJobs + 1] = {
-        key=key, layerIndex=layerIndex, tileX=tileX, tileZ=tileZ,
-        generation=generation, revision=revision,
-        values=values, masks=masks, cellsPerSide=cellsPerSide, offset=1
+        key = key,
+        layerIndex = layerIndex,
+        tileX = tileX,
+        tileZ = tileZ,
+        generation = generation,
+        revision = revision,
+        values = values,
+        masks = masks,
+        cellsPerSide = cellsPerSide,
+        offset = 1,
     }
-    self.networkStats.tilesReceived =
-        (tonumber(self.networkStats.tilesReceived) or 0) + 1
+    self.networkStats.tilesReceived = (tonumber(self.networkStats.tilesReceived) or 0) + 1
 end
 
-function TerraLogicSoilManager:acknowledgeNetworkTile(
-        layerIndex, tileX, tileZ, generation, revision)
-    if g_client == nil or g_server ~= nil then return end
+function TerraLogicSoilManager:acknowledgeNetworkTile(layerIndex, tileX, tileZ, generation, revision)
+    if g_client == nil or g_server ~= nil then
+        return
+    end
     local key = getNetworkTileKey(layerIndex, tileX, tileZ)
     local now = g_currentMission ~= nil and g_currentMission.time or 0
     self.clientNetworkTilePending[key] = nil
     self.clientNetworkTileFresh[key] = now
     self.clientNetworkTileKnownRevision[key] = {
-        generation=tonumber(generation) or 0,
-        revision=tonumber(revision) or 0
+        generation = tonumber(generation) or 0,
+        revision = tonumber(revision) or 0,
     }
-    self.networkStats.tileAcksReceived =
-        (tonumber(self.networkStats.tileAcksReceived) or 0) + 1
+    self.networkStats.tileAcksReceived = (tonumber(self.networkStats.tileAcksReceived) or 0) + 1
 end
 
 function TerraLogicSoilManager:processNetworkTileJobs()
-    if g_client == nil or g_server ~= nil or self.rasterReady ~= true then return end
+    if g_client == nil or g_server ~= nil or self.rasterReady ~= true then
+        return
+    end
     local budget = self.NETWORK_TILE_APPLY_CELLS_PER_FRAME
     while budget > 0 and #self.clientNetworkTileJobs > 0 do
         local job = self.clientNetworkTileJobs[1]
@@ -9007,47 +9410,45 @@ function TerraLogicSoilManager:processNetworkTileJobs()
             table.remove(self.clientNetworkTileJobs, 1)
         else
             local cellSize = getLayerCellSize(layer.id)
-            local startIx = math.floor(
-                job.tileX * self.NETWORK_TILE_WORLD_SIZE_M / cellSize)
-            local startIz = math.floor(
-                job.tileZ * self.NETWORK_TILE_WORLD_SIZE_M / cellSize)
+            local startIx = math.floor(job.tileX * self.NETWORK_TILE_WORLD_SIZE_M / cellSize)
+            local startIz = math.floor(job.tileZ * self.NETWORK_TILE_WORLD_SIZE_M / cellSize)
             local cellOffset = job.offset - 1
             local localX = cellOffset % job.cellsPerSide
             local localZ = math.floor(cellOffset / job.cellsPerSide)
-            if not self:writeNetworkRasterCell(
-                    layer.id, startIx + localX, startIz + localZ,
-                    job.values[job.offset]) then
+            if
+                not self:writeNetworkRasterCell(layer.id, startIx + localX, startIz + localZ, job.values[job.offset])
+            then
                 return
             end
-            if not self:writeNetworkVisualizationCell(
-                    layer.id, startIx + localX, startIz + localZ,
-                    job.masks[job.offset]) then
+            if
+                not self:writeNetworkVisualizationCell(
+                    layer.id,
+                    startIx + localX,
+                    startIz + localZ,
+                    job.masks[job.offset]
+                )
+            then
                 return
             end
             if self.layerCells[layer.id] ~= nil then
-                self.layerCells[layer.id][getCellKey(
-                    startIx + localX, startIz + localZ)] = nil
+                self.layerCells[layer.id][getCellKey(startIx + localX, startIz + localZ)] = nil
             end
             job.offset = job.offset + 1
             budget = budget - 1
             if job.offset > #job.values then
                 table.remove(self.clientNetworkTileJobs, 1)
-                local now = g_currentMission ~= nil
-                    and g_currentMission.time or 0
+                local now = g_currentMission ~= nil and g_currentMission.time or 0
                 self.clientNetworkTilePending[job.key] = nil
                 self.clientNetworkTileFresh[job.key] = now
                 self.clientNetworkTileKnownRevision[job.key] = {
-                    generation=tonumber(job.generation) or 0,
-                    revision=tonumber(job.revision) or 0
+                    generation = tonumber(job.generation) or 0,
+                    revision = tonumber(job.revision) or 0,
                 }
-                self.networkStats.tilesApplied =
-                    (tonumber(self.networkStats.tilesApplied) or 0) + 1
-                self.layerWriteSerial[layer.id] =
-                    (tonumber(self.layerWriteSerial[layer.id]) or 0) + 1
+                self.networkStats.tilesApplied = (tonumber(self.networkStats.tilesApplied) or 0) + 1
+                self.layerWriteSerial[layer.id] = (tonumber(self.layerWriteSerial[layer.id]) or 0) + 1
                 if self.activeMapMode == job.layerIndex then
                     if self.visualizationDirty ~= true then
-                        self.overlayRefreshTime = now
-                            + self.NETWORK_OVERLAY_REFRESH_DELAY_MS
+                        self.overlayRefreshTime = now + self.NETWORK_OVERLAY_REFRESH_DELAY_MS
                     end
                     self.visualizationDirty = true
                 end
@@ -9057,27 +9458,33 @@ function TerraLogicSoilManager:processNetworkTileJobs()
 end
 
 function TerraLogicSoilManager:updateClientNetworkSync()
-    if g_client == nil or g_server ~= nil or g_currentMission == nil then return end
-    local connection = g_client.getServerConnection ~= nil
-        and g_client:getServerConnection() or nil
+    if g_client == nil or g_server ~= nil or g_currentMission == nil then
+        return
+    end
+    local connection = g_client.getServerConnection ~= nil and g_client:getServerConnection() or nil
     local x, z = getLocalSoilNetworkPosition()
-    if connection == nil or x == nil then return end
+    if connection == nil or x == nil then
+        return
+    end
     local now = g_currentMission.time or 0
 
-    if now >= (self.clientNetworkSampleNextTime or 0)
-        and TerraLogicSoilSampleRequestEvent ~= nil then
-        self.clientNetworkSampleNextTime = now
-            + self.NETWORK_SAMPLE_INTERVAL_MS
+    if now >= (self.clientNetworkSampleNextTime or 0) and TerraLogicSoilSampleRequestEvent ~= nil then
+        self.clientNetworkSampleNextTime = now + self.NETWORK_SAMPLE_INTERVAL_MS
         connection:sendEvent(TerraLogicSoilSampleRequestEvent.new(x, z))
     end
 
     local layerIndex = math.floor(tonumber(self.activeMapMode) or 0)
-    if layerIndex < 1 or self.layers[layerIndex] == nil
+    if
+        layerIndex < 1
+        or self.layers[layerIndex] == nil
         or now - (self.mapViewportLastDraw or -10000) > 1500
         or self.rasterReady ~= true
         or now < (self.clientNetworkTileNextTime or 0)
         or #self.clientNetworkTileJobs >= self.NETWORK_TILE_MAX_PENDING_JOBS
-        or TerraLogicSoilTileRequestEvent == nil then return end
+        or TerraLogicSoilTileRequestEvent == nil
+    then
+        return
+    end
     local previousLayerIndex = self.clientNetworkTileLayer
     self.clientNetworkTileLayer = layerIndex
 
@@ -9092,22 +9499,25 @@ function TerraLogicSoilManager:updateClientNetworkSync()
             inflight = inflight + 1
         end
     end
-    if inflight >= self.NETWORK_TILE_MAX_INFLIGHT_REQUESTS then return end
+    if inflight >= self.NETWORK_TILE_MAX_INFLIGHT_REQUESTS then
+        return
+    end
 
     local tileSize = self.NETWORK_TILE_WORLD_SIZE_M
     local centerX, centerZ = math.floor(x / tileSize), math.floor(z / tileSize)
     local playerTileX, playerTileZ = centerX, centerZ
-    if self.mapViewportFull == true then centerX, centerZ = 0, 0 end
-    local maxRadius = math.ceil((tonumber(self.terrainSize) or 2048)
-        / tileSize * 0.72) + 2
-    local radius = math.clamp(math.floor(tonumber(
-        self.clientNetworkTileViewportRadius) or self.NETWORK_TILE_RADIUS),
-        self.NETWORK_TILE_RADIUS, maxRadius)
-    local centerChanged = self.clientNetworkTileCenterX ~= centerX
-        or self.clientNetworkTileCenterZ ~= centerZ
+    if self.mapViewportFull == true then
+        centerX, centerZ = 0, 0
+    end
+    local maxRadius = math.ceil((tonumber(self.terrainSize) or 2048) / tileSize * 0.72) + 2
+    local radius = math.clamp(
+        math.floor(tonumber(self.clientNetworkTileViewportRadius) or self.NETWORK_TILE_RADIUS),
+        self.NETWORK_TILE_RADIUS,
+        maxRadius
+    )
+    local centerChanged = self.clientNetworkTileCenterX ~= centerX or self.clientNetworkTileCenterZ ~= centerZ
     local layerChanged = previousLayerIndex ~= layerIndex
-    local signature = string.format("%d:%d:%d:%d",
-        layerIndex, centerX, centerZ, radius)
+    local signature = string.format("%d:%d:%d:%d", layerIndex, centerX, centerZ, radius)
     if self.clientNetworkTileViewportSignature ~= signature then
         self.clientNetworkTileCenterX = centerX
         self.clientNetworkTileCenterZ = centerZ
@@ -9115,47 +9525,49 @@ function TerraLogicSoilManager:updateClientNetworkSync()
         self.clientNetworkTileCursor = 0
         self.clientNetworkTileVisible = {}
         local halfTerrain = (tonumber(self.terrainSize) or 2048) * 0.5
-        local minTile = math.floor(-halfTerrain/tileSize)
-        local maxTile = math.ceil(halfTerrain/tileSize)-1
-        for dz=math.max(-radius,minTile-centerZ),math.min(radius,maxTile-centerZ) do
-            for dx=math.max(-radius,minTile-centerX),math.min(radius,maxTile-centerX) do
+        local minTile = math.floor(-halfTerrain / tileSize)
+        local maxTile = math.ceil(halfTerrain / tileSize) - 1
+        for dz = math.max(-radius, minTile - centerZ), math.min(radius, maxTile - centerZ) do
+            for dx = math.max(-radius, minTile - centerX), math.min(radius, maxTile - centerX) do
                 -- The standalone minimap is circular. One half-tile margin
                 -- avoids holes along its edge without filling an entire square
                 -- that can never be seen.
-                if dx*dx + dz*dz <= (radius + 0.75)^2 then
+                if dx * dx + dz * dz <= (radius + 0.75) ^ 2 then
                     local tileX, tileZ = centerX + dx, centerZ + dz
-                    local minimumX, minimumZ = tileX*tileSize, tileZ*tileSize
-                    if minimumX < halfTerrain and minimumZ < halfTerrain
+                    local minimumX, minimumZ = tileX * tileSize, tileZ * tileSize
+                    if
+                        minimumX < halfTerrain
+                        and minimumZ < halfTerrain
                         and minimumX + tileSize > -halfTerrain
-                        and minimumZ + tileSize > -halfTerrain then
-                        self.clientNetworkTileVisible[
-                            #self.clientNetworkTileVisible + 1] = {
-                                x=tileX, z=tileZ,
-                                distanceSquared=(tileX-playerTileX)^2 + (tileZ-playerTileZ)^2
-                            }
+                        and minimumZ + tileSize > -halfTerrain
+                    then
+                        self.clientNetworkTileVisible[#self.clientNetworkTileVisible + 1] = {
+                            x = tileX,
+                            z = tileZ,
+                            distanceSquared = (tileX - playerTileX) ^ 2 + (tileZ - playerTileZ) ^ 2,
+                        }
                     end
                 end
             end
         end
         table.sort(self.clientNetworkTileVisible, function(a, b)
             if a.distanceSquared == b.distanceSquared then
-                if a.z == b.z then return a.x < b.x end
+                if a.z == b.z then
+                    return a.x < b.x
+                end
                 return a.z < b.z
             end
             return a.distanceSquared < b.distanceSquared
         end)
         if layerChanged then
-            self.clientNetworkTileFastUntil = now
-                + self.NETWORK_TILE_FAST_MODE_MS
+            self.clientNetworkTileFastUntil = now + self.NETWORK_TILE_FAST_MODE_MS
         elseif centerChanged then
-            self.clientNetworkTileFastUntil = math.max(
-                tonumber(self.clientNetworkTileFastUntil) or 0,
-                now + self.NETWORK_TILE_MOVE_FAST_MODE_MS)
+            self.clientNetworkTileFastUntil =
+                math.max(tonumber(self.clientNetworkTileFastUntil) or 0, now + self.NETWORK_TILE_MOVE_FAST_MODE_MS)
         else
             -- A changed radius means that the player changed zoom or that the
             -- real viewport became available after the first rendered frame.
-            self.clientNetworkTileFastUntil = now
-                + self.NETWORK_TILE_FAST_MODE_MS
+            self.clientNetworkTileFastUntil = now + self.NETWORK_TILE_FAST_MODE_MS
         end
     end
     local selectedX, selectedZ, selectedKey = nil, nil, nil
@@ -9163,14 +9575,12 @@ function TerraLogicSoilManager:updateClientNetworkSync()
     local function tileIsDue(tileX, tileZ, refresh)
         local key = getNetworkTileKey(layerIndex, tileX, tileZ)
         local pendingTime = self.clientNetworkTilePending[key]
-        if pendingTime ~= nil
-            and now - pendingTime >= self.NETWORK_TILE_REQUEST_TIMEOUT_MS then
+        if pendingTime ~= nil and now - pendingTime >= self.NETWORK_TILE_REQUEST_TIMEOUT_MS then
             self.clientNetworkTilePending[key] = nil
             pendingTime = nil
         end
         local freshness = self.clientNetworkTileFresh[key]
-        if pendingTime == nil
-            and (freshness == nil or now - freshness >= refresh) then
+        if pendingTime == nil and (freshness == nil or now - freshness >= refresh) then
             return key
         end
         return nil
@@ -9180,8 +9590,7 @@ function TerraLogicSoilManager:updateClientNetworkSync()
     -- neighbour search at radius zero after every response. The old nested
     -- radius scan repeatedly refreshed inner rings before it ever reached the
     -- outer visible fields.
-    selectedKey = tileIsDue(playerTileX, playerTileZ,
-        self.NETWORK_TILE_CENTER_REFRESH_MS)
+    selectedKey = tileIsDue(playerTileX, playerTileZ, self.NETWORK_TILE_CENTER_REFRESH_MS)
     if selectedKey ~= nil then
         selectedX, selectedZ = playerTileX, playerTileZ
     else
@@ -9190,8 +9599,7 @@ function TerraLogicSoilManager:updateClientNetworkSync()
         -- makes a newly selected layer useful immediately at every zoom.
         for _, tile in ipairs(visible) do
             local key = getNetworkTileKey(layerIndex, tile.x, tile.z)
-            if self.clientNetworkTileFresh[key] == nil
-                and self.clientNetworkTilePending[key] == nil then
+            if self.clientNetworkTileFresh[key] == nil and self.clientNetworkTilePending[key] == nil then
                 selectedX, selectedZ, selectedKey = tile.x, tile.z, key
                 selectedWasUnseen = true
                 break
@@ -9202,18 +9610,15 @@ function TerraLogicSoilManager:updateClientNetworkSync()
         -- tiny acknowledgement packet from the server.
         if selectedKey == nil and #visible > 0 then
             local count = #visible
-            local cursor = math.floor(tonumber(
-                self.clientNetworkTileCursor) or 0) % count
-            for _=1,count do
+            local cursor = math.floor(tonumber(self.clientNetworkTileCursor) or 0) % count
+            for _ = 1, count do
                 local index = cursor + 1
                 cursor = (cursor + 1) % count
                 local tile = visible[index]
                 if tile.x ~= playerTileX or tile.z ~= playerTileZ then
-                    local key = tileIsDue(tile.x, tile.z,
-                        self.NETWORK_TILE_REFRESH_MS)
+                    local key = tileIsDue(tile.x, tile.z, self.NETWORK_TILE_REFRESH_MS)
                     if key ~= nil then
-                        selectedX, selectedZ, selectedKey =
-                            tile.x, tile.z, key
+                        selectedX, selectedZ, selectedKey = tile.x, tile.z, key
                         break
                     end
                 end
@@ -9222,37 +9627,33 @@ function TerraLogicSoilManager:updateClientNetworkSync()
         end
     end
     if selectedKey ~= nil then
-        local fast = selectedWasUnseen
-            or now < (tonumber(self.clientNetworkTileFastUntil) or 0)
+        local fast = selectedWasUnseen or now < (tonumber(self.clientNetworkTileFastUntil) or 0)
         self.clientNetworkTileNextTime = now
-            + (fast and self.NETWORK_TILE_FAST_REQUEST_INTERVAL_MS
-                or self.NETWORK_TILE_REQUEST_INTERVAL_MS)
+            + (fast and self.NETWORK_TILE_FAST_REQUEST_INTERVAL_MS or self.NETWORK_TILE_REQUEST_INTERVAL_MS)
         self.clientNetworkTilePending[selectedKey] = now
         local known = self.clientNetworkTileKnownRevision[selectedKey] or {}
-        connection:sendEvent(TerraLogicSoilTileRequestEvent.new(
-            layerIndex, selectedX, selectedZ,
-            known.generation, known.revision))
+        connection:sendEvent(
+            TerraLogicSoilTileRequestEvent.new(layerIndex, selectedX, selectedZ, known.generation, known.revision)
+        )
     end
 end
 
 function TerraLogicSoilManager:getNetworkDebugData()
     local stats = self.networkStats or {}
     return {
-        role=g_server ~= nil and "server"
-            or (g_client ~= nil and "remoteClient" or "offline"),
-        samplesReceived=tonumber(stats.samplesReceived) or 0,
-        tilesQueued=tonumber(stats.tilesQueued) or 0,
-        tilesSent=tonumber(stats.tilesSent) or 0,
-        tilesReceived=tonumber(stats.tilesReceived) or 0,
-        tilesApplied=tonumber(stats.tilesApplied) or 0,
-        tileAcksSent=tonumber(stats.tileAcksSent) or 0,
-        tileAcksReceived=tonumber(stats.tileAcksReceived) or 0,
-        viewportRadius=tonumber(self.clientNetworkTileViewportRadius)
-            or self.NETWORK_TILE_RADIUS,
-        visibleTiles=#(self.clientNetworkTileVisible or {}),
-        serverQueue=#(self.serverNetworkTileJobs or {}),
-        serverQueuePeak=tonumber(stats.serverQueuePeak) or 0,
-        clientApplyQueue=#(self.clientNetworkTileJobs or {})
+        role = g_server ~= nil and "server" or (g_client ~= nil and "remoteClient" or "offline"),
+        samplesReceived = tonumber(stats.samplesReceived) or 0,
+        tilesQueued = tonumber(stats.tilesQueued) or 0,
+        tilesSent = tonumber(stats.tilesSent) or 0,
+        tilesReceived = tonumber(stats.tilesReceived) or 0,
+        tilesApplied = tonumber(stats.tilesApplied) or 0,
+        tileAcksSent = tonumber(stats.tileAcksSent) or 0,
+        tileAcksReceived = tonumber(stats.tileAcksReceived) or 0,
+        viewportRadius = tonumber(self.clientNetworkTileViewportRadius) or self.NETWORK_TILE_RADIUS,
+        visibleTiles = #(self.clientNetworkTileVisible or {}),
+        serverQueue = #(self.serverNetworkTileJobs or {}),
+        serverQueuePeak = tonumber(stats.serverQueuePeak) or 0,
+        clientApplyQueue = #(self.clientNetworkTileJobs or {}),
     }
 end
 
@@ -9290,16 +9691,22 @@ function TerraLogicSoilManager:update(dt)
         self:installConstructionCoverageHook()
     end
 
-    if self.overlayPending == true and self.overlay ~= nil
+    if
+        self.overlayPending == true
+        and self.overlay ~= nil
         and getIsDensityMapVisualizationOverlayReady ~= nil
-        and getIsDensityMapVisualizationOverlayReady(self.overlay) then
+        and getIsDensityMapVisualizationOverlayReady(self.overlay)
+    then
         self.overlayPending = false
         self.overlayReady = true
     end
-    if self.activeMapMode > 0 and self.rasterReady
+    if
+        self.activeMapMode > 0
+        and self.rasterReady
         and self.visualizationDirty == true
         and self.overlayPending ~= true
-        and now >= (self.overlayRefreshTime or 0) then
+        and now >= (self.overlayRefreshTime or 0)
+    then
         self:buildOverlay(self.activeMapMode)
     end
 end
@@ -9310,11 +9717,15 @@ end
 -- engine has recalculated the map in between, that new transform becomes the
 -- fresh base instead of being overwritten with stale coordinates.
 function TerraLogicSoilManager:prepareMinimapZoom(ingameMap)
-    if ingameMap == nil then return end
+    if ingameMap == nil then
+        return
+    end
     local scale = tonumber(ingameMap.mapExtensionScaleFactor)
     local offsetX = tonumber(ingameMap.mapExtensionOffsetX)
     local offsetZ = tonumber(ingameMap.mapExtensionOffsetZ)
-    if scale == nil or offsetX == nil or offsetZ == nil then return end
+    if scale == nil or offsetX == nil or offsetZ == nil then
+        return
+    end
 
     local state = ingameMap.terraLogicSoilZoomState
     if state ~= nil and state.applied == true then
@@ -9322,8 +9733,7 @@ function TerraLogicSoilManager:prepareMinimapZoom(ingameMap)
             and math.abs(offsetX - state.appliedOffsetX) < 0.000001
             and math.abs(offsetZ - state.appliedOffsetZ) < 0.000001
         if unchanged then
-            scale, offsetX, offsetZ = state.baseScale,
-                state.baseOffsetX, state.baseOffsetZ
+            scale, offsetX, offsetZ = state.baseScale, state.baseOffsetX, state.baseOffsetZ
             ingameMap.mapExtensionScaleFactor = scale
             ingameMap.mapExtensionOffsetX = offsetX
             ingameMap.mapExtensionOffsetZ = offsetZ
@@ -9345,19 +9755,22 @@ function TerraLogicSoilManager:prepareMinimapZoom(ingameMap)
     -- clipping. Keep their native transform; the extra circle zoom would
     -- otherwise suppress or displace both the PDA texture and the soil map.
     local requestedTarget = self:getRequestedMinimapZoom()
-    if math.abs(requestedTarget
-            - (tonumber(self.minimapZoomTarget) or 1)) > 0.0001 then
+    if math.abs(requestedTarget - (tonumber(self.minimapZoomTarget) or 1)) > 0.0001 then
         self:setMinimapZoomTarget(requestedTarget)
     end
     local requestedZoom = self:getAnimatedMinimapZoom()
-    if math.abs(requestedZoom - 1) <= 0.0001 then return end
+    if math.abs(requestedZoom - 1) <= 0.0001 then
+        return
+    end
 
-    if layout == nil or layout.getMapSize == nil
-        or layout.getMapPivot == nil then return end
+    if layout == nil or layout.getMapSize == nil or layout.getMapPivot == nil then
+        return
+    end
     local mapWidth, mapHeight = layout:getMapSize()
     local pivotX, pivotY = layout:getMapPivot()
-    if mapWidth == nil or mapWidth <= 0 or mapHeight == nil or mapHeight <= 0
-        or pivotX == nil or pivotY == nil then return end
+    if mapWidth == nil or mapWidth <= 0 or mapHeight == nil or mapHeight <= 0 or pivotX == nil or pivotY == nil then
+        return
+    end
 
     -- The soil raster uses the layout's texture pivot. This is the stable
     -- transform used through v44; hotspot positions are zoomed separately in
@@ -9365,15 +9778,11 @@ function TerraLogicSoilManager:prepareMinimapZoom(ingameMap)
     local pivotRatioX = pivotX / mapWidth
     local pivotRatioZ = pivotY / mapHeight
     local appliedScale = scale * requestedZoom
-    local appliedOffsetX = pivotRatioX
-        + (offsetX - pivotRatioX) * requestedZoom
-    local appliedOffsetZ = pivotRatioZ
-        + (offsetZ - pivotRatioZ) * requestedZoom
+    local appliedOffsetX = pivotRatioX + (offsetX - pivotRatioX) * requestedZoom
+    local appliedOffsetZ = pivotRatioZ + (offsetZ - pivotRatioZ) * requestedZoom
     state = state or {}
-    state.baseScale, state.baseOffsetX, state.baseOffsetZ =
-        scale, offsetX, offsetZ
-    state.appliedScale, state.appliedOffsetX, state.appliedOffsetZ =
-        appliedScale, appliedOffsetX, appliedOffsetZ
+    state.baseScale, state.baseOffsetX, state.baseOffsetZ = scale, offsetX, offsetZ
+    state.appliedScale, state.appliedOffsetX, state.appliedOffsetZ = appliedScale, appliedOffsetX, appliedOffsetZ
     state.applied = true
     ingameMap.terraLogicSoilZoomState = state
     ingameMap.mapExtensionScaleFactor = appliedScale
@@ -9383,7 +9792,9 @@ end
 
 function TerraLogicSoilManager:restoreMinimapZoom(ingameMap)
     local state = ingameMap ~= nil and ingameMap.terraLogicSoilZoomState or nil
-    if state == nil or state.applied ~= true then return end
+    if state == nil or state.applied ~= true then
+        return
+    end
     ingameMap.mapExtensionScaleFactor = state.baseScale
     ingameMap.mapExtensionOffsetX = state.baseOffsetX
     ingameMap.mapExtensionOffsetZ = state.baseOffsetZ
@@ -9395,8 +9806,7 @@ end
 -- following the player and competing writes make the texture jump. Suppress
 -- only its native minimap draw while a TL layer is active; drawMinimapOverlay
 -- renders the same texture through the stable soil transform instead.
-function TerraLogicSoilManager:drawZoomedMinimapBaseLayer(
-        nativeDraw, ingameMap, element, ...)
+function TerraLogicSoilManager:drawZoomedMinimapBaseLayer(nativeDraw, ingameMap, element, ...)
     local layout = ingameMap ~= nil and ingameMap.layout or nil
     if self.activeMapMode > 0 and isRoundMinimapLayout(layout) then
         return
@@ -9405,23 +9815,39 @@ function TerraLogicSoilManager:drawZoomedMinimapBaseLayer(
 end
 
 function TerraLogicSoilManager:drawMinimapBaseTexture(
-        ingameMap, layout, renderX, renderY, renderW, renderH,
-        rotationOffsetX, rotationOffsetY)
+    ingameMap,
+    layout,
+    renderX,
+    renderY,
+    renderW,
+    renderH,
+    rotationOffsetX,
+    rotationOffsetY
+)
     local base = ingameMap ~= nil and ingameMap.mapOverlay or nil
     local overlayId = base ~= nil and base.overlayId or nil
-    if overlayId == nil or overlayId == 0 then return false end
+    if overlayId == nil or overlayId == 0 then
+        return false
+    end
     local uvs = base.uvs or Overlay.DEFAULT_UVS
     local drawX, drawY, drawW, drawH = renderX, renderY, renderW, renderH
     local clipped = false
     if ingameMap.clipX1 ~= nil then
         local u1, v1, u2, v2, u3, v3, u4, v4
-        drawX, drawY, drawW, drawH, u1, v1, u2, v2, u3, v3, u4, v4 =
-            Overlay.getClippingUVs(
-            uvs, renderX, renderY, renderW, renderH,
-            ingameMap.clipX1, ingameMap.clipY1,
-            ingameMap.clipX2, ingameMap.clipY2)
-        if drawW == nil or drawW <= 0 or drawH == nil or drawH <= 0
-            or u1 == nil then return false end
+        drawX, drawY, drawW, drawH, u1, v1, u2, v2, u3, v3, u4, v4 = Overlay.getClippingUVs(
+            uvs,
+            renderX,
+            renderY,
+            renderW,
+            renderH,
+            ingameMap.clipX1,
+            ingameMap.clipY1,
+            ingameMap.clipX2,
+            ingameMap.clipY2
+        )
+        if drawW == nil or drawW <= 0 or drawH == nil or drawH <= 0 or u1 == nil then
+            return false
+        end
         setOverlayUVs(overlayId, u1, v1, u2, v2, u3, v3, u4, v4)
         clipped = true
     else
@@ -9437,32 +9863,31 @@ function TerraLogicSoilManager:drawMinimapBaseTexture(
     -- lower-left corner.
     local clippedRotationOffsetX = rotationOffsetX + renderX - drawX
     local clippedRotationOffsetY = rotationOffsetY + renderY - drawY
-    setOverlayRotation(overlayId, layout:getMapRotation(),
-        clippedRotationOffsetX, clippedRotationOffsetY)
-    setOverlayColor(overlayId,
-        originalR, originalG, originalB,
-        originalA * math.sqrt(layout:getMapAlpha()))
+    setOverlayRotation(overlayId, layout:getMapRotation(), clippedRotationOffsetX, clippedRotationOffsetY)
+    setOverlayColor(overlayId, originalR, originalG, originalB, originalA * math.sqrt(layout:getMapAlpha()))
     renderOverlay(overlayId, drawX, drawY, drawW, drawH)
-    if clipped then setOverlayUVs(overlayId, unpack(uvs)) end
-    setOverlayRotation(overlayId, originalRotation,
-        originalCenterX, originalCenterY)
-    setOverlayColor(overlayId,
-        originalR, originalG, originalB, originalA)
+    if clipped then
+        setOverlayUVs(overlayId, unpack(uvs))
+    end
+    setOverlayRotation(overlayId, originalRotation, originalCenterX, originalCenterY)
+    setOverlayColor(overlayId, originalR, originalG, originalB, originalA)
     return true
 end
 
 function TerraLogicSoilManager:installMinimapBaseLayerHook(ingameMap)
     local element = ingameMap ~= nil and ingameMap.mapElement or nil
-    if element == nil or element.draw == nil then return false end
-    if self.minimapBaseHookElement == element then return true end
+    if element == nil or element.draw == nil then
+        return false
+    end
+    if self.minimapBaseHookElement == element then
+        return true
+    end
     local nativeDraw = element.draw
     element.draw = function(baseElement, ...)
-        return TerraLogicSoilManager:drawZoomedMinimapBaseLayer(
-            nativeDraw, ingameMap, baseElement, ...)
+        return TerraLogicSoilManager:drawZoomedMinimapBaseLayer(nativeDraw, ingameMap, baseElement, ...)
     end
     self.minimapBaseHookElement = element
-    TerraLogicLogging.debug(
-        "[FS25_TerraLogic] Minimap base texture joined to soil zoom")
+    TerraLogicLogging.debug("[FS25_TerraLogic] Minimap base texture joined to soil zoom")
     return true
 end
 
@@ -9482,12 +9907,13 @@ function TerraLogicSoilManager:drawMinimapOverlay(ingameMap)
     -- controlled-vehicle requirement is needed here.
     self.minimapUiVisible = true
     local canDrawOverlay = self.overlay ~= nil and self.overlayReady == true
-    if TerraLogicLogging.verbose and canDrawOverlay
-        and self.minimapDrawLoggedMode ~= self.activeMapMode then
+    if TerraLogicLogging.verbose and canDrawOverlay and self.minimapDrawLoggedMode ~= self.activeMapMode then
         self.minimapDrawLoggedMode = self.activeMapMode
         TerraLogicLogging.debug(
             "[FS25_TerraLogic] Standalone soil minimap draw mode=%d overlay=%s",
-            self.activeMapMode, tostring(self.overlay))
+            self.activeMapMode,
+            tostring(self.overlay)
+        )
     end
 
     local mapWidth, mapHeight = layout:getMapSize()
@@ -9503,25 +9929,22 @@ function TerraLogicSoilManager:drawMinimapOverlay(ingameMap)
     -- diameter is mapWidth/mapHeight, so their ratio gives the actual visible
     -- world radius. Network requests can therefore follow zoom without relying
     -- on a second, error-prone map resolution.
-    local extensionScale = math.max(math.abs(tonumber(
-        ingameMap.mapExtensionScaleFactor) or 1), 0.0001)
-    local visibleWorldRadius = (tonumber(self.terrainSize) or 2048)
-        * 0.5 / extensionScale
+    local extensionScale = math.max(math.abs(tonumber(ingameMap.mapExtensionScaleFactor) or 1), 0.0001)
+    local visibleWorldRadius = (tonumber(self.terrainSize) or 2048) * 0.5 / extensionScale
     -- mapExtensionScaleFactor already includes TerraLogic zoom here.
     -- Square/full layouts need their corners too; do not clamp them to 512 m.
     self.mapViewportLastDraw = g_currentMission.time or 0
-    self.mapViewportFull = IngameMapLayoutSquareLarge ~= nil
-        and layout:isa(IngameMapLayoutSquareLarge)
+    self.mapViewportFull = IngameMapLayoutSquareLarge ~= nil and layout:isa(IngameMapLayoutSquareLarge)
     if self.mapViewportFull then
-        visibleWorldRadius = (tonumber(self.terrainSize) or 2048)*0.72
+        visibleWorldRadius = (tonumber(self.terrainSize) or 2048) * 0.72
     else
         if not isRoundMinimapLayout(layout) then
-            visibleWorldRadius = visibleWorldRadius*math.sqrt(2)
+            visibleWorldRadius = visibleWorldRadius * math.sqrt(2)
         end
         self.coverageViewportRadius = visibleWorldRadius + self.NETWORK_TILE_WORLD_SIZE_M
     end
-    self.clientNetworkTileViewportRadius = math.max(self.NETWORK_TILE_RADIUS,
-        math.ceil(visibleWorldRadius / self.NETWORK_TILE_WORLD_SIZE_M) + 1)
+    self.clientNetworkTileViewportRadius =
+        math.max(self.NETWORK_TILE_RADIUS, math.ceil(visibleWorldRadius / self.NETWORK_TILE_WORLD_SIZE_M) + 1)
     -- Only the circular layout needs its PDA texture redrawn. The PDA texture
     -- contains Vanilla's padded map border, whereas a density visualization is
     -- terrain-only and occupies mapExtensionScaleFactor/mapExtensionOffset.
@@ -9536,24 +9959,35 @@ function TerraLogicSoilManager:drawMinimapOverlay(ingameMap)
         local baseRenderY = anchorY + (mapY - anchorY) * zoom
         local baseRenderW = mapWidth * zoom
         local baseRenderH = mapHeight * zoom
-        self:drawMinimapBaseTexture(ingameMap, layout,
-            baseRenderX, baseRenderY, baseRenderW, baseRenderH,
-            anchorX - baseRenderX, anchorY - baseRenderY)
+        self:drawMinimapBaseTexture(
+            ingameMap,
+            layout,
+            baseRenderX,
+            baseRenderY,
+            baseRenderW,
+            baseRenderH,
+            anchorX - baseRenderX,
+            anchorY - baseRenderY
+        )
     end
 
     if canDrawOverlay then
         local drawX, drawY, drawW, drawH = renderX, renderY, renderW, renderH
         if ingameMap.clipX1 ~= nil then
             local u1, v1, u2, v2, u3, v3, u4, v4
-            drawX, drawY, drawW, drawH, u1, v1, u2, v2, u3, v3, u4, v4 =
-                Overlay.getClippingUVs(
-                Overlay.DEFAULT_UVS, renderX, renderY, renderW, renderH,
-                ingameMap.clipX1, ingameMap.clipY1,
-                ingameMap.clipX2, ingameMap.clipY2)
-            if drawW ~= nil and drawW > 0 and drawH ~= nil and drawH > 0
-                    and u1 ~= nil then
-                setOverlayUVs(self.overlay,
-                    u1, v1, u2, v2, u3, v3, u4, v4)
+            drawX, drawY, drawW, drawH, u1, v1, u2, v2, u3, v3, u4, v4 = Overlay.getClippingUVs(
+                Overlay.DEFAULT_UVS,
+                renderX,
+                renderY,
+                renderW,
+                renderH,
+                ingameMap.clipX1,
+                ingameMap.clipY1,
+                ingameMap.clipX2,
+                ingameMap.clipY2
+            )
+            if drawW ~= nil and drawW > 0 and drawH ~= nil and drawH > 0 and u1 ~= nil then
+                setOverlayUVs(self.overlay, u1, v1, u2, v2, u3, v3, u4, v4)
             else
                 canDrawOverlay = false
             end
@@ -9561,10 +9995,8 @@ function TerraLogicSoilManager:drawMinimapOverlay(ingameMap)
         if canDrawOverlay then
             local clippedOffsetX = offsetX + renderX - drawX
             local clippedOffsetY = offsetY + renderY - drawY
-            setOverlayRotation(self.overlay,
-                layout:getMapRotation(), clippedOffsetX, clippedOffsetY)
-            setOverlayColor(self.overlay, 1, 1, 1,
-                math.sqrt(layout:getMapAlpha()))
+            setOverlayRotation(self.overlay, layout:getMapRotation(), clippedOffsetX, clippedOffsetY)
+            setOverlayColor(self.overlay, 1, 1, 1, math.sqrt(layout:getMapAlpha()))
             renderOverlay(self.overlay, drawX, drawY, drawW, drawH)
             if ingameMap.clipX1 ~= nil then
                 setOverlayUVs(self.overlay, unpack(Overlay.DEFAULT_UVS))
@@ -9575,69 +10007,64 @@ function TerraLogicSoilManager:drawMinimapOverlay(ingameMap)
     -- Native hotspots are drawn later and have their own screen-space zoom.
     -- Restore the map texture transform before FS25 projects those hotspots.
     self:restoreMinimapZoom(ingameMap)
-
 end
 
 -- Draw fixed TerraLogic UI only after the complete native minimap, including
 -- its vehicle and helper icons, has finished using the temporary map zoom.
 function TerraLogicSoilManager:drawMinimapUi(ingameMap)
-    if self.activeMapMode <= 0 or self.minimapUiVisible ~= true then return end
+    if self.activeMapMode <= 0 or self.minimapUiVisible ~= true then
+        return
+    end
     local layout = ingameMap ~= nil and ingameMap.layout or nil
-    if not isMinimapLayout(layout) then return end
+    if not isMinimapLayout(layout) then
+        return
+    end
     local background = layout.background
     local frameLeft, frameRight, frameBottom, frameTop
     if background ~= nil then
-        frameLeft, frameRight = background.x,
-            background.x + background.width
-        frameBottom, frameTop = background.y,
-            background.y + background.height
+        frameLeft, frameRight = background.x, background.x + background.width
+        frameBottom, frameTop = background.y, background.y + background.height
     end
     if ingameMap.clipX1 ~= nil then
-        frameLeft = frameLeft ~= nil
-            and math.max(frameLeft, ingameMap.clipX1) or ingameMap.clipX1
-        frameRight = frameRight ~= nil
-            and math.min(frameRight, ingameMap.clipX2) or ingameMap.clipX2
-        frameBottom = frameBottom ~= nil
-            and math.max(frameBottom, ingameMap.clipY1) or ingameMap.clipY1
-        frameTop = frameTop ~= nil
-            and math.min(frameTop, ingameMap.clipY2) or ingameMap.clipY2
+        frameLeft = frameLeft ~= nil and math.max(frameLeft, ingameMap.clipX1) or ingameMap.clipX1
+        frameRight = frameRight ~= nil and math.min(frameRight, ingameMap.clipX2) or ingameMap.clipX2
+        frameBottom = frameBottom ~= nil and math.max(frameBottom, ingameMap.clipY1) or ingameMap.clipY1
+        frameTop = frameTop ~= nil and math.min(frameTop, ingameMap.clipY2) or ingameMap.clipY2
     end
-    if g_i18n ~= nil and frameLeft ~= nil and frameRight > frameLeft
-        and frameTop > frameBottom then
+    if g_i18n ~= nil and frameLeft ~= nil and frameRight > frameLeft and frameTop > frameBottom then
         local _, preferredTextSize = getNormalizedScreenValues(0, 10)
         local titlePadding = getNormalizedScreenValues(10, 0)
         -- Leave additional space for the multiplayer ping above the map label.
         local _, titleTopInset = getNormalizedScreenValues(0, 38)
         local title = getLocalizedCompactSoilMapLabel(self.activeMapMode)
-        local textSize = fitTextSize(title, preferredTextSize,
-            math.max(frameRight - frameLeft - titlePadding * 2, 0.001), 0.70)
+        local textSize =
+            fitTextSize(title, preferredTextSize, math.max(frameRight - frameLeft - titlePadding * 2, 0.001), 0.70)
         local titleX = (frameLeft + frameRight) * 0.5
         local titleY = frameTop - titleTopInset
         setTextAlignment(RenderText.ALIGN_CENTER)
         setTextBold(true)
-        setTextColor(0,0,0,0.9)
-        renderText(titleX + g_pixelSizeX, titleY - g_pixelSizeY,
-            textSize, title)
-        setTextColor(1,1,1,1)
-        renderText(titleX, titleY,
-            textSize, title)
+        setTextColor(0, 0, 0, 0.9)
+        renderText(titleX + g_pixelSizeX, titleY - g_pixelSizeY, textSize, title)
+        setTextColor(1, 1, 1, 1)
+        renderText(titleX, titleY, textSize, title)
         setTextBold(false)
         setTextAlignment(RenderText.ALIGN_LEFT)
     end
 
     -- Compact condition legend using the engine's shared one-pixel overlay,
     -- so TerraLogic needs no external UI texture.
-    if GuiElement ~= nil and GuiElement.debugOverlay ~= nil
-        and frameLeft ~= nil and frameRight > frameLeft
-        and frameTop > frameBottom then
-        local preferredLegendWidth, legendHeight =
-            getNormalizedScreenValues(124, 4)
+    if
+        GuiElement ~= nil
+        and GuiElement.debugOverlay ~= nil
+        and frameLeft ~= nil
+        and frameRight > frameLeft
+        and frameTop > frameBottom
+    then
+        local preferredLegendWidth, legendHeight = getNormalizedScreenValues(124, 4)
         local horizontalPadding = getNormalizedScreenValues(12, 0)
-        local availableWidth = math.max(
-            frameRight - frameLeft - horizontalPadding * 2, 0.001)
+        local availableWidth = math.max(frameRight - frameLeft - horizontalPadding * 2, 0.001)
         -- Keep the scale inside the safe central chord of round minimaps.
-        local legendWidth = math.min(preferredLegendWidth,
-            availableWidth * 0.68)
+        local legendWidth = math.min(preferredLegendWidth, availableWidth * 0.68)
         local _, preferredLegendTextSize = getNormalizedScreenValues(0, 10)
         local _, legendTextBottom = getNormalizedScreenValues(0, 38)
         local _, legendBarGap = getNormalizedScreenValues(0, 3)
@@ -9645,74 +10072,70 @@ function TerraLogicSoilManager:drawMinimapUi(ingameMap)
         local legendTextY = frameBottom + legendTextBottom
         local legendY = legendTextY + preferredLegendTextSize + legendBarGap
         local activeLayer = self.layers[self.activeMapMode]
-        local aggregateMode = activeLayer ~= nil
-            and activeLayer.id == "aggregateSize"
-        local leftLabel = aggregateMode
-            and (g_i18n:getText("terraLogic_soilTilthScaleCoarse"))
+        local aggregateMode = activeLayer ~= nil and activeLayer.id == "aggregateSize"
+        local leftLabel = aggregateMode and (g_i18n:getText("terraLogic_soilTilthScaleCoarse"))
             or (g_i18n:getText("terraLogic_soilScaleBad"))
-        local centerLabel = aggregateMode
-            and (g_i18n:getText("terraLogic_soilTilthScaleOptimal")) or nil
-        local rightLabel = aggregateMode
-            and (g_i18n:getText("terraLogic_soilTilthScaleFine"))
+        local centerLabel = aggregateMode and (g_i18n:getText("terraLogic_soilTilthScaleOptimal")) or nil
+        local rightLabel = aggregateMode and (g_i18n:getText("terraLogic_soilTilthScaleFine"))
             or (g_i18n:getText("terraLogic_soilScaleGood"))
         local sideWidthShare = aggregateMode and 0.34 or 0.48
         local legendTextSize = math.min(
-            fitTextSize(leftLabel, preferredLegendTextSize,
-                legendWidth * sideWidthShare, 0.70),
-            fitTextSize(rightLabel, preferredLegendTextSize,
-                legendWidth * sideWidthShare, 0.70))
+            fitTextSize(leftLabel, preferredLegendTextSize, legendWidth * sideWidthShare, 0.70),
+            fitTextSize(rightLabel, preferredLegendTextSize, legendWidth * sideWidthShare, 0.70)
+        )
         if centerLabel ~= nil then
-            legendTextSize = math.min(legendTextSize,
-                fitTextSize(centerLabel, preferredLegendTextSize,
-                    legendWidth * 0.28, 0.70))
+            legendTextSize =
+                math.min(legendTextSize, fitTextSize(centerLabel, preferredLegendTextSize, legendWidth * 0.28, 0.70))
         end
         -- Align the bar to the fitted label height as well.
         legendY = legendTextY + legendTextSize + legendBarGap
         local segments = 24
         local segmentWidth = legendWidth / segments
-        for index=0,segments-1 do
+        for index = 0, segments - 1 do
             local t = index / (segments - 1)
             local layer = self.layers[self.activeMapMode]
             -- Normal layers are displayed as 0=bad, 1=good although their
             -- stored density value uses the inverse convention. Tilth keeps
             -- its directional raw scale from coarse to fine.
             local legendValue = layer ~= nil
-                and (layer.id == "aggregateSize"
-                    or layer.id == "resilience") and t or (1 - t)
-            local r, g, b = self:getColor(
-                layer ~= nil and layer.id or "surfaceCompaction", legendValue)
+                    and (layer.id == "aggregateSize" or layer.id == "resilience")
+                    and t
+                or (1 - t)
+            local r, g, b = self:getColor(layer ~= nil and layer.id or "surfaceCompaction", legendValue)
             setOverlayColor(GuiElement.debugOverlay, r, g, b, 0.95)
-            renderOverlay(GuiElement.debugOverlay,
-                legendX + segmentWidth * index, legendY,
-                segmentWidth + g_pixelSizeX, legendHeight)
+            renderOverlay(
+                GuiElement.debugOverlay,
+                legendX + segmentWidth * index,
+                legendY,
+                segmentWidth + g_pixelSizeX,
+                legendHeight
+            )
         end
         setOverlayColor(GuiElement.debugOverlay, 1, 1, 1, 1)
         setTextBold(false)
         setTextColor(0, 0, 0, 1)
         setTextAlignment(RenderText.ALIGN_LEFT)
-        renderText(legendX + g_pixelSizeX,
-            legendTextY - g_pixelSizeY, legendTextSize, leftLabel)
+        renderText(legendX + g_pixelSizeX, legendTextY - g_pixelSizeY, legendTextSize, leftLabel)
         if centerLabel ~= nil then
             setTextAlignment(RenderText.ALIGN_CENTER)
-            renderText(legendX + legendWidth * 0.5 + g_pixelSizeX,
+            renderText(
+                legendX + legendWidth * 0.5 + g_pixelSizeX,
                 legendTextY - g_pixelSizeY,
-                legendTextSize, centerLabel)
+                legendTextSize,
+                centerLabel
+            )
         end
         setTextAlignment(RenderText.ALIGN_RIGHT)
-        renderText(legendX + legendWidth + g_pixelSizeX,
-            legendTextY - g_pixelSizeY, legendTextSize, rightLabel)
+        renderText(legendX + legendWidth + g_pixelSizeX, legendTextY - g_pixelSizeY, legendTextSize, rightLabel)
         setTextColor(1, 1, 1, 1)
         setTextAlignment(RenderText.ALIGN_LEFT)
-        renderText(legendX, legendTextY,
-            legendTextSize, leftLabel)
+        renderText(legendX, legendTextY, legendTextSize, leftLabel)
         if centerLabel ~= nil then
             setTextAlignment(RenderText.ALIGN_CENTER)
-            renderText(legendX + legendWidth * 0.5,
-                legendTextY, legendTextSize, centerLabel)
+            renderText(legendX + legendWidth * 0.5, legendTextY, legendTextSize, centerLabel)
         end
         setTextAlignment(RenderText.ALIGN_RIGHT)
-        renderText(legendX + legendWidth,
-            legendTextY, legendTextSize, rightLabel)
+        renderText(legendX + legendWidth, legendTextY, legendTextSize, rightLabel)
         setTextAlignment(RenderText.ALIGN_LEFT)
     end
 end
@@ -9725,21 +10148,33 @@ end
 function TerraLogicSoilManager:prepareMinimapHotspotZoom(ingameMap)
     local requestedZoom = tonumber(self.minimapZoomFactor) or 1
     local layout = ingameMap ~= nil and ingameMap.layout or nil
-    if math.abs(requestedZoom - 1) <= 0.0001
+    if
+        math.abs(requestedZoom - 1) <= 0.0001
         or not isMinimapLayout(layout)
         or layout.getMapObjectPosition == nil
-        or layout.getMapPosition == nil or layout.getMapPivot == nil
-        or layout.getMapSize == nil then
+        or layout.getMapPosition == nil
+        or layout.getMapPivot == nil
+        or layout.getMapSize == nil
+    then
         return false
     end
-    if self.minimapHotspotZoomLayout == layout then return true end
+    if self.minimapHotspotZoomLayout == layout then
+        return true
+    end
 
     local mapX, mapY = layout:getMapPosition()
     local pivotX, pivotY = layout:getMapPivot()
     local mapWidth, mapHeight = layout:getMapSize()
-    if mapX == nil or mapY == nil or pivotX == nil or pivotY == nil
-        or mapWidth == nil or mapWidth <= 0
-        or mapHeight == nil or mapHeight <= 0 then
+    if
+        mapX == nil
+        or mapY == nil
+        or pivotX == nil
+        or pivotY == nil
+        or mapWidth == nil
+        or mapWidth <= 0
+        or mapHeight == nil
+        or mapHeight <= 0
+    then
         return false
     end
     local anchorX, anchorY = mapX + pivotX, mapY + pivotY
@@ -9749,16 +10184,24 @@ function TerraLogicSoilManager:prepareMinimapHotspotZoom(ingameMap)
     local clampCenterX, clampCenterY = anchorX, anchorY
     local clampWidth, clampHeight = mapWidth, mapHeight
     local background = layout.background
-    if background ~= nil and tonumber(background.x) ~= nil
+    if
+        background ~= nil
+        and tonumber(background.x) ~= nil
         and tonumber(background.y) ~= nil
         and tonumber(background.width) ~= nil
         and tonumber(background.height) ~= nil
-        and background.width > 0 and background.height > 0 then
+        and background.width > 0
+        and background.height > 0
+    then
         clampCenterX = background.x + background.width * 0.5
         clampCenterY = background.y + background.height * 0.5
         clampWidth, clampHeight = background.width, background.height
-    elseif ingameMap.clipX1 ~= nil and ingameMap.clipX2 ~= nil
-        and ingameMap.clipY1 ~= nil and ingameMap.clipY2 ~= nil then
+    elseif
+        ingameMap.clipX1 ~= nil
+        and ingameMap.clipX2 ~= nil
+        and ingameMap.clipY1 ~= nil
+        and ingameMap.clipY2 ~= nil
+    then
         clampWidth = ingameMap.clipX2 - ingameMap.clipX1
         clampHeight = ingameMap.clipY2 - ingameMap.clipY1
         clampCenterX = ingameMap.clipX1 + clampWidth * 0.5
@@ -9767,44 +10210,38 @@ function TerraLogicSoilManager:prepareMinimapHotspotZoom(ingameMap)
     local nativeGetMapObjectPosition = layout.getMapObjectPosition
     local round = isRoundMinimapLayout(layout)
     local function boundaryDistance(dx, dy, radiusX, radiusY)
-        local nx, ny = dx/radiusX, dy/radiusY
-        return round and math.sqrt(nx*nx+ny*ny)
-            or math.max(math.abs(nx), math.abs(ny))
+        local nx, ny = dx / radiusX, dy / radiusY
+        return round and math.sqrt(nx * nx + ny * ny) or math.max(math.abs(nx), math.abs(ny))
     end
-    layout.getMapObjectPosition = function(activeLayout,
-        objectX, objectZ, width, height, rotation, persistent)
-        local x, y, yRot, visible = nativeGetMapObjectPosition(activeLayout,
-            objectX, objectZ, width, height, rotation, persistent)
+    layout.getMapObjectPosition = function(activeLayout, objectX, objectZ, width, height, rotation, persistent)
+        local x, y, yRot, visible =
+            nativeGetMapObjectPosition(activeLayout, objectX, objectZ, width, height, rotation, persistent)
         if x ~= nil and y ~= nil then
             local iconWidth, iconHeight = width or 0, height or 0
             local centerX = x + iconWidth * 0.5
             local centerY = y + iconHeight * 0.5
-            local radiusX = math.max(
-                clampWidth * 0.5-iconWidth * 0.5, 0.0001)
-            local radiusY = math.max(
-                clampHeight * 0.5-iconHeight * 0.5, 0.0001)
-            local nativeDx = centerX-clampCenterX
-            local nativeDy = centerY-clampCenterY
-            local nativeRadial = boundaryDistance(
-                nativeDx, nativeDy, radiusX, radiusY)
+            local radiusX = math.max(clampWidth * 0.5 - iconWidth * 0.5, 0.0001)
+            local radiusY = math.max(clampHeight * 0.5 - iconHeight * 0.5, 0.0001)
+            local nativeDx = centerX - clampCenterX
+            local nativeDy = centerY - clampCenterY
+            local nativeRadial = boundaryDistance(nativeDx, nativeDy, radiusX, radiusY)
             -- Persistent navigation targets are already clamped by Vanilla.
             -- Keep a point sitting on that rim at its native position; scaling
             -- an already-clamped point is what sent the turquoise marker into
             -- the 3D view. In-range targets still follow the enlarged map.
-            local alreadyClamped = persistent == true
-                and nativeRadial >= 0.94
+            local alreadyClamped = persistent == true and nativeRadial >= 0.94
             if not alreadyClamped then
-                centerX = anchorX + (centerX-anchorX) * requestedZoom
-                centerY = anchorY + (centerY-anchorY) * requestedZoom
+                centerX = anchorX + (centerX - anchorX) * requestedZoom
+                centerY = anchorY + (centerY - anchorY) * requestedZoom
             end
             -- Native visibility was calculated for the unzoomed map. Recheck
             -- after zooming, without ever resurrecting a natively hidden icon.
-            local dx, dy = centerX-clampCenterX, centerY-clampCenterY
+            local dx, dy = centerX - clampCenterX, centerY - clampCenterY
             local radial = boundaryDistance(dx, dy, radiusX, radiusY)
             if radial > 1 then
                 if persistent == true then
-                    centerX = clampCenterX + dx/radial
-                    centerY = clampCenterY + dy/radial
+                    centerX = clampCenterX + dx / radial
+                    centerY = clampCenterY + dy / radial
                 else
                     visible = false
                 end
@@ -9830,30 +10267,38 @@ function TerraLogicSoilManager:restoreMinimapHotspotZoom()
 end
 
 function TerraLogicSoilManager:drawZoomedMinimapHotspot(
-    nativeDrawHotspot, ingameMap, hotspot, smallVersion, scale, doDebug)
+    nativeDrawHotspot,
+    ingameMap,
+    hotspot,
+    smallVersion,
+    scale,
+    doDebug
+)
     -- The normal map.draw wrapper covers every hotspot path. Retain this
     -- fallback for unusual custom minimaps that expose drawHotspot but no draw.
     local layout = ingameMap ~= nil and ingameMap.layout or nil
     if self.minimapHotspotZoomLayout == layout then
-        return nativeDrawHotspot(ingameMap, hotspot,
-            smallVersion, scale, doDebug)
+        return nativeDrawHotspot(ingameMap, hotspot, smallVersion, scale, doDebug)
     end
     self:prepareMinimapHotspotZoom(ingameMap)
-    local results = {nativeDrawHotspot(ingameMap, hotspot,
-        smallVersion, scale, doDebug)}
+    local results = { nativeDrawHotspot(ingameMap, hotspot, smallVersion, scale, doDebug) }
     self:restoreMinimapHotspotZoom()
     return unpack(results)
 end
 
 function TerraLogicSoilManager:installMinimapHook()
     local map = g_currentMission ~= nil and g_currentMission.hud ~= nil and g_currentMission.hud.ingameMap or nil
-    if map == nil then return false end
+    if map == nil then
+        return false
+    end
     self:installMinimapBaseLayerHook(map)
     if self.minimapHookInstalled == true and self.minimapHookMap == map then
         self.minimapHookInstalled = true
         return true
     end
-    if map.drawFields == nil then return false end
+    if map.drawFields == nil then
+        return false
+    end
     -- Apply the texture zoom before the native minimap draw. drawFields adds
     -- the soil raster and restores that transform before native hotspots;
     -- those are zoomed independently in screen space below.
@@ -9862,46 +10307,45 @@ function TerraLogicSoilManager:installMinimapHook()
         map.draw = function(ingameMap, ...)
             TerraLogicSoilManager:prepareMinimapZoom(ingameMap)
             TerraLogicSoilManager:prepareMinimapHotspotZoom(ingameMap)
-            local results = {nativeDraw(ingameMap, ...)}
+            local results = { nativeDraw(ingameMap, ...) }
             TerraLogicSoilManager:restoreMinimapHotspotZoom()
             TerraLogicSoilManager:restoreMinimapZoom(ingameMap)
             TerraLogicSoilManager:drawMinimapUi(ingameMap)
             return unpack(results)
         end
-        map.drawFields = Utils.appendedFunction(map.drawFields,
-            function(ingameMap)
-                TerraLogicSoilManager:drawMinimapOverlay(ingameMap)
-            end)
+        map.drawFields = Utils.appendedFunction(map.drawFields, function(ingameMap)
+            TerraLogicSoilManager:drawMinimapOverlay(ingameMap)
+        end)
     else
         -- Compatibility fallback for an unusual custom map implementation.
-        map.drawFields = Utils.prependedFunction(
-            map.drawFields, function(ingameMap)
-                TerraLogicSoilManager:prepareMinimapZoom(ingameMap)
-            end)
-        map.drawFields = Utils.appendedFunction(map.drawFields,
-            function(ingameMap)
-                TerraLogicSoilManager:drawMinimapOverlay(ingameMap)
-                TerraLogicSoilManager:restoreMinimapZoom(ingameMap)
-                TerraLogicSoilManager:drawMinimapUi(ingameMap)
-            end)
+        map.drawFields = Utils.prependedFunction(map.drawFields, function(ingameMap)
+            TerraLogicSoilManager:prepareMinimapZoom(ingameMap)
+        end)
+        map.drawFields = Utils.appendedFunction(map.drawFields, function(ingameMap)
+            TerraLogicSoilManager:drawMinimapOverlay(ingameMap)
+            TerraLogicSoilManager:restoreMinimapZoom(ingameMap)
+            TerraLogicSoilManager:drawMinimapUi(ingameMap)
+        end)
     end
     if map.drawHotspot ~= nil then
         local nativeDrawHotspot = map.drawHotspot
-        map.drawHotspot = function(ingameMap, hotspot,
-            smallVersion, scale, doDebug)
+        map.drawHotspot = function(ingameMap, hotspot, smallVersion, scale, doDebug)
             return TerraLogicSoilManager:drawZoomedMinimapHotspot(
-                nativeDrawHotspot, ingameMap, hotspot,
-                smallVersion, scale, doDebug)
+                nativeDrawHotspot,
+                ingameMap,
+                hotspot,
+                smallVersion,
+                scale,
+                doDebug
+            )
         end
     end
-    self.minimapHookMethod = map.draw ~= nil
-        and "draw-wrapper+drawFields-overlay+screen-hotspots"
+    self.minimapHookMethod = map.draw ~= nil and "draw-wrapper+drawFields-overlay+screen-hotspots"
         or "drawFields-fallback-overlay+screen-hotspots"
     map.terraLogicSoilHook = true
     self.minimapHookInstalled = true
     self.minimapHookMap = map
-    TerraLogicLogging.debug("[FS25_TerraLogic] Soil minimap hook installed (%s)",
-        tostring(self.minimapHookMethod))
+    TerraLogicLogging.debug("[FS25_TerraLogic] Soil minimap hook installed (%s)", tostring(self.minimapHookMethod))
     return true
 end
 
@@ -9910,43 +10354,47 @@ end
 -- sample for their HUD and small tiles only for the currently visible map.
 
 local function getConnectionCanUseSoilDeveloperCommands(connection)
-    if connection == nil or connection:getIsServer() then return false end
-    if connection.getIsMasterUser ~= nil then
-        local ok, result = pcall(
-            connection.getIsMasterUser, connection)
-        if ok then return result == true end
+    if connection == nil or connection:getIsServer() then
+        return false
     end
-    local userManager = g_currentMission ~= nil
-        and g_currentMission.userManager or nil
-    if userManager ~= nil and userManager.getIsUserIdMasterUser ~= nil
-        and connection.getUserId ~= nil then
-        local idOk, userId = pcall(connection.getUserId, connection)
-        if idOk then
-            local ok, result = pcall(
-                userManager.getIsUserIdMasterUser, userManager, userId)
-            if ok then return result == true end
+    if type(connection.getIsMasterUser) == "function" then
+        local result = connection.getIsMasterUser(connection)
+        do
+            return result == true
+        end
+    end
+    local userManager = g_currentMission ~= nil and g_currentMission.userManager or nil
+    if
+        userManager ~= nil
+        and type(userManager.getIsUserIdMasterUser) == "function"
+        and type(connection.getUserId) == "function"
+    then
+        local userId = connection.getUserId(connection)
+        do
+            local result = userManager.getIsUserIdMasterUser(userManager, userId)
+            do
+                return result == true
+            end
         end
     end
     -- Some listen-server builds expose neither API on the connection object.
     -- Console access is already a developer feature; retain compatibility
     -- there while logging the otherwise unverifiable request.
     Logging.warning(
-        "[FS25_TerraLogic] Could not verify multiplayer master-user status for a soil developer-command request")
+        "[FS25_TerraLogic] Could not verify multiplayer master-user status for a soil developer-command request"
+    )
     return true
 end
 
 TerraLogicVirtualImplementPassEvent = {}
-local TerraLogicVirtualImplementPassEvent_mt = Class(
-    TerraLogicVirtualImplementPassEvent, Event)
-InitEventClass(TerraLogicVirtualImplementPassEvent,
-    "TerraLogicVirtualImplementPassEvent")
+local TerraLogicVirtualImplementPassEvent_mt = Class(TerraLogicVirtualImplementPassEvent, Event)
+InitEventClass(TerraLogicVirtualImplementPassEvent, "TerraLogicVirtualImplementPassEvent")
 
 function TerraLogicVirtualImplementPassEvent.emptyNew()
     return Event.new(TerraLogicVirtualImplementPassEvent_mt)
 end
 
-function TerraLogicVirtualImplementPassEvent.new(
-        x, z, classKey, speedKph, shopSpeedKph)
+function TerraLogicVirtualImplementPassEvent.new(x, z, classKey, speedKph, shopSpeedKph)
     local self = TerraLogicVirtualImplementPassEvent.emptyNew()
     self.x, self.z = tonumber(x) or 0, tonumber(z) or 0
     self.classKey = tostring(classKey or "")
@@ -9973,26 +10421,24 @@ function TerraLogicVirtualImplementPassEvent:writeStream(streamId, connection)
 end
 
 function TerraLogicVirtualImplementPassEvent:run(connection)
-    if g_server == nil
-        or not getConnectionCanUseSoilDeveloperCommands(connection) then
+    if g_server == nil or not getConnectionCanUseSoilDeveloperCommands(connection) then
         return
     end
-    local ok, message = TerraLogicSoilManager:
-        queueVirtualImplementPassAtWorldPosition(
-            self.x, self.z, self.classKey,
-            self.speedKph, self.shopSpeedKph)
+    local ok, message = TerraLogicSoilManager:queueVirtualImplementPassAtWorldPosition(
+        self.x,
+        self.z,
+        self.classKey,
+        self.speedKph,
+        self.shopSpeedKph
+    )
     if not ok then
-        Logging.warning(
-            "[FS25_TerraLogic] Multiplayer virtual pass rejected: %s",
-            tostring(message))
+        Logging.warning("[FS25_TerraLogic] Multiplayer virtual pass rejected: %s", tostring(message))
     end
 end
 
 TerraLogicTrafficTestPresetEvent = {}
-local TerraLogicTrafficTestPresetEvent_mt = Class(
-    TerraLogicTrafficTestPresetEvent, Event)
-InitEventClass(TerraLogicTrafficTestPresetEvent,
-    "TerraLogicTrafficTestPresetEvent")
+local TerraLogicTrafficTestPresetEvent_mt = Class(TerraLogicTrafficTestPresetEvent, Event)
+InitEventClass(TerraLogicTrafficTestPresetEvent, "TerraLogicTrafficTestPresetEvent")
 
 function TerraLogicTrafficTestPresetEvent.emptyNew()
     return Event.new(TerraLogicTrafficTestPresetEvent_mt)
@@ -10019,25 +10465,18 @@ function TerraLogicTrafficTestPresetEvent:writeStream(streamId, connection)
 end
 
 function TerraLogicTrafficTestPresetEvent:run(connection)
-    if g_server == nil
-        or not getConnectionCanUseSoilDeveloperCommands(connection) then
+    if g_server == nil or not getConnectionCanUseSoilDeveloperCommands(connection) then
         return
     end
-    local ok, message = TerraLogicSoilManager:
-        applyTrafficTestPresetAtWorldPosition(
-            self.x, self.z, self.presetName)
+    local ok, message = TerraLogicSoilManager:applyTrafficTestPresetAtWorldPosition(self.x, self.z, self.presetName)
     if not ok then
-        Logging.warning(
-            "[FS25_TerraLogic] Multiplayer traffic preset rejected: %s",
-            tostring(message))
+        Logging.warning("[FS25_TerraLogic] Multiplayer traffic preset rejected: %s", tostring(message))
     end
 end
 
 TerraLogicOwnedFieldPresetRepairEvent = {}
-local TerraLogicOwnedFieldPresetRepairEvent_mt = Class(
-    TerraLogicOwnedFieldPresetRepairEvent, Event)
-InitEventClass(TerraLogicOwnedFieldPresetRepairEvent,
-    "TerraLogicOwnedFieldPresetRepairEvent")
+local TerraLogicOwnedFieldPresetRepairEvent_mt = Class(TerraLogicOwnedFieldPresetRepairEvent, Event)
+InitEventClass(TerraLogicOwnedFieldPresetRepairEvent, "TerraLogicOwnedFieldPresetRepairEvent")
 
 function TerraLogicOwnedFieldPresetRepairEvent.emptyNew()
     return Event.new(TerraLogicOwnedFieldPresetRepairEvent_mt)
@@ -10061,17 +10500,15 @@ function TerraLogicOwnedFieldPresetRepairEvent:writeStream(streamId, connection)
 end
 
 function TerraLogicOwnedFieldPresetRepairEvent:run(connection)
-    if g_server == nil
-        or not getConnectionCanUseSoilDeveloperCommands(connection) then return end
-    TerraLogicSoilManager:queueOwnedFieldPresetRepairAtWorldPosition(
-        self.x, self.z)
+    if g_server == nil or not getConnectionCanUseSoilDeveloperCommands(connection) then
+        return
+    end
+    TerraLogicSoilManager:queueOwnedFieldPresetRepairAtWorldPosition(self.x, self.z)
 end
 
 TerraLogicAllFieldPresetReinitializationEvent = {}
-local TerraLogicAllFieldPresetReinitializationEvent_mt = Class(
-    TerraLogicAllFieldPresetReinitializationEvent, Event)
-InitEventClass(TerraLogicAllFieldPresetReinitializationEvent,
-    "TerraLogicAllFieldPresetReinitializationEvent")
+local TerraLogicAllFieldPresetReinitializationEvent_mt = Class(TerraLogicAllFieldPresetReinitializationEvent, Event)
+InitEventClass(TerraLogicAllFieldPresetReinitializationEvent, "TerraLogicAllFieldPresetReinitializationEvent")
 
 function TerraLogicAllFieldPresetReinitializationEvent.emptyNew()
     return Event.new(TerraLogicAllFieldPresetReinitializationEvent_mt)
@@ -10081,26 +10518,22 @@ function TerraLogicAllFieldPresetReinitializationEvent.new()
     return TerraLogicAllFieldPresetReinitializationEvent.emptyNew()
 end
 
-function TerraLogicAllFieldPresetReinitializationEvent:readStream(
-        streamId, connection)
+function TerraLogicAllFieldPresetReinitializationEvent:readStream(streamId, connection)
     self:run(connection)
 end
 
-function TerraLogicAllFieldPresetReinitializationEvent:writeStream(
-        streamId, connection)
-end
+function TerraLogicAllFieldPresetReinitializationEvent:writeStream(streamId, connection) end
 
 function TerraLogicAllFieldPresetReinitializationEvent:run(connection)
-    if g_server == nil
-        or not getConnectionCanUseSoilDeveloperCommands(connection) then return end
+    if g_server == nil or not getConnectionCanUseSoilDeveloperCommands(connection) then
+        return
+    end
     TerraLogicSoilManager:requestAllFieldPresetReinitialization()
 end
 
 TerraLogicSoilSampleRequestEvent = {}
-local TerraLogicSoilSampleRequestEvent_mt = Class(
-    TerraLogicSoilSampleRequestEvent, Event)
-InitEventClass(TerraLogicSoilSampleRequestEvent,
-    "TerraLogicSoilSampleRequestEvent")
+local TerraLogicSoilSampleRequestEvent_mt = Class(TerraLogicSoilSampleRequestEvent, Event)
+InitEventClass(TerraLogicSoilSampleRequestEvent, "TerraLogicSoilSampleRequestEvent")
 
 function TerraLogicSoilSampleRequestEvent.emptyNew()
     return Event.new(TerraLogicSoilSampleRequestEvent_mt)
@@ -10124,27 +10557,26 @@ function TerraLogicSoilSampleRequestEvent:writeStream(streamId, connection)
 end
 
 function TerraLogicSoilSampleRequestEvent:run(connection)
-    if connection:getIsServer() or g_server == nil then return end
+    if connection:getIsServer() or g_server == nil then
+        return
+    end
     local manager = TerraLogicSoilManager
-    manager.serverNetworkSampleCooldowns =
-        manager.serverNetworkSampleCooldowns
-        or setmetatable({}, {__mode="k"})
+    manager.serverNetworkSampleCooldowns = manager.serverNetworkSampleCooldowns or setmetatable({}, { __mode = "k" })
     local now = g_currentMission ~= nil and g_currentMission.time or 0
     local last = manager.serverNetworkSampleCooldowns[connection] or -100000
-    if now - last < manager.NETWORK_SERVER_SAMPLE_COOLDOWN_MS then return end
+    if now - last < manager.NETWORK_SERVER_SAMPLE_COOLDOWN_MS then
+        return
+    end
     manager.serverNetworkSampleCooldowns[connection] = now
     local half = (tonumber(manager.terrainSize) or 2048) * 0.5
     local x = math.clamp(tonumber(self.x) or 0, -half, half)
     local z = math.clamp(tonumber(self.z) or 0, -half, half)
-    connection:sendEvent(TerraLogicSoilSampleSyncEvent.new(
-        x, z, manager:buildNetworkSample(x, z)))
+    connection:sendEvent(TerraLogicSoilSampleSyncEvent.new(x, z, manager:buildNetworkSample(x, z)))
 end
 
 TerraLogicSoilSampleSyncEvent = {}
-local TerraLogicSoilSampleSyncEvent_mt = Class(
-    TerraLogicSoilSampleSyncEvent, Event)
-InitEventClass(TerraLogicSoilSampleSyncEvent,
-    "TerraLogicSoilSampleSyncEvent")
+local TerraLogicSoilSampleSyncEvent_mt = Class(TerraLogicSoilSampleSyncEvent, Event)
+InitEventClass(TerraLogicSoilSampleSyncEvent, "TerraLogicSoilSampleSyncEvent")
 
 function TerraLogicSoilSampleSyncEvent.emptyNew()
     return Event.new(TerraLogicSoilSampleSyncEvent_mt)
@@ -10170,38 +10602,32 @@ function TerraLogicSoilSampleSyncEvent:writeStream(streamId, connection)
     streamWriteFloat32(streamId, self.x)
     streamWriteFloat32(streamId, self.z)
     for _, layer in ipairs(TerraLogicSoilManager.layers) do
-        streamWriteFloat32(streamId,
-            tonumber(self.values[layer.id])
-                or TerraLogicSoilProfiles.DEFAULTS[layer.id])
+        streamWriteFloat32(streamId, tonumber(self.values[layer.id]) or TerraLogicSoilProfiles.DEFAULTS[layer.id])
     end
 end
 
 function TerraLogicSoilSampleSyncEvent:run(connection)
-    if not connection:getIsServer() then return end
+    if not connection:getIsServer() then
+        return
+    end
     TerraLogicSoilManager:applyNetworkSample(self.x, self.z, self.values)
 end
 
 TerraLogicSoilTileRequestEvent = {}
-local TerraLogicSoilTileRequestEvent_mt = Class(
-    TerraLogicSoilTileRequestEvent, Event)
-InitEventClass(TerraLogicSoilTileRequestEvent,
-    "TerraLogicSoilTileRequestEvent")
+local TerraLogicSoilTileRequestEvent_mt = Class(TerraLogicSoilTileRequestEvent, Event)
+InitEventClass(TerraLogicSoilTileRequestEvent, "TerraLogicSoilTileRequestEvent")
 
 function TerraLogicSoilTileRequestEvent.emptyNew()
     return Event.new(TerraLogicSoilTileRequestEvent_mt)
 end
 
-function TerraLogicSoilTileRequestEvent.new(
-        layerIndex, tileX, tileZ, knownGeneration, knownRevision)
+function TerraLogicSoilTileRequestEvent.new(layerIndex, tileX, tileZ, knownGeneration, knownRevision)
     local self = TerraLogicSoilTileRequestEvent.emptyNew()
-    self.layerIndex = math.clamp(math.floor(
-        tonumber(layerIndex) or 1), 1, #TerraLogicSoilManager.layers)
+    self.layerIndex = math.clamp(math.floor(tonumber(layerIndex) or 1), 1, #TerraLogicSoilManager.layers)
     self.tileX = math.floor(tonumber(tileX) or 0)
     self.tileZ = math.floor(tonumber(tileZ) or 0)
-    self.knownGeneration = math.clamp(math.floor(
-        tonumber(knownGeneration) or 0), 0, 65535)
-    self.knownRevision = math.clamp(math.floor(
-        tonumber(knownRevision) or 0), 0, 65535)
+    self.knownGeneration = math.clamp(math.floor(tonumber(knownGeneration) or 0), 0, 65535)
+    self.knownRevision = math.clamp(math.floor(tonumber(knownRevision) or 0), 0, 65535)
     return self
 end
 
@@ -10223,33 +10649,49 @@ function TerraLogicSoilTileRequestEvent:writeStream(streamId, connection)
 end
 
 function TerraLogicSoilTileRequestEvent:run(connection)
-    if connection:getIsServer() or g_server == nil then return end
+    if connection:getIsServer() or g_server == nil then
+        return
+    end
     local manager = TerraLogicSoilManager
-    if manager.layers[self.layerIndex] == nil then return end
-    manager.serverNetworkTileCooldowns = manager.serverNetworkTileCooldowns
-        or setmetatable({}, {__mode="k"})
+    if manager.layers[self.layerIndex] == nil then
+        return
+    end
+    manager.serverNetworkTileCooldowns = manager.serverNetworkTileCooldowns or setmetatable({}, { __mode = "k" })
     local now = g_currentMission ~= nil and g_currentMission.time or 0
     local last = manager.serverNetworkTileCooldowns[connection] or -100000
-    if now - last < manager.NETWORK_SERVER_TILE_COOLDOWN_MS then return end
+    if now - last < manager.NETWORK_SERVER_TILE_COOLDOWN_MS then
+        return
+    end
     manager.serverNetworkTileCooldowns[connection] = now
     manager:queueServerNetworkTile(
-        connection, self.layerIndex, self.tileX, self.tileZ,
-        self.knownGeneration, self.knownRevision)
+        connection,
+        self.layerIndex,
+        self.tileX,
+        self.tileZ,
+        self.knownGeneration,
+        self.knownRevision
+    )
 end
 
 TerraLogicSoilTileSyncEvent = {}
-local TerraLogicSoilTileSyncEvent_mt = Class(
-    TerraLogicSoilTileSyncEvent, Event)
-InitEventClass(TerraLogicSoilTileSyncEvent,
-    "TerraLogicSoilTileSyncEvent")
+local TerraLogicSoilTileSyncEvent_mt = Class(TerraLogicSoilTileSyncEvent, Event)
+InitEventClass(TerraLogicSoilTileSyncEvent, "TerraLogicSoilTileSyncEvent")
 
 function TerraLogicSoilTileSyncEvent.emptyNew()
     return Event.new(TerraLogicSoilTileSyncEvent_mt)
 end
 
 function TerraLogicSoilTileSyncEvent.new(
-        layerIndex, tileX, tileZ, generation, revision,
-        hasPayload, cellsPerSide, values, masks)
+    layerIndex,
+    tileX,
+    tileZ,
+    generation,
+    revision,
+    hasPayload,
+    cellsPerSide,
+    values,
+    masks
+)
     local self = TerraLogicSoilTileSyncEvent.emptyNew()
     self.layerIndex, self.tileX, self.tileZ = layerIndex, tileX, tileZ
     self.generation, self.revision = generation, revision
@@ -10274,8 +10716,7 @@ function TerraLogicSoilTileSyncEvent:readStream(streamId, connection)
     self.cellsPerSide = streamReadUIntN(streamId, 6)
     local count = streamReadUIntN(streamId, 11)
     local layer = TerraLogicSoilManager.layers[self.layerIndex]
-    if layer == nil or count > 1024
-        or count ~= self.cellsPerSide*self.cellsPerSide then
+    if layer == nil or count > 1024 or count ~= self.cellsPerSide * self.cellsPerSide then
         -- A TerraLogic server always sends a valid fixed-size tile. Refuse a
         -- malformed payload before allocating an unbounded client table.
         self.values, self.masks = nil, nil
@@ -10283,7 +10724,7 @@ function TerraLogicSoilTileSyncEvent:readStream(streamId, connection)
     end
     local channels = getLayerChannels(layer.id)
     self.values, self.masks = {}, {}
-    for index=1,count do
+    for index = 1, count do
         self.values[index] = streamReadUIntN(streamId, channels)
         self.masks[index] = streamReadBool(streamId) and 1 or 0
     end
@@ -10300,35 +10741,49 @@ function TerraLogicSoilTileSyncEvent:writeStream(streamId, connection)
     streamWriteUIntN(streamId, self.generation, 16)
     streamWriteUIntN(streamId, self.revision, 16)
     streamWriteBool(streamId, self.hasPayload)
-    if not self.hasPayload then return end
+    if not self.hasPayload then
+        return
+    end
     streamWriteUIntN(streamId, self.cellsPerSide, 6)
     streamWriteUIntN(streamId, count, 11)
-    for index=1,count do
+    for index = 1, count do
         streamWriteUIntN(streamId, self.values[index], channels)
         streamWriteBool(streamId, (tonumber(self.masks[index]) or 0) > 0)
     end
 end
 
 function TerraLogicSoilTileSyncEvent:run(connection)
-    if not connection:getIsServer() then return end
-    if not self.hasPayload then
-        TerraLogicSoilManager:acknowledgeNetworkTile(
-            self.layerIndex, self.tileX, self.tileZ,
-            self.generation, self.revision)
+    if not connection:getIsServer() then
         return
     end
-    if self.values == nil or self.masks == nil then return end
+    if not self.hasPayload then
+        TerraLogicSoilManager:acknowledgeNetworkTile(
+            self.layerIndex,
+            self.tileX,
+            self.tileZ,
+            self.generation,
+            self.revision
+        )
+        return
+    end
+    if self.values == nil or self.masks == nil then
+        return
+    end
     TerraLogicSoilManager:queueNetworkTile(
-        self.layerIndex, self.tileX, self.tileZ,
-        self.generation, self.revision,
-        self.values, self.masks, self.cellsPerSide)
+        self.layerIndex,
+        self.tileX,
+        self.tileZ,
+        self.generation,
+        self.revision,
+        self.values,
+        self.masks,
+        self.cellsPerSide
+    )
 end
 
 TerraLogicSoilTileRevisionResetEvent = {}
-local TerraLogicSoilTileRevisionResetEvent_mt = Class(
-    TerraLogicSoilTileRevisionResetEvent, Event)
-InitEventClass(TerraLogicSoilTileRevisionResetEvent,
-    "TerraLogicSoilTileRevisionResetEvent")
+local TerraLogicSoilTileRevisionResetEvent_mt = Class(TerraLogicSoilTileRevisionResetEvent, Event)
+InitEventClass(TerraLogicSoilTileRevisionResetEvent, "TerraLogicSoilTileRevisionResetEvent")
 
 function TerraLogicSoilTileRevisionResetEvent.emptyNew()
     return Event.new(TerraLogicSoilTileRevisionResetEvent_mt)
@@ -10336,8 +10791,7 @@ end
 
 function TerraLogicSoilTileRevisionResetEvent.new(layerIndex)
     local self = TerraLogicSoilTileRevisionResetEvent.emptyNew()
-    self.layerIndex = math.clamp(math.floor(
-        tonumber(layerIndex) or 1), 1, #TerraLogicSoilManager.layers)
+    self.layerIndex = math.clamp(math.floor(tonumber(layerIndex) or 1), 1, #TerraLogicSoilManager.layers)
     return self
 end
 
@@ -10351,15 +10805,15 @@ function TerraLogicSoilTileRevisionResetEvent:writeStream(streamId, connection)
 end
 
 function TerraLogicSoilTileRevisionResetEvent:run(connection)
-    if not connection:getIsServer() then return end
+    if not connection:getIsServer() then
+        return
+    end
     TerraLogicSoilManager:clearClientNetworkLayerRevision(self.layerIndex)
 end
 
 TerraLogicCoverageReconcileEvent = {}
-local TerraLogicCoverageReconcileEvent_mt = Class(
-    TerraLogicCoverageReconcileEvent, Event)
-InitEventClass(TerraLogicCoverageReconcileEvent,
-    "TerraLogicCoverageReconcileEvent")
+local TerraLogicCoverageReconcileEvent_mt = Class(TerraLogicCoverageReconcileEvent, Event)
+InitEventClass(TerraLogicCoverageReconcileEvent, "TerraLogicCoverageReconcileEvent")
 
 function TerraLogicCoverageReconcileEvent.emptyNew()
     return Event.new(TerraLogicCoverageReconcileEvent_mt)
@@ -10369,8 +10823,7 @@ function TerraLogicCoverageReconcileEvent.new(minX, minZ, maxX, maxZ, interest)
     local self = TerraLogicCoverageReconcileEvent.emptyNew()
     self.interest = interest == true
     self.minX, self.minZ = tonumber(minX) or 0, tonumber(minZ) or 0
-    self.maxX, self.maxZ = tonumber(maxX) or self.minX,
-        tonumber(maxZ) or self.minZ
+    self.maxX, self.maxZ = tonumber(maxX) or self.minX, tonumber(maxZ) or self.minZ
     return self
 end
 
@@ -10382,24 +10835,32 @@ function TerraLogicCoverageReconcileEvent:readStream(streamId, connection)
 end
 
 function TerraLogicCoverageReconcileEvent:writeStream(streamId, connection)
-    streamWriteFloat32(streamId, self.minX); streamWriteFloat32(streamId, self.minZ)
-    streamWriteFloat32(streamId, self.maxX); streamWriteFloat32(streamId, self.maxZ)
+    streamWriteFloat32(streamId, self.minX)
+    streamWriteFloat32(streamId, self.minZ)
+    streamWriteFloat32(streamId, self.maxX)
+    streamWriteFloat32(streamId, self.maxZ)
     streamWriteBool(streamId, self.interest == true)
 end
 
 function TerraLogicCoverageReconcileEvent:run(connection)
-    if connection:getIsServer() or g_server == nil then return end
+    if connection:getIsServer() or g_server == nil then
+        return
+    end
     local manager = TerraLogicSoilManager
-    manager.coverageReconcileCooldowns = manager.coverageReconcileCooldowns
-        or setmetatable({}, {__mode="k"})
+    manager.coverageReconcileCooldowns = manager.coverageReconcileCooldowns or setmetatable({}, { __mode = "k" })
     local now = g_currentMission ~= nil and g_currentMission.time or 0
     local last = manager.coverageReconcileCooldowns[connection] or -100000
-    if now-last < manager.COVERAGE_RECONCILE_SERVER_COOLDOWN_MS then return end
+    if now - last < manager.COVERAGE_RECONCILE_SERVER_COOLDOWN_MS then
+        return
+    end
     manager.coverageReconcileCooldowns[connection] = now
     if self.interest then
-        TerraLogicMapMaintenance:setInterest(connection,
-            (self.minX+self.maxX)/2, (self.minZ+self.maxZ)/2,
-            math.max(self.maxX-self.minX,self.maxZ-self.minZ)/2)
+        TerraLogicMapMaintenance:setInterest(
+            connection,
+            (self.minX + self.maxX) / 2,
+            (self.minZ + self.maxZ) / 2,
+            math.max(self.maxX - self.minX, self.maxZ - self.minZ) / 2
+        )
     else
         manager:queueCoverageRegion(self.minX, self.minZ, self.maxX, self.maxZ)
     end

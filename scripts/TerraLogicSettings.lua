@@ -316,6 +316,15 @@ end
 
 function TerraLogicSettings:refreshMoistureOptions()
     local available=self:isMoistureSystemActive()
+    local function refreshTooltip(option,key)
+        if option and option.elements and option.elements[1] then
+            option.elements[1]:setText(g_i18n:getText(key))
+        end
+    end
+    refreshTooltip(self.precipitationOption,
+        available and "terraLogic_precipHelp" or "terraLogic_precipHelpBase")
+    refreshTooltip(self.moistureYieldOption,
+        available and "terraLogic_settingMoistureYieldTooltip" or "terraLogic_settingMoistureYieldTooltipBase")
     if self.moistureSourceBox then self.moistureSourceBox:setVisible(available)end
     local moreRealistic=self:isMoreRealisticActive()
     if self.draftModelBox then self.draftModelBox:setVisible(moreRealistic)end
@@ -1021,7 +1030,8 @@ function TerraLogicSettings:tryInstallMenu()
         "terraLogic_settingSoilDevelopmentTooltip")
     self.precipitationOption = addOption("terraLogicPrecipitation","onPrecipitationChanged",
         {g_i18n:getText("terraLogic_precipDry"),g_i18n:getText("terraLogic_precipNormal"),g_i18n:getText("terraLogic_precipMoist")},
-        self.precipitationState,"terraLogic_precipTitle","terraLogic_precipHelp")
+        self.precipitationState,"terraLogic_precipTitle",
+        self:isMoistureSystemActive() and "terraLogic_precipHelp" or "terraLogic_precipHelpBase")
     self.precipitationOption:setDisabled(not self:isLocalAdmin())
     self.moistureYieldOption = addOption(
         "terraLogicMoistureYield", "onMoistureYieldChanged",
@@ -1029,7 +1039,8 @@ function TerraLogicSettings:tryInstallMenu()
             g_i18n:getText("terraLogic_settingOn")},
         self:getMoistureYieldEnabled() and 2 or 1,
         "terraLogic_settingMoistureYieldTitle",
-        "terraLogic_settingMoistureYieldTooltip")
+        self:isMoistureSystemActive()
+            and "terraLogic_settingMoistureYieldTooltip" or "terraLogic_settingMoistureYieldTooltipBase")
     self.visibleStoneDamageOption = addOption(
         "terraLogicVisibleStoneDamage", "onVisibleStoneDamageChanged",
         {g_i18n:getText("terraLogic_settingVisibleStonesVanilla"),

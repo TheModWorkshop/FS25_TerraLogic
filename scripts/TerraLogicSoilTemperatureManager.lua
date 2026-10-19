@@ -49,26 +49,25 @@ TerraLogicSoilTemperatureManager = {
     MAX_GAME_HOURS_PER_UPDATE = 24,
     SYNC_INTERVAL_MS = 5000,
     SYNC_TEMPERATURE_THRESHOLD_C = 0.05,
-    SYNC_KEEPALIVE_MS = 60000
+    SYNC_KEEPALIVE_MS = 60000,
 }
 
 local AUDIT_TEMPERATURE_PRESETS = {
-    dry={air=22, surface=20, subsoil=15, frozen=false},
-    normal={air=15, surface=14, subsoil=12, frozen=false},
-    wet={air=11, surface=11, subsoil=10, frozen=false},
-    frozen={air=-7, surface=-5, subsoil=-2, frozen=true}
+    dry = { air = 22, surface = 20, subsoil = 15, frozen = false },
+    normal = { air = 15, surface = 14, subsoil = 12, frozen = false },
+    wet = { air = 11, surface = 11, subsoil = 10, frozen = false },
+    frozen = { air = -7, surface = -5, subsoil = -2, frozen = true },
 }
 
 local function clampTemperature(value, fallback)
     value = tonumber(value)
-    if value == nil or value ~= value or value == math.huge
-        or value == -math.huge then
+    if value == nil or value ~= value or value == math.huge or value == -math.huge then
         value = tonumber(fallback) or 10
     end
     return math.max(
         TerraLogicSoilTemperatureManager.MIN_TEMPERATURE_C,
-        math.min(value,
-            TerraLogicSoilTemperatureManager.MAX_TEMPERATURE_C))
+        math.min(value, TerraLogicSoilTemperatureManager.MAX_TEMPERATURE_C)
+    )
 end
 
 local function approachExponential(value, target, elapsedHours, tauHours)
@@ -76,7 +75,9 @@ local function approachExponential(value, target, elapsedHours, tauHours)
     target = tonumber(target) or value
     elapsedHours = math.max(tonumber(elapsedHours) or 0, 0)
     tauHours = math.max(tonumber(tauHours) or 0, 0.0001)
-    if elapsedHours <= 0 then return value end
+    if elapsedHours <= 0 then
+        return value
+    end
     local fraction = 1 - math.exp(-elapsedHours / tauHours)
     return value + (target - value) * fraction
 end
@@ -87,25 +88,23 @@ local function smoothStep01(value)
 end
 
 local function getSavePath()
-    local info = g_currentMission ~= nil
-        and g_currentMission.missionInfo or nil
+    local info = g_currentMission ~= nil and g_currentMission.missionInfo or nil
     local directory = info ~= nil and info.savegameDirectory or nil
-    if directory == nil or directory == "" then return nil end
-    return directory .. "/"
-        .. TerraLogicSoilTemperatureManager.SAVE_FILE
+    if directory == nil or directory == "" then
+        return nil
+    end
+    return directory .. "/" .. TerraLogicSoilTemperatureManager.SAVE_FILE
 end
 
 function TerraLogicSoilTemperatureManager:getWeatherTemperature()
-    local environment = g_currentMission ~= nil
-        and g_currentMission.environment or nil
+    local environment = g_currentMission ~= nil and g_currentMission.environment or nil
     local weather = environment ~= nil and environment.weather or nil
     if weather == nil or type(weather.getCurrentTemperature) ~= "function" then
         return nil, "weather API unavailable"
     end
-    local ok, temperature = pcall(
-        weather.getCurrentTemperature, weather)
+    local temperature = weather.getCurrentTemperature(weather)
     temperature = tonumber(temperature)
-    if not ok or temperature == nil or temperature ~= temperature then
+    if temperature == nil or temperature ~= temperature then
         return nil, "weather temperature invalid"
     end
     return clampTemperature(temperature, 10), "weather:getCurrentTemperature"
@@ -114,17 +113,14 @@ end
 function TerraLogicSoilTemperatureManager:getDaysPerPeriod()
     local mission = g_currentMission
     local environment = mission ~= nil and mission.environment or nil
-    if environment ~= nil
-        and type(environment.getDaysPerPeriod) == "function" then
-        local ok, value = pcall(
-            environment.getDaysPerPeriod, environment)
+    if environment ~= nil and type(environment.getDaysPerPeriod) == "function" then
+        local value = environment.getDaysPerPeriod(environment)
         value = tonumber(value)
-        if ok and value ~= nil and value > 0 then
+        if value ~= nil and value > 0 then
             return value, "environment:getDaysPerPeriod"
         end
     end
-    local value = environment ~= nil
-        and tonumber(environment.daysPerPeriod) or nil
+    local value = environment ~= nil and tonumber(environment.daysPerPeriod) or nil
     if value ~= nil and value > 0 then
         return value, "environment.daysPerPeriod"
     end
@@ -140,14 +136,17 @@ end
 
 function TerraLogicSoilTemperatureManager:getEffectiveTimeScale()
     local mission = g_currentMission
-    if mission == nil then return 0 end
-    if type(mission.getEffectiveTimeScale) == "function" then
-        local ok, value = pcall(mission.getEffectiveTimeScale, mission)
-        value = tonumber(value)
-        if ok and value ~= nil and value >= 0 then return value end
+    if mission == nil then
+        return 0
     end
-    return math.max(tonumber(mission.missionInfo ~= nil
-        and mission.missionInfo.timeScale) or 0, 0)
+    if type(mission.getEffectiveTimeScale) == "function" then
+        local value = mission.getEffectiveTimeScale(mission)
+        value = tonumber(value)
+        if value ~= nil and value >= 0 then
+            return value
+        end
+    end
+    return math.max(tonumber(mission.missionInfo ~= nil and mission.missionInfo.timeScale) or 0, 0)
 end
 
 function TerraLogicSoilTemperatureManager:load()
@@ -190,69 +189,58 @@ function TerraLogicSoilTemperatureManager:load()
             local xml = loadXMLFile("terraLogicSoilTemperature", path)
             if xml ~= nil and xml ~= 0 then
                 local root = "soilTemperature"
-                self.surfaceTemperatureC = clampTemperature(
-                    getXMLFloat(xml, root .. "#surfaceC"), airTemperature)
-                self.subsoilTemperatureC = clampTemperature(
-                    getXMLFloat(xml, root .. "#subsoilC"),
-                    self.surfaceTemperatureC)
-                self.dailyMeanTemperatureC = clampTemperature(
-                    getXMLFloat(xml, root .. "#dailyMeanC"),
-                    self.surfaceTemperatureC)
-                self.climateMeanTemperatureC = clampTemperature(
-                    getXMLFloat(xml, root .. "#climateMeanC"),
-                    self.subsoilTemperatureC)
-                self.dailyTemperatureWeightedSum = tonumber(
-                    getXMLFloat(xml, root .. "#dailyWeightedSum")) or 0
-                self.dailyTemperatureHours = math.max(tonumber(
-                    getXMLFloat(xml, root .. "#dailyHours")) or 0, 0)
-                if self.dailyTemperatureHours >= self.DAILY_WINDOW_HOURS
-                    or self.dailyTemperatureWeightedSum
-                        ~= self.dailyTemperatureWeightedSum then
+                self.surfaceTemperatureC = clampTemperature(getXMLFloat(xml, root .. "#surfaceC"), airTemperature)
+                self.subsoilTemperatureC =
+                    clampTemperature(getXMLFloat(xml, root .. "#subsoilC"), self.surfaceTemperatureC)
+                self.dailyMeanTemperatureC =
+                    clampTemperature(getXMLFloat(xml, root .. "#dailyMeanC"), self.surfaceTemperatureC)
+                self.climateMeanTemperatureC =
+                    clampTemperature(getXMLFloat(xml, root .. "#climateMeanC"), self.subsoilTemperatureC)
+                self.dailyTemperatureWeightedSum = tonumber(getXMLFloat(xml, root .. "#dailyWeightedSum")) or 0
+                self.dailyTemperatureHours = math.max(tonumber(getXMLFloat(xml, root .. "#dailyHours")) or 0, 0)
+                if
+                    self.dailyTemperatureHours >= self.DAILY_WINDOW_HOURS
+                    or self.dailyTemperatureWeightedSum ~= self.dailyTemperatureWeightedSum
+                then
                     self.dailyTemperatureWeightedSum = 0
                     self.dailyTemperatureHours = 0
                 end
-                self.spinupClimateDays = math.max(tonumber(
-                    getXMLFloat(xml, root .. "#spinupClimateDays")) or 0, 0)
-                self.simulatedGameHours = math.max(tonumber(
-                    getXMLFloat(xml, root .. "#simulatedGameHours")) or 0, 0)
+                self.spinupClimateDays = math.max(tonumber(getXMLFloat(xml, root .. "#spinupClimateDays")) or 0, 0)
+                self.simulatedGameHours = math.max(tonumber(getXMLFloat(xml, root .. "#simulatedGameHours")) or 0, 0)
                 local version = tonumber(getXMLInt(xml, root .. "#version")) or 1
                 if version >= 2 then
-                    self.surfaceFrozen = (tonumber(getXMLInt(xml,
-                        root .. "#surfaceFrozen")) or 0) == 1
-                    self.subsoilFrozen = (tonumber(getXMLInt(xml,
-                        root .. "#subsoilFrozen")) or 0) == 1
-                    self.surfaceFrozenHours = math.max(tonumber(getXMLFloat(xml,
-                        root .. "#surfaceFrozenHours")) or 0, 0)
-                    self.subsoilFrozenHours = math.max(tonumber(getXMLFloat(xml,
-                        root .. "#subsoilFrozenHours")) or 0, 0)
-                    self.surfaceFreezeMinimumC = clampTemperature(getXMLFloat(xml,
-                        root .. "#surfaceFreezeMinimumC"), self.surfaceTemperatureC)
-                    self.subsoilFreezeMinimumC = clampTemperature(getXMLFloat(xml,
-                        root .. "#subsoilFreezeMinimumC"), self.subsoilTemperatureC)
-                    self.pendingSurfaceThawPulse = math.max(0,
-                        tonumber(getXMLFloat(xml, root .. "#pendingSurfaceThawPulse")) or 0)
-                    self.pendingDeepThawPulse = math.max(0,
-                        tonumber(getXMLFloat(xml, root .. "#pendingDeepThawPulse")) or 0)
+                    self.surfaceFrozen = (tonumber(getXMLInt(xml, root .. "#surfaceFrozen")) or 0) == 1
+                    self.subsoilFrozen = (tonumber(getXMLInt(xml, root .. "#subsoilFrozen")) or 0) == 1
+                    self.surfaceFrozenHours =
+                        math.max(tonumber(getXMLFloat(xml, root .. "#surfaceFrozenHours")) or 0, 0)
+                    self.subsoilFrozenHours =
+                        math.max(tonumber(getXMLFloat(xml, root .. "#subsoilFrozenHours")) or 0, 0)
+                    self.surfaceFreezeMinimumC =
+                        clampTemperature(getXMLFloat(xml, root .. "#surfaceFreezeMinimumC"), self.surfaceTemperatureC)
+                    self.subsoilFreezeMinimumC =
+                        clampTemperature(getXMLFloat(xml, root .. "#subsoilFreezeMinimumC"), self.subsoilTemperatureC)
+                    self.pendingSurfaceThawPulse =
+                        math.max(0, tonumber(getXMLFloat(xml, root .. "#pendingSurfaceThawPulse")) or 0)
+                    self.pendingDeepThawPulse =
+                        math.max(0, tonumber(getXMLFloat(xml, root .. "#pendingDeepThawPulse")) or 0)
                     if version < 3 then
                         -- v2 stored actual game hours and unweighted pulses.
                         local days = math.max(self:getDaysPerPeriod(), 1)
-                        local scale = math.max(1, self.NOMINAL_DAYS_PER_PERIOD/days)
-                        self.surfaceFrozenHours = self.surfaceFrozenHours*scale
-                        self.subsoilFrozenHours = self.subsoilFrozenHours*scale
-                        self.pendingSurfaceThawPulse = self.pendingSurfaceThawPulse/days
-                        self.pendingDeepThawPulse = self.pendingDeepThawPulse/days
+                        local scale = math.max(1, self.NOMINAL_DAYS_PER_PERIOD / days)
+                        self.surfaceFrozenHours = self.surfaceFrozenHours * scale
+                        self.subsoilFrozenHours = self.subsoilFrozenHours * scale
+                        self.pendingSurfaceThawPulse = self.pendingSurfaceThawPulse / days
+                        self.pendingDeepThawPulse = self.pendingDeepThawPulse / days
                     end
-                    self.surfaceFreezeThawCycles = math.max(0, math.floor(
-                        tonumber(getXMLFloat(xml, root .. "#surfaceFreezeThawCycles")) or 0))
-                    self.deepFreezeThawCycles = math.max(0, math.floor(
-                        tonumber(getXMLFloat(xml, root .. "#deepFreezeThawCycles")) or 0))
+                    self.surfaceFreezeThawCycles =
+                        math.max(0, math.floor(tonumber(getXMLFloat(xml, root .. "#surfaceFreezeThawCycles")) or 0))
+                    self.deepFreezeThawCycles =
+                        math.max(0, math.floor(tonumber(getXMLFloat(xml, root .. "#deepFreezeThawCycles")) or 0))
                 else
                     -- Old saves have temperatures but no frost history. Start
                     -- a cold phase without inventing elapsed frost or a pulse.
-                    self.surfaceFrozen = self.surfaceTemperatureC
-                        <= self.SURFACE_FREEZE_ENTER_C
-                    self.subsoilFrozen = self.subsoilTemperatureC
-                        <= self.SUBSOIL_FREEZE_ENTER_C
+                    self.surfaceFrozen = self.surfaceTemperatureC <= self.SURFACE_FREEZE_ENTER_C
+                    self.subsoilFrozen = self.subsoilTemperatureC <= self.SUBSOIL_FREEZE_ENTER_C
                     self.surfaceFreezeMinimumC = self.surfaceTemperatureC
                     self.subsoilFreezeMinimumC = self.subsoilTemperatureC
                 end
@@ -263,69 +251,77 @@ function TerraLogicSoilTemperatureManager:load()
     end
 
     self.daysPerPeriod, self.daysPerPeriodSource = self:getDaysPerPeriod()
-    self.calendarScale = self.NOMINAL_DAYS_PER_PERIOD
-        / math.max(self.daysPerPeriod, 1)
+    self.calendarScale = self.NOMINAL_DAYS_PER_PERIOD / math.max(self.daysPerPeriod, 1)
     self.calendarScale = math.max(1, math.min(self.calendarScale, 30))
     TerraLogicLogging.debug(
-        "[FS25_TerraLogic] Soil temperature loaded: air=%.2f C surface@%dcm=%.2f C subsoil@%dcm=%.2f C frost=%s/%s pendingThaw=%.3f/%.3f calendar=%g days/period x%.2f (%s, %s)",
-        self.airTemperatureC, self.SURFACE_DEPTH_CM,
-        self.surfaceTemperatureC, self.SUBSOIL_DEPTH_CM,
+        "[FS25_TerraLogic] Soil temperature loaded: air=%.2f C surface@%dcm=%.2f C subsoil@%dcm=%.2f C frost=%s/%s "
+            .. "pendingThaw=%.3f/%.3f calendar=%g days/period x%.2f (%s, %s)",
+        self.airTemperatureC,
+        self.SURFACE_DEPTH_CM,
+        self.surfaceTemperatureC,
+        self.SUBSOIL_DEPTH_CM,
         self.subsoilTemperatureC,
         self.surfaceFrozen and "frozen" or "open",
         self.subsoilFrozen and "frozen" or "open",
-        self.pendingSurfaceThawPulse, self.pendingDeepThawPulse,
+        self.pendingSurfaceThawPulse,
+        self.pendingDeepThawPulse,
         self.daysPerPeriod,
-        self.calendarScale, tostring(self.daysPerPeriodSource),
-        self.loadedFromSave and "save" or "new/spin-up")
+        self.calendarScale,
+        tostring(self.daysPerPeriodSource),
+        self.loadedFromSave and "save" or "new/spin-up"
+    )
 end
 
 function TerraLogicSoilTemperatureManager:save()
     local mission = g_currentMission
-    if mission == nil or not mission:getIsServer()
-        or self.initialized ~= true then return end
+    if mission == nil or not mission:getIsServer() or self.initialized ~= true then
+        return
+    end
     local path = getSavePath()
-    if path == nil then return end
-    local xml = createXMLFile(
-        "terraLogicSoilTemperature", path, "soilTemperature")
-    if xml == nil or xml == 0 then return end
+    if path == nil then
+        return
+    end
+    local xml = createXMLFile("terraLogicSoilTemperature", path, "soilTemperature")
+    if xml == nil or xml == 0 then
+        return
+    end
     local root = "soilTemperature"
-    local persisted = self.auditOverrideActive
-        and self.auditOverrideSnapshot or self
+    local persisted = self.auditOverrideActive and self.auditOverrideSnapshot or self
     setXMLInt(xml, root .. "#version", self.SAVE_VERSION)
     setXMLFloat(xml, root .. "#surfaceC", persisted.surfaceTemperatureC)
     setXMLFloat(xml, root .. "#subsoilC", persisted.subsoilTemperatureC)
     setXMLFloat(xml, root .. "#dailyMeanC", persisted.dailyMeanTemperatureC)
     setXMLFloat(xml, root .. "#climateMeanC", persisted.climateMeanTemperatureC)
-    setXMLFloat(xml, root .. "#dailyWeightedSum",
-        self.dailyTemperatureWeightedSum)
+    setXMLFloat(xml, root .. "#dailyWeightedSum", self.dailyTemperatureWeightedSum)
     setXMLFloat(xml, root .. "#dailyHours", self.dailyTemperatureHours)
     setXMLFloat(xml, root .. "#spinupClimateDays", self.spinupClimateDays)
     setXMLFloat(xml, root .. "#simulatedGameHours", self.simulatedGameHours)
-    setXMLInt(xml, root .. "#surfaceFrozen",
-        persisted.surfaceFrozen and 1 or 0)
-    setXMLInt(xml, root .. "#subsoilFrozen",
-        persisted.subsoilFrozen and 1 or 0)
-    setXMLFloat(xml, root .. "#surfaceFrozenHours",
-        persisted.surfaceFrozenHours)
-    setXMLFloat(xml, root .. "#subsoilFrozenHours",
-        persisted.subsoilFrozenHours)
-    setXMLFloat(xml, root .. "#surfaceFreezeMinimumC",
-        persisted.surfaceFreezeMinimumC)
-    setXMLFloat(xml, root .. "#subsoilFreezeMinimumC",
-        persisted.subsoilFreezeMinimumC)
-    setXMLFloat(xml, root .. "#pendingSurfaceThawPulse",
-        persisted.pendingSurfaceThawPulse)
-    setXMLFloat(xml, root .. "#pendingDeepThawPulse",
-        persisted.pendingDeepThawPulse)
+    setXMLInt(xml, root .. "#surfaceFrozen", persisted.surfaceFrozen and 1 or 0)
+    setXMLInt(xml, root .. "#subsoilFrozen", persisted.subsoilFrozen and 1 or 0)
+    setXMLFloat(xml, root .. "#surfaceFrozenHours", persisted.surfaceFrozenHours)
+    setXMLFloat(xml, root .. "#subsoilFrozenHours", persisted.subsoilFrozenHours)
+    setXMLFloat(xml, root .. "#surfaceFreezeMinimumC", persisted.surfaceFreezeMinimumC)
+    setXMLFloat(xml, root .. "#subsoilFreezeMinimumC", persisted.subsoilFreezeMinimumC)
+    setXMLFloat(xml, root .. "#pendingSurfaceThawPulse", persisted.pendingSurfaceThawPulse)
+    setXMLFloat(xml, root .. "#pendingDeepThawPulse", persisted.pendingDeepThawPulse)
     setXMLFloat(xml, root .. "#surfaceFreezeThawCycles", self.surfaceFreezeThawCycles)
     setXMLFloat(xml, root .. "#deepFreezeThawCycles", self.deepFreezeThawCycles)
     saveXMLFile(xml)
     delete(xml)
 end
 
-local function updateFreezeLayer(manager, prefix, temperatureC, elapsedHours,
-        freezeEnterC, thawExitC, referenceHours,
-        referenceColdC, pendingKey, cycleKey)
+local function updateFreezeLayer(
+    manager,
+    prefix,
+    temperatureC,
+    elapsedHours,
+    freezeEnterC,
+    thawExitC,
+    referenceHours,
+    referenceColdC,
+    pendingKey,
+    cycleKey
+)
     local frozenKey = prefix .. "Frozen"
     local hoursKey = prefix .. "FrozenHours"
     local minimumKey = prefix .. "FreezeMinimumC"
@@ -345,24 +341,24 @@ local function updateFreezeLayer(manager, prefix, temperatureC, elapsedHours,
 
     -- The thawing slice is not counted as an extra frozen interval.
     if temperatureC < thawExitC then
-        manager[hoursKey] = math.max(tonumber(manager[hoursKey]) or 0, 0)
-            + elapsedHours
+        manager[hoursKey] = math.max(tonumber(manager[hoursKey]) or 0, 0) + elapsedHours
     end
-    manager[minimumKey] = math.min(
-        tonumber(manager[minimumKey]) or temperatureC, temperatureC)
-    if temperatureC < thawExitC then return end
+    manager[minimumKey] = math.min(tonumber(manager[minimumKey]) or temperatureC, temperatureC)
+    if temperatureC < thawExitC then
+        return
+    end
 
     local frozenHours = manager[hoursKey]
     local minimumC = manager[minimumKey]
-    local durationStrength = 1-math.exp(-frozenHours/math.max(referenceHours, 0.001))
-    local coldStrength = smoothStep01(
-        (freezeEnterC - minimumC) / math.max(referenceColdC, 0.001))
+    local durationStrength = 1 - math.exp(-frozenHours / math.max(referenceHours, 0.001))
+    local coldStrength = smoothStep01((freezeEnterC - minimumC) / math.max(referenceColdC, 0.001))
     local rawPulse = durationStrength * coldStrength
-    local pulse = rawPulse
-        / math.max(tonumber(manager.daysPerPeriod) or manager.NOMINAL_DAYS_PER_PERIOD, 1)
+    local pulse = rawPulse / math.max(tonumber(manager.daysPerPeriod) or manager.NOMINAL_DAYS_PER_PERIOD, 1)
     manager[pendingKey] = (tonumber(manager[pendingKey]) or 0) + pulse
-    local logger=TerraLogicWeatherLogger
-    if logger ~= nil and logger.active then logger:recordThawGenerated(prefix,rawPulse,pulse) end
+    local logger = TerraLogicWeatherLogger
+    if logger ~= nil and logger.active then
+        logger:recordThawGenerated(prefix, rawPulse, pulse)
+    end
     manager[cycleKey] = (tonumber(manager[cycleKey]) or 0) + 1
     manager[frozenKey] = false
     manager[hoursKey] = 0
@@ -371,26 +367,44 @@ local function updateFreezeLayer(manager, prefix, temperatureC, elapsedHours,
 end
 
 function TerraLogicSoilTemperatureManager:updateFreezeThaw(thermalHours)
-    updateFreezeLayer(self, "surface", self.surfaceTemperatureC, thermalHours,
-        self.SURFACE_FREEZE_ENTER_C, self.SURFACE_THAW_EXIT_C,
+    updateFreezeLayer(
+        self,
+        "surface",
+        self.surfaceTemperatureC,
+        thermalHours,
+        self.SURFACE_FREEZE_ENTER_C,
+        self.SURFACE_THAW_EXIT_C,
         self.SURFACE_REFERENCE_FROZEN_HOURS,
         self.SURFACE_REFERENCE_COLD_C,
-        "pendingSurfaceThawPulse", "surfaceFreezeThawCycles")
-    updateFreezeLayer(self, "subsoil", self.subsoilTemperatureC, thermalHours,
-        self.SUBSOIL_FREEZE_ENTER_C, self.SUBSOIL_THAW_EXIT_C,
+        "pendingSurfaceThawPulse",
+        "surfaceFreezeThawCycles"
+    )
+    updateFreezeLayer(
+        self,
+        "subsoil",
+        self.subsoilTemperatureC,
+        thermalHours,
+        self.SUBSOIL_FREEZE_ENTER_C,
+        self.SUBSOIL_THAW_EXIT_C,
         self.SUBSOIL_REFERENCE_FROZEN_HOURS,
         self.SUBSOIL_REFERENCE_COLD_C,
-        "pendingDeepThawPulse", "deepFreezeThawCycles")
+        "pendingDeepThawPulse",
+        "deepFreezeThawCycles"
+    )
 end
 
 function TerraLogicSoilTemperatureManager:consumeFreezeThawPulses()
     local mission = g_currentMission
-    if mission == nil or not mission:getIsServer() then return 0, 0 end
+    if mission == nil or not mission:getIsServer() then
+        return 0, 0
+    end
     local surface = math.max(tonumber(self.pendingSurfaceThawPulse) or 0, 0)
     local deep = math.max(tonumber(self.pendingDeepThawPulse) or 0, 0)
     if surface > 0 or deep > 0 then
-        local logger=TerraLogicWeatherLogger
-        if logger ~= nil and logger.active then logger:recordThawConsumed(surface,deep) end
+        local logger = TerraLogicWeatherLogger
+        if logger ~= nil and logger.active then
+            logger:recordThawConsumed(surface, deep)
+        end
         self.pendingSurfaceThawPulse = 0
         self.pendingDeepThawPulse = 0
         self.frostRevision = (self.frostRevision or 0) + 1
@@ -399,54 +413,55 @@ function TerraLogicSoilTemperatureManager:consumeFreezeThawPulses()
 end
 
 function TerraLogicSoilTemperatureManager:applyNetworkState(
-        airTemperatureC, surfaceTemperatureC, subsoilTemperatureC,
-        dailyMeanTemperatureC, climateMeanTemperatureC,
-        spinupClimateDays, daysPerPeriod, calendarScale,
-        dailyTemperatureHours, surfaceFrozen, subsoilFrozen,
-        surfaceFrozenHours, subsoilFrozenHours,
-        surfaceFreezeMinimumC, subsoilFreezeMinimumC,
-        pendingSurfaceThawPulse, pendingDeepThawPulse,
-        surfaceFreezeThawCycles, deepFreezeThawCycles)
+    airTemperatureC,
+    surfaceTemperatureC,
+    subsoilTemperatureC,
+    dailyMeanTemperatureC,
+    climateMeanTemperatureC,
+    spinupClimateDays,
+    daysPerPeriod,
+    calendarScale,
+    dailyTemperatureHours,
+    surfaceFrozen,
+    subsoilFrozen,
+    surfaceFrozenHours,
+    subsoilFrozenHours,
+    surfaceFreezeMinimumC,
+    subsoilFreezeMinimumC,
+    pendingSurfaceThawPulse,
+    pendingDeepThawPulse,
+    surfaceFreezeThawCycles,
+    deepFreezeThawCycles
+)
     self.airTemperatureC = clampTemperature(airTemperatureC, 10)
-    self.surfaceTemperatureC = clampTemperature(
-        surfaceTemperatureC, self.airTemperatureC)
-    self.subsoilTemperatureC = clampTemperature(
-        subsoilTemperatureC, self.surfaceTemperatureC)
-    self.dailyMeanTemperatureC = clampTemperature(
-        dailyMeanTemperatureC, self.surfaceTemperatureC)
-    self.climateMeanTemperatureC = clampTemperature(
-        climateMeanTemperatureC, self.subsoilTemperatureC)
-    self.spinupClimateDays = math.max(
-        tonumber(spinupClimateDays) or 0, 0)
-    self.daysPerPeriod = math.max(tonumber(daysPerPeriod)
-        or self.NOMINAL_DAYS_PER_PERIOD, 1)
-    self.calendarScale = math.max(
-        tonumber(calendarScale) or 1, 1)
-    self.dailyTemperatureHours = math.max(math.min(
-        tonumber(dailyTemperatureHours) or 0,
-        self.DAILY_WINDOW_HOURS), 0)
+    self.surfaceTemperatureC = clampTemperature(surfaceTemperatureC, self.airTemperatureC)
+    self.subsoilTemperatureC = clampTemperature(subsoilTemperatureC, self.surfaceTemperatureC)
+    self.dailyMeanTemperatureC = clampTemperature(dailyMeanTemperatureC, self.surfaceTemperatureC)
+    self.climateMeanTemperatureC = clampTemperature(climateMeanTemperatureC, self.subsoilTemperatureC)
+    self.spinupClimateDays = math.max(tonumber(spinupClimateDays) or 0, 0)
+    self.daysPerPeriod = math.max(tonumber(daysPerPeriod) or self.NOMINAL_DAYS_PER_PERIOD, 1)
+    self.calendarScale = math.max(tonumber(calendarScale) or 1, 1)
+    self.dailyTemperatureHours = math.max(math.min(tonumber(dailyTemperatureHours) or 0, self.DAILY_WINDOW_HOURS), 0)
     self.dailyTemperatureWeightedSum = 0
     self.surfaceFrozen = surfaceFrozen == true
     self.subsoilFrozen = subsoilFrozen == true
     self.surfaceFrozenHours = math.max(tonumber(surfaceFrozenHours) or 0, 0)
     self.subsoilFrozenHours = math.max(tonumber(subsoilFrozenHours) or 0, 0)
-    self.surfaceFreezeMinimumC = clampTemperature(
-        surfaceFreezeMinimumC, self.surfaceTemperatureC)
-    self.subsoilFreezeMinimumC = clampTemperature(
-        subsoilFreezeMinimumC, self.subsoilTemperatureC)
+    self.surfaceFreezeMinimumC = clampTemperature(surfaceFreezeMinimumC, self.surfaceTemperatureC)
+    self.subsoilFreezeMinimumC = clampTemperature(subsoilFreezeMinimumC, self.subsoilTemperatureC)
     self.pendingSurfaceThawPulse = math.max(0, tonumber(pendingSurfaceThawPulse) or 0)
     self.pendingDeepThawPulse = math.max(0, tonumber(pendingDeepThawPulse) or 0)
-    self.surfaceFreezeThawCycles = math.max(0,
-        tonumber(surfaceFreezeThawCycles) or 0)
-    self.deepFreezeThawCycles = math.max(0,
-        tonumber(deepFreezeThawCycles) or 0)
+    self.surfaceFreezeThawCycles = math.max(0, tonumber(surfaceFreezeThawCycles) or 0)
+    self.deepFreezeThawCycles = math.max(0, tonumber(deepFreezeThawCycles) or 0)
     self.temperatureSource = "server synchronization"
     self.daysPerPeriodSource = "server synchronization"
     self.initialized = true
 end
 
 function TerraLogicSoilTemperatureManager:sendState(connection)
-    if g_server == nil or self.initialized ~= true then return end
+    if g_server == nil or self.initialized ~= true then
+        return
+    end
     local event = TerraLogicSoilTemperatureSyncEvent.new(
         self.airTemperatureC,
         self.surfaceTemperatureC,
@@ -466,7 +481,8 @@ function TerraLogicSoilTemperatureManager:sendState(connection)
         self.pendingSurfaceThawPulse,
         self.pendingDeepThawPulse,
         self.surfaceFreezeThawCycles,
-        self.deepFreezeThawCycles)
+        self.deepFreezeThawCycles
+    )
     if connection ~= nil then
         connection:sendEvent(event)
     else
@@ -480,11 +496,14 @@ end
 
 function TerraLogicSoilTemperatureManager:update(dt)
     local mission = g_currentMission
-    if mission == nil or not mission:getIsServer()
-        or self.initialized ~= true then return end
+    if mission == nil or not mission:getIsServer() or self.initialized ~= true then
+        return
+    end
     -- Keep a complete, internally consistent frost state fixed during an
     -- audit preset. Ordinary gameplay never sets this runtime-only flag.
-    if self.auditOverrideActive == true then return end
+    if self.auditOverrideActive == true then
+        return
+    end
 
     local airTemperature, source = self:getWeatherTemperature()
     if airTemperature == nil then
@@ -496,59 +515,53 @@ function TerraLogicSoilTemperatureManager:update(dt)
 
     local realDtMs = math.max(tonumber(dt) or 0, 0)
     local timeScale = self:getEffectiveTimeScale()
-    local gameHours = math.min(
-        realDtMs * timeScale / 3600000,
-        self.MAX_GAME_HOURS_PER_UPDATE)
+    local gameHours = math.min(realDtMs * timeScale / 3600000, self.MAX_GAME_HOURS_PER_UPDATE)
     if gameHours > 0 then
-        self.daysPerPeriod, self.daysPerPeriodSource =
-            self:getDaysPerPeriod()
-        self.calendarScale = self.NOMINAL_DAYS_PER_PERIOD
-            / math.max(self.daysPerPeriod, 1)
-        self.calendarScale = math.max(
-            1, math.min(self.calendarScale, 30))
+        self.daysPerPeriod, self.daysPerPeriodSource = self:getDaysPerPeriod()
+        self.calendarScale = self.NOMINAL_DAYS_PER_PERIOD / math.max(self.daysPerPeriod, 1)
+        self.calendarScale = math.max(1, math.min(self.calendarScale, 30))
 
         -- One shared thermal clock: 28-day months run at the reference pace;
         -- a one-day month advances thermal time 28 times faster. Continuous
         -- filters replace the old midnight batch. Substeps keep high time
         -- scales and normal play consistent, including frost transitions.
-        local remainingHours = gameHours*self.calendarScale
+        local remainingHours = gameHours * self.calendarScale
         while remainingHours > 0.0000001 do
             local hours = math.min(remainingHours, self.MAX_THERMAL_STEP_HOURS)
-            remainingHours = remainingHours-hours
-            self.surfaceTemperatureC = approachExponential(self.surfaceTemperatureC,
-                airTemperature, hours, self.SURFACE_TAU_HOURS)
-            self.dailyMeanTemperatureC = approachExponential(self.dailyMeanTemperatureC,
-                airTemperature, hours, self.DAILY_WINDOW_HOURS)
-            self.climateMeanTemperatureC = approachExponential(self.climateMeanTemperatureC,
-                self.dailyMeanTemperatureC, hours, self.CLIMATE_MEAN_TAU_DAYS*24)
+            remainingHours = remainingHours - hours
+            self.surfaceTemperatureC =
+                approachExponential(self.surfaceTemperatureC, airTemperature, hours, self.SURFACE_TAU_HOURS)
+            self.dailyMeanTemperatureC =
+                approachExponential(self.dailyMeanTemperatureC, airTemperature, hours, self.DAILY_WINDOW_HOURS)
+            self.climateMeanTemperatureC = approachExponential(
+                self.climateMeanTemperatureC,
+                self.dailyMeanTemperatureC,
+                hours,
+                self.CLIMATE_MEAN_TAU_DAYS * 24
+            )
             local subsoilTarget = self.climateMeanTemperatureC
-                + self.SUBSOIL_SEASONAL_AMPLITUDE
-                * (self.dailyMeanTemperatureC-self.climateMeanTemperatureC)
-            self.subsoilTemperatureC = approachExponential(self.subsoilTemperatureC,
-                subsoilTarget, hours, self.SUBSOIL_TAU_CLIMATE_DAYS*24)
+                + self.SUBSOIL_SEASONAL_AMPLITUDE * (self.dailyMeanTemperatureC - self.climateMeanTemperatureC)
+            self.subsoilTemperatureC =
+                approachExponential(self.subsoilTemperatureC, subsoilTarget, hours, self.SUBSOIL_TAU_CLIMATE_DAYS * 24)
             self:updateFreezeThaw(hours)
-            local logger=TerraLogicWeatherLogger
-            if logger ~= nil and logger.active then logger:recordThermalStep(hours,self) end
+            local logger = TerraLogicWeatherLogger
+            if logger ~= nil and logger.active then
+                logger:recordThermalStep(hours, self)
+            end
         end
-        self.spinupClimateDays = self.spinupClimateDays+gameHours*self.calendarScale/24
+        self.spinupClimateDays = self.spinupClimateDays + gameHours * self.calendarScale / 24
         self.dailyTemperatureWeightedSum, self.dailyTemperatureHours = 0, 0
         self.simulatedGameHours = self.simulatedGameHours + gameHours
     end
 
     self.syncTimerMs = (tonumber(self.syncTimerMs) or 0) - realDtMs
-    self.syncKeepaliveMs = (tonumber(self.syncKeepaliveMs) or 0)
-        + realDtMs
+    self.syncKeepaliveMs = (tonumber(self.syncKeepaliveMs) or 0) + realDtMs
     if self.syncTimerMs <= 0 then
         self.syncTimerMs = self.SYNC_INTERVAL_MS
         local changed = self.lastSyncSurfaceC == nil
-            or math.abs(self.surfaceTemperatureC
-                - self.lastSyncSurfaceC)
-                >= self.SYNC_TEMPERATURE_THRESHOLD_C
-            or math.abs(self.subsoilTemperatureC
-                - self.lastSyncSubsoilC)
-                >= self.SYNC_TEMPERATURE_THRESHOLD_C
-            or (self.frostRevision or 0)
-                ~= (self.lastSyncFrostRevision or -1)
+            or math.abs(self.surfaceTemperatureC - self.lastSyncSurfaceC) >= self.SYNC_TEMPERATURE_THRESHOLD_C
+            or math.abs(self.subsoilTemperatureC - self.lastSyncSubsoilC) >= self.SYNC_TEMPERATURE_THRESHOLD_C
+            or (self.frostRevision or 0) ~= (self.lastSyncFrostRevision or -1)
         if changed or self.syncKeepaliveMs >= self.SYNC_KEEPALIVE_MS then
             self:sendState(nil)
         end
@@ -556,10 +569,7 @@ function TerraLogicSoilTemperatureManager:update(dt)
 end
 
 function TerraLogicSoilTemperatureManager:getState()
-    local spinup = math.min(
-        (tonumber(self.spinupClimateDays) or 0)
-            / self.SPINUP_CLIMATE_DAYS,
-        1)
+    local spinup = math.min((tonumber(self.spinupClimateDays) or 0) / self.SPINUP_CLIMATE_DAYS, 1)
     return {
         initialized = self.initialized == true,
         auditOverrideActive = self.auditOverrideActive == true,
@@ -573,37 +583,28 @@ function TerraLogicSoilTemperatureManager:getState()
         subsoilDepthCm = self.SUBSOIL_DEPTH_CM,
         surfaceLagHours = self.SURFACE_TAU_HOURS,
         subsoilResponseClimateDays = self.SUBSOIL_TAU_CLIMATE_DAYS,
-        daysPerPeriod = tonumber(self.daysPerPeriod)
-            or self.NOMINAL_DAYS_PER_PERIOD,
+        daysPerPeriod = tonumber(self.daysPerPeriod) or self.NOMINAL_DAYS_PER_PERIOD,
         calendarScale = tonumber(self.calendarScale) or 1,
         dailySampleFraction = math.min(
-            math.max(tonumber(self.dailyTemperatureHours) or 0, 0)
-                / self.DAILY_WINDOW_HOURS,
-            1),
+            math.max(tonumber(self.dailyTemperatureHours) or 0, 0) / self.DAILY_WINDOW_HOURS,
+            1
+        ),
         spinupFraction = spinup,
         spinupComplete = spinup >= 1,
         surfaceFrozen = self.surfaceFrozen == true,
         subsoilFrozen = self.subsoilFrozen == true,
-        surfaceFrozenHours = math.max(
-            tonumber(self.surfaceFrozenHours) or 0, 0),
-        subsoilFrozenHours = math.max(
-            tonumber(self.subsoilFrozenHours) or 0, 0),
-        surfaceFreezeMinimumC = tonumber(self.surfaceFreezeMinimumC)
-            or tonumber(self.surfaceTemperatureC) or 0,
-        subsoilFreezeMinimumC = tonumber(self.subsoilFreezeMinimumC)
-            or tonumber(self.subsoilTemperatureC) or 0,
-        pendingSurfaceThawPulse = math.max(
-            tonumber(self.pendingSurfaceThawPulse) or 0, 0),
-        pendingDeepThawPulse = math.max(
-            tonumber(self.pendingDeepThawPulse) or 0, 0),
-        surfaceFreezeThawCycles = math.max(
-            tonumber(self.surfaceFreezeThawCycles) or 0, 0),
-        deepFreezeThawCycles = math.max(
-            tonumber(self.deepFreezeThawCycles) or 0, 0),
+        surfaceFrozenHours = math.max(tonumber(self.surfaceFrozenHours) or 0, 0),
+        subsoilFrozenHours = math.max(tonumber(self.subsoilFrozenHours) or 0, 0),
+        surfaceFreezeMinimumC = tonumber(self.surfaceFreezeMinimumC) or tonumber(self.surfaceTemperatureC) or 0,
+        subsoilFreezeMinimumC = tonumber(self.subsoilFreezeMinimumC) or tonumber(self.subsoilTemperatureC) or 0,
+        pendingSurfaceThawPulse = math.max(tonumber(self.pendingSurfaceThawPulse) or 0, 0),
+        pendingDeepThawPulse = math.max(tonumber(self.pendingDeepThawPulse) or 0, 0),
+        surfaceFreezeThawCycles = math.max(tonumber(self.surfaceFreezeThawCycles) or 0, 0),
+        deepFreezeThawCycles = math.max(tonumber(self.deepFreezeThawCycles) or 0, 0),
         gameplayEffectsActive = true,
         loadedFromSave = self.loadedFromSave == true,
         temperatureSource = self.temperatureSource or "unknown",
-        daysPerPeriodSource = self.daysPerPeriodSource or "unknown"
+        daysPerPeriodSource = self.daysPerPeriodSource or "unknown",
     }
 end
 
@@ -615,7 +616,9 @@ function TerraLogicSoilTemperatureManager:setAuditPreset(presetName)
     if name == "natural" or name == "off" then
         local snapshot = self.auditOverrideSnapshot
         if snapshot ~= nil then
-            for key, value in pairs(snapshot) do self[key] = value end
+            for key, value in pairs(snapshot) do
+                self[key] = value
+            end
         end
         self.auditOverrideActive = false
         self.auditOverridePreset = nil
@@ -625,16 +628,26 @@ function TerraLogicSoilTemperatureManager:setAuditPreset(presetName)
         return true, "natural temperature simulation restored"
     end
     local preset = AUDIT_TEMPERATURE_PRESETS[name]
-    if preset == nil then return false, "unknown temperature preset" end
+    if preset == nil then
+        return false, "unknown temperature preset"
+    end
     if self.auditOverrideSnapshot == nil then
         self.auditOverrideSnapshot = {}
-        for _, key in ipairs({"airTemperatureC", "surfaceTemperatureC",
-                "subsoilTemperatureC", "dailyMeanTemperatureC",
-                "climateMeanTemperatureC", "surfaceFrozen",
-                "subsoilFrozen", "surfaceFrozenHours",
-                "subsoilFrozenHours", "surfaceFreezeMinimumC",
-                "subsoilFreezeMinimumC", "pendingSurfaceThawPulse",
-                "pendingDeepThawPulse"}) do
+        for _, key in ipairs({
+            "airTemperatureC",
+            "surfaceTemperatureC",
+            "subsoilTemperatureC",
+            "dailyMeanTemperatureC",
+            "climateMeanTemperatureC",
+            "surfaceFrozen",
+            "subsoilFrozen",
+            "surfaceFrozenHours",
+            "subsoilFrozenHours",
+            "surfaceFreezeMinimumC",
+            "subsoilFreezeMinimumC",
+            "pendingSurfaceThawPulse",
+            "pendingDeepThawPulse",
+        }) do
             self.auditOverrideSnapshot[key] = self[key]
         end
     end
@@ -655,12 +668,13 @@ function TerraLogicSoilTemperatureManager:setAuditPreset(presetName)
     self.auditOverridePreset = name
     self.frostRevision = (tonumber(self.frostRevision) or 0) + 1
     self:sendState(nil)
-    return true, string.format("%s temperature: %.1f/%.1f C",
-        name, preset.surface, preset.subsoil)
+    return true, string.format("%s temperature: %.1f/%.1f C", name, preset.surface, preset.subsoil)
 end
 
 function TerraLogicSoilTemperatureManager:delete(saveFirst)
-    if saveFirst == true then self:save() end
+    if saveFirst == true then
+        self:save()
+    end
     self.initialized = false
     self.airTemperatureC = nil
     self.surfaceTemperatureC = nil
@@ -693,25 +707,34 @@ end
 -- Multiplayer synchronization ----------------------------------------------
 
 TerraLogicSoilTemperatureSyncEvent = {}
-local TerraLogicSoilTemperatureSyncEvent_mt = Class(
-    TerraLogicSoilTemperatureSyncEvent, Event)
-InitEventClass(
-    TerraLogicSoilTemperatureSyncEvent,
-    "TerraLogicSoilTemperatureSyncEvent")
+local TerraLogicSoilTemperatureSyncEvent_mt = Class(TerraLogicSoilTemperatureSyncEvent, Event)
+InitEventClass(TerraLogicSoilTemperatureSyncEvent, "TerraLogicSoilTemperatureSyncEvent")
 
 function TerraLogicSoilTemperatureSyncEvent.emptyNew()
     return Event.new(TerraLogicSoilTemperatureSyncEvent_mt)
 end
 
 function TerraLogicSoilTemperatureSyncEvent.new(
-        airTemperatureC, surfaceTemperatureC, subsoilTemperatureC,
-        dailyMeanTemperatureC, climateMeanTemperatureC,
-        spinupClimateDays, daysPerPeriod, calendarScale,
-        dailyTemperatureHours, surfaceFrozen, subsoilFrozen,
-        surfaceFrozenHours, subsoilFrozenHours,
-        surfaceFreezeMinimumC, subsoilFreezeMinimumC,
-        pendingSurfaceThawPulse, pendingDeepThawPulse,
-        surfaceFreezeThawCycles, deepFreezeThawCycles)
+    airTemperatureC,
+    surfaceTemperatureC,
+    subsoilTemperatureC,
+    dailyMeanTemperatureC,
+    climateMeanTemperatureC,
+    spinupClimateDays,
+    daysPerPeriod,
+    calendarScale,
+    dailyTemperatureHours,
+    surfaceFrozen,
+    subsoilFrozen,
+    surfaceFrozenHours,
+    subsoilFrozenHours,
+    surfaceFreezeMinimumC,
+    subsoilFreezeMinimumC,
+    pendingSurfaceThawPulse,
+    pendingDeepThawPulse,
+    surfaceFreezeThawCycles,
+    deepFreezeThawCycles
+)
     local self = TerraLogicSoilTemperatureSyncEvent.emptyNew()
     self.airTemperatureC = airTemperatureC
     self.surfaceTemperatureC = surfaceTemperatureC
@@ -735,8 +758,7 @@ function TerraLogicSoilTemperatureSyncEvent.new(
     return self
 end
 
-function TerraLogicSoilTemperatureSyncEvent:readStream(
-        streamId, connection)
+function TerraLogicSoilTemperatureSyncEvent:readStream(streamId, connection)
     self.airTemperatureC = streamReadFloat32(streamId)
     self.surfaceTemperatureC = streamReadFloat32(streamId)
     self.subsoilTemperatureC = streamReadFloat32(streamId)
@@ -759,8 +781,7 @@ function TerraLogicSoilTemperatureSyncEvent:readStream(
     self:run(connection)
 end
 
-function TerraLogicSoilTemperatureSyncEvent:writeStream(
-        streamId, connection)
+function TerraLogicSoilTemperatureSyncEvent:writeStream(streamId, connection)
     streamWriteFloat32(streamId, self.airTemperatureC)
     streamWriteFloat32(streamId, self.surfaceTemperatureC)
     streamWriteFloat32(streamId, self.subsoilTemperatureC)
@@ -783,7 +804,9 @@ function TerraLogicSoilTemperatureSyncEvent:writeStream(
 end
 
 function TerraLogicSoilTemperatureSyncEvent:run(connection)
-    if not connection:getIsServer() then return end
+    if not connection:getIsServer() then
+        return
+    end
     TerraLogicSoilTemperatureManager:applyNetworkState(
         self.airTemperatureC,
         self.surfaceTemperatureC,
@@ -803,18 +826,22 @@ function TerraLogicSoilTemperatureSyncEvent:run(connection)
         self.pendingSurfaceThawPulse,
         self.pendingDeepThawPulse,
         self.surfaceFreezeThawCycles,
-        self.deepFreezeThawCycles)
+        self.deepFreezeThawCycles
+    )
 end
 
-if FSBaseMission ~= nil and FSBaseMission.sendInitialClientState ~= nil
-    and FSBaseMission.terraLogicSoilTemperatureSyncHookInstalled ~= true then
+if
+    FSBaseMission ~= nil
+    and FSBaseMission.sendInitialClientState ~= nil
+    and FSBaseMission.terraLogicSoilTemperatureSyncHookInstalled ~= true
+then
     FSBaseMission.terraLogicSoilTemperatureSyncHookInstalled = true
     FSBaseMission.sendInitialClientState = Utils.appendedFunction(
         FSBaseMission.sendInitialClientState,
         function(_, connection)
-            if g_server ~= nil
-                and TerraLogicSoilTemperatureManager.initialized == true then
+            if g_server ~= nil and TerraLogicSoilTemperatureManager.initialized == true then
                 TerraLogicSoilTemperatureManager:sendState(connection)
             end
-        end)
+        end
+    )
 end

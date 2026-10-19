@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8" standalone="no" ?>
-<modDesc descVersion="114">
+<modDesc descVersion="113">
     <author>The Mod Workshop</author>
-    <version>1.2.1.1</version>
+    <version>1.2.1.2</version>
 
     <iconFilename>icon_terraLogic.dds</iconFilename>
 
     <title>
         <en>TerraLogic BETA</en>
     
-        <it><![CDATA[TerraLogic BETA]]></it>
     </title>
 
     <description>
@@ -279,7 +278,6 @@ https://github.com/TheModWorkshop/FS25_TerraLogic
                 <paragraph><title text="$l10n_terraLogic_help_weather_h2" /><text text="$l10n_terraLogic_help_weather_p2" /></paragraph>
                 <paragraph><title text="$l10n_terraLogic_help_weather_h3" /><text text="$l10n_terraLogic_help_weather_p3" /></paragraph>
                 <paragraph><title text="$l10n_terraLogic_help_weather_h4" /><text text="$l10n_terraLogic_help_weather_p4" /></paragraph>
-                <paragraph><title text="$l10n_terraLogic_msHelpTitle" /><text text="$l10n_terraLogic_msHelp" /></paragraph>
                 <paragraph><title text="$l10n_terraLogic_help_example" /><text text="$l10n_terraLogic_help_weather_example" /></paragraph>
             </page>
             <page id="terraLogicHelpRecovery" title="$l10n_terraLogic_help_recovery_title" iconFilename="icon_terraLogic.dds">
@@ -324,6 +322,7 @@ https://github.com/TheModWorkshop/FS25_TerraLogic
     </helpLines>
 
     <extraSourceFiles>
+        <sourceFile filename="scripts\TerraLogicRuntimeState.lua" />
         <sourceFile filename="scripts\TerraLogicI18n.lua" />
         <sourceFile filename="scripts\TerraLogicDisplay.lua" />
         <sourceFile filename="scripts\TerraLogicSettings.lua" />
